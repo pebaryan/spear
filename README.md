@@ -39,9 +39,19 @@ The engine follows a decoupled, asynchronous pattern:
 ### 5. Getting Started
 
 1. **Start Triplestore:** Ensure a SPARQL 1.1 compatible store is running.
-2. **Bootstrap:** Run `python bootstrap.py` to upload process maps.
-3. **Launch Engine:** Run `python app.py` to start the Flask API and Worker thread.
-4. **Monitor:** Use the included SPARQL queries to view real-time performance and bottlenecks.
+2. **Import BPMN Models:** Convert BPMN 2.0 XML files to RDF using the bpmn2rdf converter:
+   ```bash
+   python bpmn2rdf.py myprocess.bpmn -o myprocess.ttl
+   ```
+   Or use programmatically:
+   ```python
+   from bpmn2rdf import BPMNToRDFConverter
+   converter = BPMNToRDFConverter()
+   graph = converter.parse_bpmn_to_graph("myprocess.bpmn")
+   ```
+3. **Bootstrap:** Run `python bootstrap.py` to upload process maps.
+4. **Launch Engine:** Run `python app.py` to start the Flask API and Worker thread.
+5. **Monitor:** Use the included SPARQL queries to view real-time performance and bottlenecks.
 
 ---
 

@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """
 BPMN to RDF Converter
-Converts BPMN 2.0 XML files (Camunda 7) to RDF Turtle format
+Converts BPMN 2.0 XML files (Camunda 7) to RDF Turtle format or rdflib.Graph
 author: Sonnet 4.5
+
+This module provides two main conversion methods:
+- parse_bpmn(): Returns RDF triples as Turtle format string
+- parse_bpmn_to_graph(): Returns an rdflib.Graph instance for programmatic use
 """
 
 import xml.etree.ElementTree as ET
 from typing import Dict, Set
 import sys
 import argparse
+from rdflib import Graph
 
 class BPMNToRDFConverter:
     def __init__(self):
@@ -36,12 +41,12 @@ class BPMNToRDFConverter:
         
     def parse_bpmn(self, file_path: str) -> str:
         """Parse BPMN XML file and convert to RDF Turtle format"""
-        tree = ET.parse(file_path)
-        root = tree.getroot()
-        
-        # Register namespaces for parsing
+        # Register namespaces for parsing BEFORE parsing the file
         for prefix, uri in self.namespaces.items():
             ET.register_namespace(prefix, uri)
+
+        tree = ET.parse(file_path)
+        root = tree.getroot()
         
         # Start building RDF
         self.triples = []
@@ -51,7 +56,36 @@ class BPMNToRDFConverter:
         self._process_element(root, None)
         
         return '\n'.join(self.triples)
-    
+
+    def parse_bpmn_to_graph(self, file_path: str) -> Graph:
+        """Parse BPMN XML file and return an rdflib.Graph instance
+
+        This method wraps parse_bpmn() and parses the resulting Turtle string
+        into an rdflib.Graph for programmatic use.
+
+        Args:
+            file_path: Path to the BPMN XML file
+
+        Returns:
+            rdflib.Graph containing the parsed BPMN model as RDF triples
+
+        Example:
+            converter = BPMNToRDFConverter()
+            graph = converter.parse_bpmn_to_graph("process.bpmn")
+
+            # Query the graph
+            for s, p, o in graph:
+                print(f"{s} {p} {o}")
+        """
+        # Get the Turtle string from the existing parse_bpmn method
+        turtle_data = self.parse_bpmn(file_path)
+
+        # Parse the Turtle string into an rdflib.Graph
+        graph = Graph()
+        graph.parse(data=turtle_data, format='turtle')
+
+        return graph
+
     def _add_prefixes(self):
         """Add RDF namespace prefixes"""
         for prefix, uri in self.rdf_namespaces.items():
@@ -65,7 +99,13 @@ class BPMNToRDFConverter:
     def _get_tag_name(self, tag: str) -> str:
         """Extract tag name from qualified name"""
         if '}' in tag:
-            return tag.split('}')[1]
+            # Handle namespaced tags like {http://www.omg.org/spec/BPMN/20100524/MODEL}process
+            namespace_uri = tag.split('}')[0][1:]  # Remove { and }
+            local_name = tag.split('}')[1]
+            # Check if this is a BPMN namespace
+            if namespace_uri == self.namespaces.get('bpmn'):
+                return local_name
+            return local_name  # Return local name for other namespaces too
         return tag
     
     def _process_element(self, element, parent_uri):

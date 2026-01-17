@@ -2,12 +2,28 @@
 
 ## Overview
 
-This document outlines the step-by-step development plan to transform the current RDF-based prototype into a fully-featured business process engine comparable to Camunda. Based on analysis of `rdfengine.py`, we have foundational components but need comprehensive expansion across all BPMN 2.0 features.
+This document outlines the step-by-step development plan to transform the current RDF-based prototype into a fully-featured business process engine comparable to Camunda. Based on analysis of `rdfengine.py` and the newly implemented `bpmn2rdf.py`, we have made significant progress on the BPMN parsing layer but still need comprehensive expansion across execution and management features.
+
+## Recent Developments (Updated 2025-01-17)
+
+### ✅ New BPMN Import Capability
+- **bpmn2rdf.py** implementation completed: Full BPMN 2.0 XML → RDF conversion
+- Supports Camunda Modeler compatibility
+- Command-line tool for batch processing BPMN files
+- **NEW**: `parse_bpmn_to_graph()` method returns `rdflib.Graph` for programmatic use
+- Handles all BPMN elements, extensions, and relationships
+- **Impact**: Eliminates the need for manual RDF authoring, enables standard BPMN tooling integration, ready for process deployment API integration
 
 ## Current State Analysis
 
 ### ✅ Implemented Features
 - RDF-based process model storage using rdflib
+- **BPMN XML parsing and RDF conversion** (bpmn2rdf.py)
+  - Full BPMN 2.0 XML parsing with xml.etree.ElementTree
+  - Automatic conversion to RDF Turtle format
+  - **Programmatic rdflib.Graph output** via `parse_bpmn_to_graph()` method
+  - Camunda extension support
+  - Command-line interface for batch processing
 - Basic process execution engine with token movement
 - ProcessContext for variable management (get/set operations)
 - Condition evaluation (simple operators and SPARQL queries)
@@ -17,7 +33,8 @@ This document outlines the step-by-step development plan to transform the curren
 - Audit trail concepts
 
 ### ❌ Missing Critical Features
-- Process deployment and parsing
+- Process deployment API integration (needs to use bpmn2rdf.py output)
+- Process definition validation
 - Complete instance lifecycle management
 - User task management
 - Event handling (timers, messages, signals)
@@ -32,10 +49,15 @@ This document outlines the step-by-step development plan to transform the curren
 ### Phase 1: Core Engine Completion (Weeks 1-4)
 
 #### 1.1 Process Definition Management
+- [x] **BPMN XML parsing and RDF conversion** (COMPLETED - bpmn2rdf.py)
+  - ✅ BPMN XML parsing using xml.etree.ElementTree
+  - ✅ Automatic conversion to RDF Turtle format
+  - ✅ Camunda extension support
+  - Command-line interface for batch processing
 - [ ] **Create process deployment API**
-  - Implement BPMN XML parsing (use xml.etree or lxml)
-  - Convert BPMN to RDF triples
-  - Validate process definitions
+  - Integrate bpmn2rdf.py `parse_bpmn_to_graph()` with triplestore storage
+  - Implement deployment endpoints for process models
+  - Validate process definitions (BPMN schema validation)
   - Store process definitions in named graphs
 - [ ] **Add process versioning**
   - Support multiple versions of same process
@@ -234,12 +256,13 @@ This document outlines the step-by-step development plan to transform the curren
 ## Implementation Priority Guidelines
 
 ### High Priority (Must-Have for MVP)
-1. Complete process instance lifecycle management
-2. User task implementation with REST API
-3. Timer events and scheduling
-4. Error handling and boundary events
-5. Persistence layer
-6. Basic monitoring and audit trails
+1. **Process deployment API** (now unblocked by bpmn2rdf.py)
+2. Complete process instance lifecycle management
+3. User task implementation with REST API
+4. Timer events and scheduling
+5. Error handling and boundary events
+6. Persistence layer
+7. Basic monitoring and audit trails
 
 ### Medium Priority (Should-Have)
 1. Message correlation and external integration
@@ -293,8 +316,8 @@ This document outlines the step-by-step development plan to transform the curren
 ## Success Metrics
 
 ### Functional Completeness
+- ✅ BPMN 2.0 parsing and import (compatible with Camunda Modeler)
 - Support for 80% of BPMN 2.0 constructs
-- Compatible with Camunda Modeler
 - Successful execution of complex real-world processes
 
 ### Performance Targets
