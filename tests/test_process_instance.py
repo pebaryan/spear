@@ -1,37 +1,34 @@
 #!/usr/bin/env python3
 """
-Test the complete process instance start/stop functionality
+Test the complete process instance start/stop functionality using pytest assertions
 """
 
 from src.conversion import BPMNToRDFConverter
 from src.core import RDFProcessEngine
 import time
 import os
+import pytest
+
 
 def test_basic_process_instance():
     """Test basic process instance start and stop"""
-
-    print("🧪 Testing Basic Process Instance Management")
+    print("\n🧪 Testing Basic Process Instance Management")
     print("=" * 50)
 
     # Step 1: Load BPMN process definition
     print("\n1. Loading BPMN Process Definition...")
     converter = BPMNToRDFConverter()
-    try:
-        # Use the new path structure
-        bpmn_path = os.path.join("examples", "data", "processes", "simple_test.bpmn")
-        definition_graph = converter.parse_bpmn_to_graph(bpmn_path)
-        print(f"✅ Loaded process definition with {len(definition_graph)} triples")
-    except Exception as e:
-        print(f"❌ Failed to load process definition: {e}")
-        return False
+    bpmn_path = os.path.join("examples", "data", "processes", "simple_test.bpmn")
+    definition_graph = converter.parse_bpmn_to_graph(bpmn_path)
+    assert len(definition_graph) > 0, "Failed to load BPMN definition"
+    print(f"✅ Loaded process definition with {len(definition_graph)} triples")
 
     # Step 2: Initialize Process Engine
     print("\n2. Initializing Process Engine...")
     engine = RDFProcessEngine(definition_graph)
     print("✅ Process engine initialized")
 
-    # Step 3: Register a service task handler (if needed)
+    # Step 3: Register a service task handler
     def simple_handler(context):
         """Simple handler that does nothing"""
         customer = context.get_variable("customer_name") or "Unknown"
@@ -42,39 +39,39 @@ def test_basic_process_instance():
 
     # Step 4: Start Process Instance
     print("\n3. Starting Process Instance...")
-    try:
-        instance = engine.start_process_instance(
-            process_definition_uri="http://example.org/bpmn/simple_test.bpmn",
-            initial_variables={
-                "customer_name": "Test Customer",
-                "order_total": 99.99
-            }
-        )
+    instance = engine.start_process_instance(
+        process_definition_uri="http://example.org/bpmn/simple_test.bpmn",
+        initial_variables={
+            "customer_name": "Test Customer",
+            "order_total": 99.99
+        }
+    )
 
-        print("✅ Started process instance:")
-        print(f"   Instance ID: {instance.instance_id}")
-        print(f"   Status: {instance.status}")
-        print(f"   Tokens: {len(instance.tokens)}")
+    print("✅ Started process instance:")
+    print(f"   Instance ID: {instance.instance_id}")
+    print(f"   Status: {instance.status}")
+    print(f"   Tokens: {len(instance.tokens)}")
 
-        # Give it a moment to execute
-        time.sleep(0.1)
+    # Assertions
+    assert instance is not None, "Instance should be created"
+    assert instance.instance_id is not None, "Instance should have an ID"
+    assert instance.status in ["CREATED", "RUNNING", "COMPLETED"], f"Unexpected status: {instance.status}"
+    assert len(instance.tokens) > 0, "Instance should have at least one token"
 
-        # Check final status
-        status = engine.get_instance_status(instance.instance_id)
-        print(f"   Final Status: {status['status'] if status else 'Unknown'}")
+    # Give it a moment to execute
+    time.sleep(0.1)
 
-        return True
+    # Check final status
+    status = engine.get_instance_status(instance.instance_id)
+    assert status is not None, "Should be able to get instance status"
+    print(f"   Final Status: {status['status']}")
+    print("✅ Process instance test completed successfully")
 
-    except Exception as e:
-        print(f"❌ Failed to start process instance: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
 
 def test_stop_instance():
     """Test stopping a process instance"""
-
     print("\n4. Testing Process Instance Stop...")
+    
     converter = BPMNToRDFConverter()
     bpmn_path = os.path.join("examples", "data", "processes", "simple_test.bpmn")
     definition_graph = converter.parse_bpmn_to_graph(bpmn_path)
@@ -84,29 +81,44 @@ def test_stop_instance():
     instance = engine.start_process_instance(
         process_definition_uri="http://example.org/bpmn/simple_test.bpmn"
     )
-
     print(f"Started instance: {instance.instance_id}")
+    assert instance is not None, "Instance should be created"
 
     # Stop instance
     stopped = engine.stop_process_instance(instance.instance_id, "Test stop")
+    assert stopped is True, "Stop operation should return True"
     print(f"Stop result: {stopped}")
 
     # Check status
     status = engine.get_instance_status(instance.instance_id)
-    if status:
-        print(f"Final status: {status['status']}")
-        return status['status'] == 'TERMINATED'
-    else:
-        print("❌ Could not get instance status")
-        return False
+    assert status is not None, "Should be able to get instance status"
+    assert status['status'] == 'TERMINATED', f"Expected TERMINATED status, got {status['status']}"
+    print(f"Final status: {status['status']}")
+    print("✅ Process instance stop test completed successfully")
+
 
 if __name__ == "__main__":
-    success1 = test_basic_process_instance()
+    # Allow running tests directly without pytest
+    print("Running tests directly (use pytest for proper test framework)...")
     print()
-    success2 = test_stop_instance()
-
-    print("\n" + "=" * 50)
-    if success1 and success2:
-        print("🎉 All tests passed! Process instance management is working.")
-    else:
-        print("❌ Some tests failed.")
+    
+    try:
+        test_basic_process_instance()
+        print("\n✅ test_basic_process_instance PASSED")
+    except Exception as e:
+        print(f"\n❌ test_basic_process_instance FAILED: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    print("\n" + "=" * 60)
+    
+    try:
+        test_stop_instance()
+        print("\n✅ test_stop_instance PASSED")
+    except Exception as e:
+        print(f"\n❌ test_stop_instance FAILED: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    print("\n" + "=" * 60)
+    print("Direct test execution complete")
