@@ -6,13 +6,13 @@ Test script to check for syntax and import errors
 print("Testing imports...")
 
 try:
-    from bpmn2rdf import BPMNToRDFConverter
+    from src.conversion import BPMNToRDFConverter
     print("✅ BPMNToRDFConverter import successful")
 except Exception as e:
     print(f"❌ BPMNToRDFConverter import failed: {e}")
 
 try:
-    from rdf_process_engine import RDFProcessEngine, ProcessInstance, Token
+    from src.core import RDFProcessEngine, ProcessInstance, Token
     print("✅ RDFProcessEngine import successful")
 except Exception as e:
     print(f"❌ RDFProcessEngine import failed: {e}")

@@ -3,9 +3,10 @@
 Test the complete process instance start/stop functionality
 """
 
-from bpmn2rdf import BPMNToRDFConverter
-from rdf_process_engine import RDFProcessEngine
+from src.conversion import BPMNToRDFConverter
+from src.core import RDFProcessEngine
 import time
+import os
 
 def test_basic_process_instance():
     """Test basic process instance start and stop"""
@@ -17,7 +18,9 @@ def test_basic_process_instance():
     print("\n1. Loading BPMN Process Definition...")
     converter = BPMNToRDFConverter()
     try:
-        definition_graph = converter.parse_bpmn_to_graph("simple_test.bpmn")
+        # Use the new path structure
+        bpmn_path = os.path.join("examples", "data", "processes", "simple_test.bpmn")
+        definition_graph = converter.parse_bpmn_to_graph(bpmn_path)
         print(f"✅ Loaded process definition with {len(definition_graph)} triples")
     except Exception as e:
         print(f"❌ Failed to load process definition: {e}")
@@ -73,7 +76,8 @@ def test_stop_instance():
 
     print("\n4. Testing Process Instance Stop...")
     converter = BPMNToRDFConverter()
-    definition_graph = converter.parse_bpmn_to_graph("simple_test.bpmn")
+    bpmn_path = os.path.join("examples", "data", "processes", "simple_test.bpmn")
+    definition_graph = converter.parse_bpmn_to_graph(bpmn_path)
     engine = RDFProcessEngine(definition_graph)
 
     # Start instance
