@@ -1,0 +1,20 @@
+# SPEAR - Semantic Process Engine as RDF
+# Core dependencies
+rdflib>=7.0.0
+pyparsing>=3.0.0
+
+# API dependencies
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+pydantic>=2.0.0
+
+# Testing dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Optional: Graph database connection
+# sparqlwrapper>=1.8.0
+
+# Optional: Additional utilities
+python-multipart>=0.0.6
+aiofiles>=23.0.0

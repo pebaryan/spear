@@ -17,3 +17,5 @@ __all__ = [
     # Export
     'export_to_xes_csv'
 ]
+
+__version__ = "1.0.0"

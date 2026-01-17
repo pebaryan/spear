@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+"""
+Test script for SPEAR REST API
+"""
+
+import pytest
+from fastapi.testclient import TestClient
+from src.api.main import app
+
+
+@pytest.fixture
+def client():
+    """Create a test client"""
+    return TestClient(app)
+
+
+def test_health_check(client):
+    """Test health endpoint"""
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert "version" in data
+    assert "triple_count" in data
+
+
+def test_api_info(client):
+    """Test API info endpoint"""
+    response = client.get("/info")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "SPEAR BPMN Engine API"
+    assert data["version"] == "1.0.0"
+
+
+def test_root_endpoint(client):
+    """Test root endpoint"""
+    response = client.get("/")
+    assert response.status_code == 200
+    data = response.json()
+    assert "name" in data
+    assert "version" in data
+    assert "endpoints" in data
+
+
+def test_statistics_endpoint(client):
+    """Test statistics endpoint"""
+    response = client.get("/statistics")
+    assert response.status_code == 200
+    data = response.json()
+    assert "processes" in data
+    assert "instances" in data
+    assert "rdf_storage" in data
+
+
+def test_processes_list_empty(client):
+    """Test listing processes when empty"""
+    response = client.get("/api/v1/processes")
+    assert response.status_code == 200
+    data = response.json()
+    assert "processes" in data
+    assert "total" in data
+    assert data["total"] >= 0
+
+
+def test_instances_list_empty(client):
+    """Test listing instances when empty"""
+    response = client.get("/api/v1/instances")
+    assert response.status_code == 200
+    data = response.json()
+    assert "instances" in data
+    assert "total" in data
+    assert data["total"] >= 0
+
+
+def test_get_nonexistent_process(client):
+    """Test getting a process that doesn't exist"""
+    response = client.get("/api/v1/processes/nonexistent-id")
+    assert response.status_code == 404
+
+
+def test_get_nonexistent_instance(client):
+    """Test getting an instance that doesn't exist"""
+    response = client.get("/api/v1/instances/nonexistent-id")
+    assert response.status_code == 404
+
+
+def test_stop_nonexistent_instance(client):
+    """Test stopping an instance that doesn't exist"""
+    response = client.post(
+        "/api/v1/instances/nonexistent-id/stop",
+        json={"reason": "Test"}
+    )
+    assert response.status_code == 404
+
+
+def test_deploy_and_manage_process(client, sample_bpmn):
+    """Test complete process deployment and management lifecycle"""
+    # 1. Deploy a process
+    response = client.post(
+        "/api/v1/processes",
+        json={
+            "name": "Test Process",
+            "description": "A test process",
+            "version": "1.0.0",
+            "bpmn_file": sample_bpmn
+        }
+    )
+    assert response.status_code == 201
+    process_id = response.json()["id"]
+    
+    # 2. Get the process
+    response = client.get(f"/api/v1/processes/{process_id}")
+    assert response.status_code == 200
+    assert response.json()["name"] == "Test Process"
+    
+    # 3. List processes
+    response = client.get("/api/v1/processes")
+    assert response.status_code == 200
+    processes = response.json()["processes"]
+    assert any(p["id"] == process_id for p in processes)
+    
+    # 4. Get process RDF
+    response = client.get(f"/api/v1/processes/{process_id}/rdf")
+    assert response.status_code == 200
+    assert "rdf" in response.json()
+    
+    # 5. Start an instance
+    response = client.post(
+        "/api/v1/instances",
+        json={
+            "process_id": process_id,
+            "variables": {"test_var": "value"}
+        }
+    )
+    assert response.status_code == 201
+    instance_id = response.json()["id"]
+    
+    # 6. Get instance
+    response = client.get(f"/api/v1/instances/{instance_id}")
+    assert response.status_code == 200
+    assert response.json()["process_id"] == process_id
+    
+    # 7. Stop instance
+    response = client.post(f"/api/v1/instances/{instance_id}/stop")
+    assert response.status_code == 200
+    assert response.json()["status"] == "TERMINATED"
+    
+    # 8. Delete process (cleanup)
+    response = client.delete(f"/api/v1/processes/{process_id}")
+    assert response.status_code == 204
+
+
+# Sample BPMN for testing
+@pytest.fixture
+def sample_bpmn():
+    """Provide a sample BPMN XML for testing"""
+    return """<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             id="Definitions_1"
+             targetNamespace="http://example.org/bpmn">
+  <process id="TestProcess" isExecutable="true">
+    <startEvent id="StartEvent_1" name="Start">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+    <endEvent id="EndEvent_1" name="End">
+      <incoming>Flow_1</incoming>
+    </endEvent>
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="EndEvent_1" />
+  </process>
+</definitions>"""
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

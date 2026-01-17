@@ -1,0 +1,240 @@
+@prefix ns1: <http://dkm.fbk.eu/index.php/BPMN2_Ontology#> .
+@prefix ns11: <http://example.org/audit/> .
+@prefix ns13: <http://example.org/variables/> .
+@prefix ns2: <http://example.org/meta/> .
+@prefix ns21: <http://example.org/instance/> .
+@prefix ns3: <http://example.org/process/> .
+@prefix ns4: <http://camunda.org/schema/1.0/bpmn#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ns11:event_1d24ca79-7a6a-419d-b4ff-28064ba86fcf a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns21:76df3a06-51db-4038-8b09-d48bdcae8018 ;
+    ns11:timestamp "2026-01-17T12:29:04.244697" ;
+    ns11:user "System" .
+
+ns11:event_3c562cdc-4130-4ff8-abb4-5b448842ebb8 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns21:b2861961-f399-4b62-b4bb-6fa63ee46556 ;
+    ns11:timestamp "2026-01-17T12:28:19.508525" ;
+    ns11:user "System" .
+
+ns11:event_3fdbb946-6a93-422d-9077-b25c4abf10d7 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns21:c7697c83-105b-434b-b1a3-c908d0ec027a ;
+    ns11:timestamp "2026-01-17T12:31:21.472450" ;
+    ns11:user "System" .
+
+ns11:event_561739eb-a0be-4281-8540-e792c8ffee48 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns21:11b30892-9577-4da6-a911-a7fddec264a7 ;
+    ns11:timestamp "2026-01-17T12:30:33.534099" ;
+    ns11:user "System" .
+
+ns11:event_5b1a5f38-4b9f-4ce5-8bfa-5831bb2428be a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns21:11b30892-9577-4da6-a911-a7fddec264a7 ;
+    ns11:timestamp "2026-01-17T12:30:33.543618" ;
+    ns11:user "System" .
+
+ns11:event_5b5fa4e7-8664-42d4-a3c0-b7ccc12cf6f2 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns21:c7697c83-105b-434b-b1a3-c908d0ec027a ;
+    ns11:timestamp "2026-01-17T12:31:21.477801" ;
+    ns11:user "System" .
+
+ns11:event_903ca73c-93d7-4836-8607-4afeefbe0d86 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns21:605c0293-2324-4cb7-8868-2ab64fc74924 ;
+    ns11:timestamp "2026-01-17T12:29:48.876871" ;
+    ns11:user "System" .
+
+ns11:event_935ac432-b00b-4216-b826-10f49bfae835 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns21:11b30892-9577-4da6-a911-a7fddec264a7 ;
+    ns11:timestamp "2026-01-17T12:30:33.537855" ;
+    ns11:user "System" .
+
+ns11:event_ab1637f1-fa08-44cf-bf13-ffd2b87a0e97 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns21:c7697c83-105b-434b-b1a3-c908d0ec027a ;
+    ns11:timestamp "2026-01-17T12:31:21.491235" ;
+    ns11:user "System" .
+
+ns11:event_c6deca52-eb5c-4eee-ad85-513a6fe43d1b a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns21:c7697c83-105b-434b-b1a3-c908d0ec027a ;
+    ns11:timestamp "2026-01-17T12:31:21.475562" ;
+    ns11:user "System" .
+
+ns11:event_f94fbc03-1adb-4d5f-acd0-74e53b30727d a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns21:c7697c83-105b-434b-b1a3-c908d0ec027a ;
+    ns11:timestamp "2026-01-17T12:31:21.467150" ;
+    ns11:user "System" .
+
+ns11:event_f98b082c-0eb3-4d81-a5fa-cc8166192077 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns21:11b30892-9577-4da6-a911-a7fddec264a7 ;
+    ns11:timestamp "2026-01-17T12:30:33.541839" ;
+    ns11:user "System" .
+
+ns3:157cd17c-ede0-4e4d-b7fa-0a58bd547976 a ns3:ProcessDefinition ;
+    ns2:deployedAt "2026-01-17T12:24:16.718338" ;
+    ns2:name "Simple Process" ;
+    ns2:status "active" ;
+    ns2:version "1.0.0" ;
+    ns3:hasElement <http://example.org/bpmn/StartEvent_1> ;
+    rdfs:comment "A simple test process" .
+
+ns3:1a895e5d-de47-4c57-bca6-09c3aa9d092c a ns3:ProcessDefinition ;
+    ns2:deployedAt "2026-01-17T12:25:48.461300" ;
+    ns2:name "Simple Process" ;
+    ns2:status "active" ;
+    ns2:version "1.0.0" ;
+    ns3:hasElement <http://example.org/bpmn/StartEvent_1> ;
+    rdfs:comment "A simple test process" .
+
+ns3:213e32bf-4dd2-4232-b099-6f993c213330 a ns3:ProcessDefinition ;
+    ns2:deployedAt "2026-01-17T12:29:48.539047" ;
+    ns2:name "Simple Process" ;
+    ns2:status "active" ;
+    ns2:version "1.0.0" ;
+    ns3:hasElement <http://example.org/bpmn/StartEvent_1> ;
+    rdfs:comment "A simple test process" .
+
+ns3:523436ce-bd88-4b82-94ed-5ba4860235db a ns3:ProcessDefinition ;
+    ns2:deployedAt "2026-01-17T12:25:05.713648" ;
+    ns2:name "Simple Process" ;
+    ns2:status "active" ;
+    ns2:version "1.0.0" ;
+    ns3:hasElement <http://example.org/bpmn/StartEvent_1> ;
+    rdfs:comment "A simple test process" .
+
+ns21:token_11b30892-9577-4da6-a911-a7fddec264a7 a ns21:Token ;
+    ns21:belongsTo ns21:11b30892-9577-4da6-a911-a7fddec264a7 ;
+    ns21:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns21:status "CONSUMED" .
+
+ns21:token_605c0293-2324-4cb7-8868-2ab64fc74924 a ns21:Token ;
+    ns21:belongsTo ns21:605c0293-2324-4cb7-8868-2ab64fc74924 ;
+    ns21:currentNode <http://example.org/bpmn/StartEvent_1> .
+
+ns21:token_76df3a06-51db-4038-8b09-d48bdcae8018 a ns21:Token ;
+    ns21:belongsTo ns21:76df3a06-51db-4038-8b09-d48bdcae8018 ;
+    ns21:currentNode <http://example.org/bpmn/StartEvent_1> .
+
+ns21:token_b2861961-f399-4b62-b4bb-6fa63ee46556 a ns21:Token ;
+    ns21:belongsTo ns21:b2861961-f399-4b62-b4bb-6fa63ee46556 ;
+    ns21:currentNode <http://example.org/bpmn/StartEvent_1> .
+
+ns21:token_c7697c83-105b-434b-b1a3-c908d0ec027a a ns21:Token ;
+    ns21:belongsTo ns21:c7697c83-105b-434b-b1a3-c908d0ec027a ;
+    ns21:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns21:status "CONSUMED" .
+
+ns3:77cb5237-d8e2-4491-a851-1c6ab4274604 a ns3:ProcessDefinition ;
+    ns2:deployedAt "2026-01-17T12:30:26.276052" ;
+    ns2:name "Simple Process" ;
+    ns2:status "active" ;
+    ns2:version "1.0.0" ;
+    ns3:hasElement <http://example.org/bpmn/StartEvent_1> ;
+    rdfs:comment "A simple test process" .
+
+ns3:f75b7a15-b2e5-40c6-8b26-e692354edada a ns3:ProcessDefinition ;
+    ns2:deployedAt "2026-01-17T12:28:09.816854" ;
+    ns2:name "Simple Process" ;
+    ns2:status "active" ;
+    ns2:version "1.0.0" ;
+    ns3:hasElement <http://example.org/bpmn/StartEvent_1> ;
+    rdfs:comment "A simple test process" .
+
+ns13:c7697c83-105b-434b-b1a3-c908d0ec027a_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+<http://example.org/bpmn/Flow_2> a ns1:sequenceFlow ;
+    ns1:hasParent <http://example.org/bpmn/Process_1> ;
+    ns1:sourceRef <http://example.org/bpmn/ServiceTask_1> ;
+    ns1:targetRef <http://example.org/bpmn/EndEvent_1> .
+
+<http://example.org/bpmn/ServiceTask_1> a ns1:ServiceTask ;
+    ns4:topic "process_order" ;
+    ns1:hasParent <http://example.org/bpmn/Process_1> ;
+    ns1:incoming <http://example.org/bpmn/Flow_1> ;
+    ns1:name "Simple Task" ;
+    ns1:outgoing <http://example.org/bpmn/Flow_2> .
+
+ns21:605c0293-2324-4cb7-8868-2ab64fc74924 a ns21:ProcessInstance ;
+    ns21:createdAt "2026-01-17T12:29:48.875783" ;
+    ns21:hasToken ns21:token_605c0293-2324-4cb7-8868-2ab64fc74924 ;
+    ns21:processDefinition ns3:69a4b15d-c0f3-43d0-8f9f-6e90084bc2e0 ;
+    ns21:status "RUNNING" .
+
+ns21:76df3a06-51db-4038-8b09-d48bdcae8018 a ns21:ProcessInstance ;
+    ns21:createdAt "2026-01-17T12:29:04.244573" ;
+    ns21:hasToken ns21:token_76df3a06-51db-4038-8b09-d48bdcae8018 ;
+    ns21:processDefinition ns3:69a4b15d-c0f3-43d0-8f9f-6e90084bc2e0 ;
+    ns21:status "RUNNING" .
+
+ns21:b2861961-f399-4b62-b4bb-6fa63ee46556 a ns21:ProcessInstance ;
+    ns21:createdAt "2026-01-17T12:28:19.508276" ;
+    ns21:hasToken ns21:token_b2861961-f399-4b62-b4bb-6fa63ee46556 ;
+    ns21:processDefinition ns3:f75b7a15-b2e5-40c6-8b26-e692354edada ;
+    ns21:status "RUNNING" .
+
+ns3:69a4b15d-c0f3-43d0-8f9f-6e90084bc2e0 a ns3:ProcessDefinition ;
+    ns2:deployedAt "2026-01-17T12:28:56.266169" ;
+    ns2:name "Simple Process" ;
+    ns2:status "active" ;
+    ns2:version "1.0.0" ;
+    ns3:hasElement <http://example.org/bpmn/StartEvent_1> ;
+    rdfs:comment "A simple test process" .
+
+<http://example.org/bpmn/Flow_1> a ns1:sequenceFlow ;
+    ns1:hasParent <http://example.org/bpmn/Process_1>,
+        <http://example.org/bpmn/TestProcess> ;
+    ns1:sourceRef <http://example.org/bpmn/StartEvent_1> ;
+    ns1:targetRef <http://example.org/bpmn/EndEvent_1>,
+        <http://example.org/bpmn/ServiceTask_1> .
+
+<http://example.org/bpmn/TestProcess> a ns1:process ;
+    ns1:isExecutable "true" .
+
+<http://example.org/bpmn/EndEvent_1> a ns1:EndEvent,
+        ns1:endEvent ;
+    ns1:hasParent <http://example.org/bpmn/Process_1>,
+        <http://example.org/bpmn/TestProcess> ;
+    ns1:incoming <http://example.org/bpmn/Flow_1>,
+        <http://example.org/bpmn/Flow_2> ;
+    ns1:name "End" .
+
+<http://example.org/bpmn/Process_1> a ns1:process ;
+    ns1:isExecutable "true" .
+
+ns21:11b30892-9577-4da6-a911-a7fddec264a7 a ns21:ProcessInstance ;
+    ns21:createdAt "2026-01-17T12:30:33.533791" ;
+    ns21:hasToken ns21:token_11b30892-9577-4da6-a911-a7fddec264a7 ;
+    ns21:processDefinition ns3:77cb5237-d8e2-4491-a851-1c6ab4274604 ;
+    ns21:status "COMPLETED" ;
+    ns21:updatedAt "2026-01-17T12:30:33.543519" .
+
+ns21:c7697c83-105b-434b-b1a3-c908d0ec027a a ns21:ProcessInstance ;
+    ns21:createdAt "2026-01-17T12:31:21.466690" ;
+    ns21:hasToken ns21:token_c7697c83-105b-434b-b1a3-c908d0ec027a ;
+    ns21:hasVariable ns13:c7697c83-105b-434b-b1a3-c908d0ec027a_test_var ;
+    ns21:processDefinition ns3:8ccc7f9f-ebae-4d0e-bcbf-edcc3649ddab ;
+    ns21:status "TERMINATED" ;
+    ns21:updatedAt "2026-01-17T12:31:21.490831" .
+
+<http://example.org/bpmn/StartEvent_1> a ns1:StartEvent,
+        ns1:startEvent ;
+    ns1:hasParent <http://example.org/bpmn/Process_1>,
+        <http://example.org/bpmn/TestProcess> ;
+    ns1:name "Start" ;
+    ns1:outgoing <http://example.org/bpmn/Flow_1> .
+
