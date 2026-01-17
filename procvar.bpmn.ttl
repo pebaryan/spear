@@ -1,0 +1,9 @@
+@prefix var: <http://example.org/variables/> .
+@prefix inst: <http://example.org/instances/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Variables for Order #5001
+inst:Order_5001 var:customerID "CUST-99" ;
+                var:orderTotal "1250.00"^^xsd:decimal ;
+                var:riskScore 0.85 ;
+                var:isUrgent "true"^^xsd:boolean .

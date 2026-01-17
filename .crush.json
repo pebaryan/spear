@@ -1,0 +1,19 @@
+{
+    "providers" : {
+        "llama.cpp": {
+            "name": "LLaMA.cpp",
+            "base_url": "http://localhost:8080/v1",
+            "type": "openai-compat",
+            "models": [
+                {
+                    "name": "whatever",
+                    "id": "llama-2-7b",
+                    "description": "LLaMA 2 - 7 Billion Parameters",
+                    "max_tokens": 32000,
+                    "temperature": 0.7,
+                    "top_p": 0.9
+                }   
+            ]
+        }
+    }
+}

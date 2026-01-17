@@ -1,0 +1,31 @@
+@prefix bpmn: <http://example.org/bpmn/> .
+@prefix ex: <http://example.org/proc/> .
+
+ex:FlowToPremiumHandling a bpmn:SequenceFlow ;
+    bpmn:source ex:OrderGateway ;
+    bpmn:target ex:PremiumProcess ;
+    bpmn:conditionQuery """
+        ASK {
+            ?instance <http://example.org/vars/total> ?total .
+            FILTER(?total > 1000)
+        }
+    """ .
+
+
+# Current State of Instance_123
+ex:Instance_123_Token_1 a bpmn:Token ;
+    bpmn:atNode ex:VerifyInventoryTask ;
+    bpmn:status "Active" .
+
+ex:Instance_123_Token_2 a bpmn:Token ;
+    bpmn:atNode ex:CheckCreditScoreTask ;
+    bpmn:status "Active" .
+
+# Instance 5001 has two active tokens in different branches
+ex:Token_A a bpmn:Token ;
+    bpmn:instance ex:Instance_5001 ;
+    bpmn:atNode ex:Task_VerifyStock .
+
+ex:Token_B a bpmn:Token ;
+    bpmn:instance ex:Instance_5001 ;
+    bpmn:atNode ex:Task_CheckCredit .

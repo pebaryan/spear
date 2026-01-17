@@ -1,0 +1,25 @@
+@prefix bpmn: <http://example.org/bpmn/> .
+@prefix ex: <http://example.org/proc/> .
+
+# The Gateway
+ex:PriceCheckGateway a bpmn:ExclusiveGateway .
+
+# Path A: Expensive Order
+ex:FlowToManager a bpmn:SequenceFlow ;
+    bpmn:source ex:PriceCheckGateway ;
+    bpmn:target ex:ManagerApproval ;
+    bpmn:condition [
+        bpmn:variable "order_total" ;
+        bpmn:operator ">" ;
+        bpmn:value 1000 
+    ] .
+
+# Path B: Standard Order
+ex:FlowToAutoApprove a bpmn:SequenceFlow ;
+    bpmn:source ex:PriceCheckGateway ;
+    bpmn:target ex:AutoApprove ;
+    bpmn:condition [
+        bpmn:variable "order_total" ;
+        bpmn:operator "<=" ;
+        bpmn:value 1000 
+    ] .
