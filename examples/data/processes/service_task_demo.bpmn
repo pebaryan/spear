@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+             id="Definitions_service_tasks"
+             targetNamespace="http://example.org/bpmn">
+  <process id="ServiceTaskProcess" isExecutable="true" name="Service Task Demo Process">
+    
+    <!-- Start Event -->
+    <startEvent id="StartEvent_1" name="Start Process">
+      <outgoing>Flow_StartToFetch</outgoing>
+    </startEvent>
+    
+    <!-- Service Task 1: Fetch User Data -->
+    <serviceTask id="ServiceTask_FetchUser" name="Fetch User Data" 
+                 camunda:topic="get_user"
+                 camunda:async="false">
+      <incoming>Flow_StartToFetch</incoming>
+      <outgoing>Flow_FetchToReview</outgoing>
+    </serviceTask>
+    
+    <!-- User Task: Review User -->
+    <userTask id="UserTask_ReviewUser" name="Review User Data">
+      <incoming>Flow_FetchToReview</incoming>
+      <outgoing>Flow_ReviewToCreate</outgoing>
+    </userTask>
+    
+    <!-- Service Task 2: Create Post -->
+    <serviceTask id="ServiceTask_CreatePost" name="Create Post" 
+                 camunda:topic="create_post"
+                 camunda:async="false">
+      <incoming>Flow_ReviewToCreate</incoming>
+      <outgoing>Flow_CreateToEnd</outgoing>
+    </serviceTask>
+    
+    <!-- End Event -->
+    <endEvent id="EndEvent_1" name="Process Complete">
+      <incoming>Flow_CreateToEnd</incoming>
+    </endEvent>
+    
+    <!-- Sequence Flows -->
+    <sequenceFlow id="Flow_StartToFetch" sourceRef="StartEvent_1" targetRef="ServiceTask_FetchUser" />
+    <sequenceFlow id="Flow_FetchToReview" sourceRef="ServiceTask_FetchUser" targetRef="UserTask_ReviewUser" />
+    <sequenceFlow id="Flow_ReviewToCreate" sourceRef="UserTask_ReviewUser" targetRef="ServiceTask_CreatePost" />
+    <sequenceFlow id="Flow_CreateToEnd" sourceRef="ServiceTask_CreatePost" targetRef="EndEvent_1" />
+    
+  </process>
+  
+  <!-- BPMN Diagram Information -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ServiceTaskProcess">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="179" y="99" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_FetchUser_di" bpmnElement="ServiceTask_FetchUser">
+        <dc:Bounds x="270" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_ReviewUser_di" bpmnElement="UserTask_ReviewUser">
+        <dc:Bounds x="420" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_CreatePost_di" bpmnElement="ServiceTask_CreatePost">
+        <dc:Bounds x="570" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="722" y="99" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_StartToFetch_di" bpmnElement="Flow_StartToFetch">
+        <di:waypoint x="215" y="117" />
+        <di:waypoint x="270" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_FetchToReview_di" bpmnElement="Flow_FetchToReview">
+        <di:waypoint x="370" y="117" />
+        <di:waypoint x="420" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ReviewToCreate_di" bpmnElement="Flow_ReviewToCreate">
+        <di:waypoint x="520" y="117" />
+        <di:waypoint x="570" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CreateToEnd_di" bpmnElement="Flow_CreateToEnd">
+        <di:waypoint x="670" y="117" />
+        <di:waypoint x="722" y="117" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

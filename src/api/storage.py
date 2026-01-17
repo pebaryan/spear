@@ -975,42 +975,72 @@ class RDFStorageService:
     # ==================== Service Task Handlers ====================
 
     def register_topic_handler(self, topic: str, handler_function: callable,
-                               description: str = "", async_execution: bool = False) -> bool:
+                              description: str = "",
+                              async_execution: bool = False,
+                              handler_type: str = "function",
+                              http_config: Dict = None) -> bool:
         """
-        Register a handler function for a service task topic.
+        Register a handler for a topic.
         
         Args:
-            topic: The topic name (e.g., "process_order", "send_email")
-            handler_function: A callable that takes (instance_id, variables) and returns updated variables
-            description: Human-readable description of what the handler does
+            topic: The topic name to register
+            handler_function: The function to call when the topic is executed
+            description: Human-readable description of the handler
             async_execution: Whether to execute asynchronously
+            handler_type: Type of handler (http, script, function, webhook)
+            http_config: HTTP handler configuration (if applicable)
             
         Returns:
             True if registered successfully
-            
-        Example:
-            def calculate_tax(instance_id, variables):
-                order_total = float(variables.get("orderTotal", 0))
-                tax = order_total * 0.10
-                variables["taxAmount"] = tax
-                return variables
-                
-            storage.register_topic_handler("calculate_tax", calculate_tax, "Calculate 10% tax on order")
         """
-        if not topic or not topic.strip():
-            raise ValueError("Topic cannot be empty")
-        
-        if not callable(handler_function):
-            raise ValueError("Handler must be a callable function")
+        from datetime import datetime
         
         self.topic_handlers[topic] = {
             "function": handler_function,
             "description": description,
             "async": async_execution,
-            "registered_at": datetime.now().isoformat()
+            "registered_at": datetime.utcnow().isoformat(),
+            "handler_type": handler_type,
+            "http_config": http_config
         }
         
         logger.info(f"Registered handler for topic: {topic}")
+        return True
+    
+    def update_topic_description(self, topic: str, description: str) -> bool:
+        """
+        Update the description of a topic handler.
+        
+        Args:
+            topic: The topic name
+            description: New description
+            
+        Returns:
+            True if updated, False if topic doesn't exist
+        """
+        if topic not in self.topic_handlers:
+            return False
+        
+        self.topic_handlers[topic]["description"] = description
+        logger.info(f"Updated description for topic: {topic}")
+        return True
+    
+    def update_topic_async(self, topic: str, async_execution: bool) -> bool:
+        """
+        Update the async execution setting of a topic handler.
+        
+        Args:
+            topic: The topic name
+            async_execution: New async setting
+            
+        Returns:
+            True if updated, False if topic doesn't exist
+        """
+        if topic not in self.topic_handlers:
+            return False
+        
+        self.topic_handlers[topic]["async"] = async_execution
+        logger.info(f"Updated async setting for topic: {topic}")
         return True
 
     def unregister_topic_handler(self, topic: str) -> bool:
@@ -1039,9 +1069,11 @@ class RDFStorageService:
         topics = {}
         for topic, info in self.topic_handlers.items():
             topics[topic] = {
-                "description": info["description"],
-                "async": info["async"],
-                "registered_at": info["registered_at"]
+                "description": info.get("description", ""),
+                "async": info.get("async", False),
+                "registered_at": info.get("registered_at", ""),
+                "handler_type": info.get("handler_type", "function"),
+                "http_config": info.get("http_config")
             }
         return topics
 
