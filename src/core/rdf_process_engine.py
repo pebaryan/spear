@@ -9,8 +9,8 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# RDF Namespaces
-BPMN = Namespace("http://example.org/bpmn/")
+# RDF Namespaces (must match bpmn2rdf.py)
+BPMN = Namespace("http://dkm.fbk.eu/index.php/BPMN2_Ontology#")
 INST = Namespace("http://example.org/instance/")
 VAR = Namespace("http://example.org/variables/")
 LOG = Namespace("http://example.org/audit/")
@@ -76,6 +76,7 @@ class RDFProcessEngine:
         self.instance_graph = instance_graph or definition_graph
         self.instances = {}
         self.topics = {}
+        self.uri_base = "http://example.org/bpmn/"  # For instance URIs, not BPMN element URIs
 
     def register_topic_handler(self, topic, handler):
         """Register a handler function for a service task topic"""
@@ -199,23 +200,18 @@ class RDFProcessEngine:
 
         if start_event_id:
             # Find specific start event
-            start_event_uri = URIRef(f"{process_definition_uri}#{start_event_id}")
+            start_event_uri = URIRef(f"http://example.org/bpmn/{start_event_id}")
             if (start_event_uri, RDF.type, BPMN.StartEvent) in self.definition_graph:
                 return [start_event_uri]
             else:
                 raise ValueError(f"Start event {start_event_id} not found")
 
-        # Find all start events in the process
-        query = f"""
-        SELECT ?start WHERE {{
-            ?start rdf:type bpmn:StartEvent .
-            ?process rdf:type bpmn:Process .
-            ?process bpmn:hasElement ?start .
-        }}
-        """
+        # Find all start events (simplified - just find all StartEvent instances)
+        start_events = []
+        for s, p, o in self.definition_graph.triples((None, RDF.type, BPMN.StartEvent)):
+            start_events.append(s)
 
-        results = self.definition_graph.query(query)
-        return [URIRef(row[0]) for row in results]
+        return start_events
 
     def _execute_instance(self, instance):
         """Execute a process instance by processing active tokens"""
