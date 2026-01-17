@@ -59,6 +59,9 @@ class RDFStorageService:
         self.tasks_graph = Graph()
         self._load_graph("tasks.ttl")
         
+        # Topic registry for service task handlers
+        self.topic_handlers = {}
+        
         # BPMN converter for deployment
         self.converter = BPMNToRDFConverter()
         
@@ -589,18 +592,61 @@ class RDFStorageService:
 
     def _execute_service_task(self, instance_uri: URIRef, token_uri: URIRef,
                               node_uri: URIRef, instance_id: str):
-        """Execute a service task"""
+        """Execute a service task and move token to next node"""
+        # Get topic from node
         topic = None
         for s, p, o in self.definitions_graph.triples((node_uri, BPMN.topic, None)):
             topic = str(o)
             break
-
-        if topic:
+        # Also check camunda:topic
+        if not topic:
+            for s, p, o in self.definitions_graph.triples((node_uri, URIRef("http://camunda.org/schema/1.0/bpmn#topic"), None)):
+                topic = str(o)
+                break
+        
+        if not topic:
+            # No topic, just move to next node
+            self._log_instance_event(instance_uri, "SERVICE_TASK", "System", 
+                                     f"{str(node_uri)} (no topic configured)")
+            self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+            return
+        
+        # Get current variables
+        variables = {}
+        for var_uri in self.instances_graph.objects(instance_uri, INST.hasVariable):
+            name = self.instances_graph.value(var_uri, VAR.name)
+            value = self.instances_graph.value(var_uri, VAR.value)
+            if name and value:
+                variables[str(name)] = str(value)
+        
+        try:
+            # Execute the handler
+            updated_variables = self.execute_service_task(instance_id, topic, variables)
+            
+            # Update variables
+            for name, value in updated_variables.items():
+                self.set_instance_variable(instance_id, name, value)
+            
+            # Log completion
             self._log_instance_event(instance_uri, "SERVICE_TASK", "System",
                                      f"{str(node_uri)} (topic: {topic})")
-            logger.info(f"Executing service task {topic} for instance {instance_id}")
-
-        self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+            
+            # Move to next node
+            self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+            
+        except ValueError as e:
+            # No handler registered - log warning and continue
+            logger.warning(str(e))
+            self._log_instance_event(instance_uri, "SERVICE_TASK_SKIPPED", "System",
+                                     f"{str(node_uri)} (topic: {topic}) - no handler")
+            self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+            
+        except Exception as e:
+            # Handler failed - set token to error state
+            logger.error(f"Service task failed: {e}")
+            self.instances_graph.set((token_uri, INST.status, Literal("ERROR")))
+            self._log_instance_event(instance_uri, "SERVICE_TASK_ERROR", "System",
+                                     f"{str(node_uri)} (topic: {topic}): {str(e)}")
 
     def _move_token_to_next_node(self, instance_uri: URIRef, token_uri: URIRef, instance_id: str):
         """Move token to the next node via sequence flows"""
@@ -925,6 +971,119 @@ class RDFStorageService:
             "instance_count": instance_count,
             "total_triples": triple_count
         }
+
+    # ==================== Service Task Handlers ====================
+
+    def register_topic_handler(self, topic: str, handler_function: callable,
+                               description: str = "", async_execution: bool = False) -> bool:
+        """
+        Register a handler function for a service task topic.
+        
+        Args:
+            topic: The topic name (e.g., "process_order", "send_email")
+            handler_function: A callable that takes (instance_id, variables) and returns updated variables
+            description: Human-readable description of what the handler does
+            async_execution: Whether to execute asynchronously
+            
+        Returns:
+            True if registered successfully
+            
+        Example:
+            def calculate_tax(instance_id, variables):
+                order_total = float(variables.get("orderTotal", 0))
+                tax = order_total * 0.10
+                variables["taxAmount"] = tax
+                return variables
+                
+            storage.register_topic_handler("calculate_tax", calculate_tax, "Calculate 10% tax on order")
+        """
+        if not topic or not topic.strip():
+            raise ValueError("Topic cannot be empty")
+        
+        if not callable(handler_function):
+            raise ValueError("Handler must be a callable function")
+        
+        self.topic_handlers[topic] = {
+            "function": handler_function,
+            "description": description,
+            "async": async_execution,
+            "registered_at": datetime.now().isoformat()
+        }
+        
+        logger.info(f"Registered handler for topic: {topic}")
+        return True
+
+    def unregister_topic_handler(self, topic: str) -> bool:
+        """
+        Unregister a handler for a topic.
+        
+        Args:
+            topic: The topic name to unregister
+            
+        Returns:
+            True if unregistered, False if topic didn't exist
+        """
+        if topic in self.topic_handlers:
+            del self.topic_handlers[topic]
+            logger.info(f"Unregistered handler for topic: {topic}")
+            return True
+        return False
+
+    def get_registered_topics(self) -> Dict[str, Any]:
+        """
+        Get all registered topic handlers.
+        
+        Returns:
+            Dictionary of topic -> handler info (without the actual function)
+        """
+        topics = {}
+        for topic, info in self.topic_handlers.items():
+            topics[topic] = {
+                "description": info["description"],
+                "async": info["async"],
+                "registered_at": info["registered_at"]
+            }
+        return topics
+
+    def execute_service_task(self, instance_id: str, topic: str, 
+                            variables: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute a service task handler.
+        
+        Args:
+            instance_id: The process instance ID
+            topic: The topic to execute
+            variables: Current process variables
+            
+        Returns:
+            Updated variables after handler execution
+            
+        Raises:
+            ValueError: If no handler is registered for the topic
+        """
+        if topic not in self.topic_handlers:
+            raise ValueError(f"No handler registered for topic: {topic}")
+        
+        handler_info = self.topic_handlers[topic]
+        handler_function = handler_info["function"]
+        
+        logger.info(f"Executing service task {topic} for instance {instance_id}")
+        
+        try:
+            # Execute the handler
+            if handler_info["async"]:
+                # For async execution, we would queue the task
+                # For now, still execute synchronously
+                updated_variables = handler_function(instance_id, variables)
+            else:
+                updated_variables = handler_function(instance_id, variables)
+            
+            logger.info(f"Service task {topic} completed for instance {instance_id}")
+            return updated_variables
+            
+        except Exception as e:
+            logger.error(f"Service task {topic} failed for instance {instance_id}: {e}")
+            raise
 
 
 # Global storage instance for sharing across modules

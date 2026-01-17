@@ -14,6 +14,7 @@ from src.api.models import (
 from src.api.processes import router as processes_router
 from src.api.instances import router as instances_router
 from src.api.tasks import router as tasks_router
+from src.api.topics import router as topics_router
 from src.api.storage import RDFStorageService
 
 # Initialize shared storage service
@@ -83,6 +84,7 @@ app.add_middleware(
 app.include_router(processes_router, prefix="/api/v1")
 app.include_router(instances_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
+app.include_router(topics_router, prefix="/api/v1")
 
 
 # ==================== Health & Info Endpoints ====================
