@@ -1,19 +1,19 @@
 @prefix ns1: <http://example.org/instance/> .
 @prefix ns2: <http://example.org/variables/> .
 
-ns1:b633afd4-52aa-4aa5-9ba3-5d83a9a2aa08 a ns1:ProcessInstance ;
-    ns1:createdAt "2026-01-17T12:36:15.527381" ;
-    ns1:hasToken ns1:token_b633afd4-52aa-4aa5-9ba3-5d83a9a2aa08 ;
-    ns1:hasVariable ns2:b633afd4-52aa-4aa5-9ba3-5d83a9a2aa08_test_var ;
-    ns1:processDefinition <http://example.org/process/2a46f9e8-ed5f-4765-b4d9-ee9ac0bb4a59> ;
+ns1:079547b7-c725-44f2-af13-d6e6d69675a4 a ns1:ProcessInstance ;
+    ns1:createdAt "2026-01-17T13:35:29.667221" ;
+    ns1:hasToken ns1:token_079547b7-c725-44f2-af13-d6e6d69675a4 ;
+    ns1:hasVariable ns2:079547b7-c725-44f2-af13-d6e6d69675a4_test_var ;
+    ns1:processDefinition <http://example.org/process/f6a2c168-d21a-4528-9893-dbc3bdc2004a> ;
     ns1:status "TERMINATED" ;
-    ns1:updatedAt "2026-01-17T12:36:15.539979" .
+    ns1:updatedAt "2026-01-17T13:35:29.678031" .
 
-ns1:token_b633afd4-52aa-4aa5-9ba3-5d83a9a2aa08 a ns1:Token ;
-    ns1:belongsTo ns1:b633afd4-52aa-4aa5-9ba3-5d83a9a2aa08 ;
+ns1:token_079547b7-c725-44f2-af13-d6e6d69675a4 a ns1:Token ;
+    ns1:belongsTo ns1:079547b7-c725-44f2-af13-d6e6d69675a4 ;
     ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
     ns1:status "CONSUMED" .
 
-ns2:b633afd4-52aa-4aa5-9ba3-5d83a9a2aa08_test_var ns2:name "test_var" ;
+ns2:079547b7-c725-44f2-af13-d6e6d69675a4_test_var ns2:name "test_var" ;
     ns2:value "value" .
 

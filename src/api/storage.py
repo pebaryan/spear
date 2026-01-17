@@ -20,6 +20,7 @@ INST = Namespace("http://example.org/instance/")
 VAR = Namespace("http://example.org/variables/")
 LOG = Namespace("http://example.org/audit/")
 META = Namespace("http://example.org/meta/")
+TASK = Namespace("http://example.org/task/")
 
 
 class RDFStorageService:
@@ -53,6 +54,10 @@ class RDFStorageService:
         # Graph for audit logs
         self.audit_graph = Graph()
         self._load_graph("audit.ttl")
+        
+        # Graph for tasks
+        self.tasks_graph = Graph()
+        self._load_graph("tasks.ttl")
         
         # BPMN converter for deployment
         self.converter = BPMNToRDFConverter()
@@ -294,11 +299,16 @@ class RDFStorageService:
         if start_event_id:
             start_event_uri = URIRef(f"http://example.org/bpmn/{start_event_id}")
         else:
-            # Find first start event
+            # Find first start event (check both StartEvent and startEvent)
             for s, p, o in self.definitions_graph.triples(
-                (None, RDF.type, URIRef("http://dkm.fbk.eu/index.php/BPMN2_Ontology#StartEvent"))):
+                (None, RDF.type, BPMN.StartEvent)):
                 start_event_uri = s
                 break
+            if not start_event_uri:
+                for s, p, o in self.definitions_graph.triples(
+                    (None, RDF.type, BPMN.startEvent)):
+                    start_event_uri = s
+                    break
         
         if start_event_uri:
             self.instances_graph.add((token_uri, INST.currentNode, start_event_uri))
@@ -523,6 +533,8 @@ class RDFStorageService:
             node_type = o
             break
 
+        logger.debug(f"Executing token at {current_node}, type: {node_type}")
+        
         if node_type == BPMN.StartEvent:
             self._log_instance_event(instance_uri, "START", "System", str(current_node))
             self._move_token_to_next_node(instance_uri, token_uri, instance_id)
@@ -531,11 +543,39 @@ class RDFStorageService:
             self._log_instance_event(instance_uri, "END", "System", str(current_node))
             self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
 
-        elif node_type == BPMN.ServiceTask:
+        elif node_type == BPMN.ServiceTask or node_type == BPMN.serviceTask:
             self._execute_service_task(instance_uri, token_uri, current_node, instance_id)
 
-        elif node_type == BPMN.UserTask:
-            self._log_instance_event(instance_uri, "USER_TASK", "System", str(current_node))
+        elif node_type == BPMN.UserTask or node_type == BPMN.userTask:
+            task_name = "User Task"
+            name_elem = self.definitions_graph.value(current_node, RDFS.label)
+            if name_elem:
+                task_name = str(name_elem)
+            
+            assignee = None
+            assignee_elem = self.definitions_graph.value(current_node, BPMN.assignee)
+            if assignee_elem:
+                assignee = str(assignee_elem)
+            
+            candidate_users = []
+            for u in self.definitions_graph.objects(current_node, BPMN.candidateUsers):
+                candidate_users.append(str(u))
+            
+            candidate_groups = []
+            for g in self.definitions_graph.objects(current_node, BPMN.candidateGroups):
+                candidate_groups.append(str(g))
+            
+            task = self.create_task(
+                instance_id=instance_id,
+                node_uri=str(current_node),
+                name=task_name,
+                assignee=assignee,
+                candidate_users=candidate_users if candidate_users else None,
+                candidate_groups=candidate_groups if candidate_groups else None
+            )
+            
+            self._log_instance_event(instance_uri, "USER_TASK", "System",
+                                     f"{str(current_node)} (task: {task['id']})")
             self.instances_graph.set((token_uri, INST.status, Literal("WAITING")))
 
         elif node_type == BPMN.ExclusiveGateway or node_type == BPMN.ParallelGateway:
@@ -599,6 +639,269 @@ class RDFStorageService:
             if not status or str(status) != "CONSUMED":
                 return False
         return True
+
+    # ==================== Task Management ====================
+
+    def create_task(self, instance_id: str, node_uri: str, name: str = "User Task",
+                   assignee: Optional[str] = None, candidate_users: Optional[List[str]] = None,
+                   candidate_groups: Optional[List[str]] = None,
+                   form_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Create a new user task"""
+        task_id = str(uuid.uuid4())
+        task_uri = TASK[task_id]
+        instance_uri = INST[instance_id]
+        
+        # Create task in RDF
+        self.tasks_graph.add((task_uri, RDF.type, TASK.UserTask))
+        self.tasks_graph.add((task_uri, TASK.instance, instance_uri))
+        self.tasks_graph.add((task_uri, TASK.node, URIRef(node_uri)))
+        self.tasks_graph.add((task_uri, TASK.name, Literal(name)))
+        self.tasks_graph.add((task_uri, TASK.status, Literal("CREATED")))
+        self.tasks_graph.add((task_uri, TASK.createdAt, Literal(datetime.now().isoformat())))
+        
+        if assignee:
+            self.tasks_graph.add((task_uri, TASK.assignee, Literal(assignee)))
+        
+        if candidate_users:
+            for user in candidate_users:
+                self.tasks_graph.add((task_uri, TASK.candidateUser, Literal(user)))
+        
+        if candidate_groups:
+            for group in candidate_groups:
+                self.tasks_graph.add((task_uri, TASK.candidateGroup, Literal(group)))
+        
+        if form_data:
+            form_uri = TASK[f"form_{task_id}"]
+            self.tasks_graph.add((task_uri, TASK.hasForm, form_uri))
+            for key, value in form_data.items():
+                self.tasks_graph.add((form_uri, TASK.fieldName, Literal(key)))
+                self.tasks_graph.add((form_uri, TASK.fieldValue, Literal(str(value))))
+        
+        # Link task to instance
+        self.instances_graph.add((instance_uri, INST.hasTask, task_uri))
+        
+        self._save_graph(self.tasks_graph, "tasks.ttl")
+        
+        logger.info(f"Created task {task_id} for instance {instance_id}")
+        
+        return self.get_task(task_id)
+
+    def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """Get a task by ID"""
+        task_uri = TASK[task_id]
+        
+        if not (task_uri, RDF.type, TASK.UserTask) in self.tasks_graph:
+            return None
+        
+        instance_uri = self.tasks_graph.value(task_uri, TASK.instance)
+        node_uri = self.tasks_graph.value(task_uri, TASK.node)
+        name = self.tasks_graph.value(task_uri, TASK.name)
+        status = self.tasks_graph.value(task_uri, TASK.status)
+        assignee = self.tasks_graph.value(task_uri, TASK.assignee)
+        created_at = self.tasks_graph.value(task_uri, TASK.createdAt)
+        claimed_at = self.tasks_graph.value(task_uri, TASK.claimedAt)
+        completed_at = self.tasks_graph.value(task_uri, TASK.completedAt)
+        
+        instance_id = str(instance_uri).split("/")[-1] if instance_uri else None
+        
+        candidate_users = [str(u) for u in self.tasks_graph.objects(task_uri, TASK.candidateUser)]
+        candidate_groups = [str(g) for g in self.tasks_graph.objects(task_uri, TASK.candidateGroup)]
+        
+        form_data = {}
+        form_uri = self.tasks_graph.value(task_uri, TASK.hasForm)
+        if form_uri:
+            for field_name in self.tasks_graph.objects(form_uri, TASK.fieldName):
+                field_value = self.tasks_graph.value(form_uri, TASK[field_name])
+                if field_value:
+                    form_data[str(field_name)] = str(field_value)
+        
+        return {
+            "id": task_id,
+            "instance_id": instance_id,
+            "node_uri": str(node_uri) if node_uri else None,
+            "name": str(name) if name else "User Task",
+            "status": str(status) if status else "CREATED",
+            "assignee": str(assignee) if assignee else None,
+            "candidate_users": candidate_users,
+            "candidate_groups": candidate_groups,
+            "form_data": form_data,
+            "created_at": str(created_at) if created_at else None,
+            "claimed_at": str(claimed_at) if claimed_at else None,
+            "completed_at": str(completed_at) if completed_at else None
+        }
+
+    def list_tasks(self, instance_id: Optional[str] = None,
+                  status: Optional[str] = None,
+                  assignee: Optional[str] = None,
+                  page: int = 1, page_size: int = 20) -> Dict[str, Any]:
+        """List tasks with optional filtering"""
+        tasks = []
+        
+        for task_uri in self.tasks_graph.subjects(RDF.type, TASK.UserTask):
+            task_id = str(task_uri).split("/")[-1]
+            task_data = self.get_task(task_id)
+            
+            if not task_data:
+                continue
+            
+            if instance_id and task_data["instance_id"] != instance_id:
+                continue
+            if status and task_data["status"] != status:
+                continue
+            if assignee and task_data["assignee"] != assignee:
+                continue
+            
+            tasks.append(task_data)
+        
+        total = len(tasks)
+        start = (page - 1) * page_size
+        end = start + page_size
+        tasks = tasks[start:end]
+        
+        return {
+            "tasks": tasks,
+            "total": total,
+            "page": page,
+            "page_size": page_size
+        }
+
+    def claim_task(self, task_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+        """Claim a task for a user"""
+        task_uri = TASK[task_id]
+        
+        if not (task_uri, RDF.type, TASK.UserTask) in self.tasks_graph:
+            return None
+        
+        status = self.tasks_graph.value(task_uri, TASK.status)
+        if status and str(status) != "CREATED":
+            raise ValueError(f"Task {task_id} cannot be claimed (status: {status})")
+        
+        assignee = self.tasks_graph.value(task_uri, TASK.assignee)
+        if assignee and str(assignee) != user_id:
+            candidate_users = [str(u) for u in self.tasks_graph.objects(task_uri, TASK.candidateUser)]
+            if user_id not in candidate_users:
+                raise ValueError(f"User {user_id} is not authorized to claim task {task_id}")
+        
+        self.tasks_graph.set((task_uri, TASK.assignee, Literal(user_id)))
+        self.tasks_graph.set((task_uri, TASK.status, Literal("CLAIMED")))
+        self.tasks_graph.set((task_uri, TASK.claimedAt, Literal(datetime.now().isoformat())))
+        
+        self._log_task_event(task_uri, "CLAIMED", user_id)
+        self._save_graph(self.tasks_graph, "tasks.ttl")
+        
+        logger.info(f"Task {task_id} claimed by user {user_id}")
+        
+        return self.get_task(task_id)
+
+    def complete_task(self, task_id: str, user_id: str,
+                     variables: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        """Complete a task"""
+        task_uri = TASK[task_id]
+        
+        if not (task_uri, RDF.type, TASK.UserTask) in self.tasks_graph:
+            return None
+        
+        status = self.tasks_graph.value(task_uri, TASK.status)
+        if status and str(status) not in ["CREATED", "CLAIMED"]:
+            raise ValueError(f"Task {task_id} cannot be completed (status: {status})")
+        
+        assignee = self.tasks_graph.value(task_uri, TASK.assignee)
+        if assignee and str(assignee) != user_id:
+            raise ValueError(f"User {user_id} cannot complete task {task_id} (assigned to {assignee})")
+        
+        self.tasks_graph.set((task_uri, TASK.status, Literal("COMPLETED")))
+        self.tasks_graph.set((task_uri, TASK.completedAt, Literal(datetime.now().isoformat())))
+        
+        if variables:
+            instance_uri = self.tasks_graph.value(task_uri, TASK.instance)
+            instance_id = str(instance_uri).split("/")[-1]
+            for name, value in variables.items():
+                self.set_instance_variable(instance_id, name, value)
+        
+        self._log_task_event(task_uri, "COMPLETED", user_id)
+        self._save_graph(self.tasks_graph, "tasks.ttl")
+        
+        logger.info(f"Task {task_id} completed by user {user_id}")
+        
+        return self.get_task(task_id)
+
+    def assign_task(self, task_id: str, assignee: str, assigner: str = "System") -> Optional[Dict[str, Any]]:
+        """Assign a task to a user"""
+        task_uri = TASK[task_id]
+        
+        if not (task_uri, RDF.type, TASK.UserTask) in self.tasks_graph:
+            return None
+        
+        old_assignee = self.tasks_graph.value(task_uri, TASK.assignee)
+        
+        self.tasks_graph.set((task_uri, TASK.assignee, Literal(assignee)))
+        self.tasks_graph.set((task_uri, TASK.status, Literal("ASSIGNED")))
+        
+        self._log_task_event(task_uri, "ASSIGNED", assigner, f"Assigned from {old_assignee} to {assignee}")
+        self._save_graph(self.tasks_graph, "tasks.ttl")
+        
+        logger.info(f"Task {task_id} assigned to {assignee}")
+        
+        return self.get_task(task_id)
+
+    def _log_task_event(self, task_uri: URIRef, event_type: str, user: str, details: str = ""):
+        """Log a task event"""
+        event_uri = LOG[f"task_event_{str(uuid.uuid4())}"]
+        
+        self.audit_graph.add((event_uri, RDF.type, LOG.Event))
+        self.audit_graph.add((event_uri, LOG.task, task_uri))
+        self.audit_graph.add((event_uri, LOG.eventType, Literal(event_type)))
+        self.audit_graph.add((event_uri, LOG.user, Literal(user)))
+        self.audit_graph.add((event_uri, LOG.timestamp, Literal(datetime.now().isoformat())))
+        if details:
+            self.audit_graph.add((event_uri, LOG.details, Literal(details)))
+        
+        self._save_graph(self.audit_graph, "audit.ttl")
+
+    def get_task_for_instance_node(self, instance_id: str, node_uri: str) -> Optional[Dict[str, Any]]:
+        """Get the task associated with a specific instance and node"""
+        for task_uri in self.tasks_graph.subjects(RDF.type, TASK.UserTask):
+            task_instance = self.tasks_graph.value(task_uri, TASK.instance)
+            task_node = self.tasks_graph.value(task_uri, TASK.node)
+            
+            if task_instance and task_node:
+                task_instance_id = str(task_instance).split("/")[-1]
+                if task_instance_id == instance_id and str(task_node) == node_uri:
+                    task_id = str(task_uri).split("/")[-1]
+                    return self.get_task(task_id)
+        return None
+
+    def resume_instance_from_task(self, task_id: str) -> bool:
+        """After task completion, resume the instance by moving the token"""
+        task_data = self.get_task(task_id)
+        if not task_data or task_data["status"] != "COMPLETED":
+            return False
+        
+        instance_id = task_data["instance_id"]
+        node_uri = task_data["node_uri"]
+        
+        if not instance_id or not node_uri:
+            return False
+        
+        instance_uri = INST[instance_id]
+        
+        # Find the token waiting at this node
+        for token_uri in self.instances_graph.objects(instance_uri, INST.hasToken):
+            current_node = self.instances_graph.value(token_uri, INST.status)
+            token_status = self.instances_graph.value(token_uri, INST.status)
+            if token_status and str(token_status) == "WAITING":
+                token_node = self.instances_graph.value(token_uri, INST.currentNode)
+                if token_node and str(token_node) == node_uri:
+                    # Move token to next node
+                    self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+                    self._save_graph(self.instances_graph, "instances.ttl")
+                    logger.info(f"Resumed instance {instance_id} after task {task_id}")
+                    
+                    # Continue execution
+                    self._execute_instance(instance_uri, instance_id)
+                    return True
+        
+        return False
 
     # ==================== Statistics ====================
 

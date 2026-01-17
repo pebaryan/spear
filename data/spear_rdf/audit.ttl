@@ -1,35 +1,21 @@
 @prefix ns1: <http://example.org/audit/> .
 
-ns1:event_0e5cf8d3-0ac4-4f01-8727-46a4720c61b8 a ns1:Event ;
-    ns1:eventType "CREATED" ;
-    ns1:instance <http://example.org/instance/b633afd4-52aa-4aa5-9ba3-5d83a9a2aa08> ;
-    ns1:timestamp "2026-01-17T12:36:15.527564" ;
-    ns1:user "System" .
-
-ns1:event_4ee58ccf-293d-4a55-92b7-823fb4d9efc1 a ns1:Event ;
-    ns1:details "http://example.org/bpmn/StartEvent_1" ;
-    ns1:eventType "START" ;
-    ns1:instance <http://example.org/instance/b633afd4-52aa-4aa5-9ba3-5d83a9a2aa08> ;
-    ns1:timestamp "2026-01-17T12:36:15.529414" ;
-    ns1:user "System" .
-
-ns1:event_5791cbb1-0dc0-4314-8a64-f3f998589d06 a ns1:Event ;
+ns1:event_1c3ffbf0-3b40-406c-a944-b275033c441c a ns1:Event ;
     ns1:details "User request" ;
     ns1:eventType "TERMINATED" ;
-    ns1:instance <http://example.org/instance/b633afd4-52aa-4aa5-9ba3-5d83a9a2aa08> ;
-    ns1:timestamp "2026-01-17T12:36:15.540077" ;
+    ns1:instance <http://example.org/instance/079547b7-c725-44f2-af13-d6e6d69675a4> ;
+    ns1:timestamp "2026-01-17T13:35:29.678131" ;
     ns1:user "System" .
 
-ns1:event_79d6bafc-8634-4f76-a482-c18a81da487c a ns1:Event ;
+ns1:event_c7834b93-9040-4604-9971-9ebe3a9415c2 a ns1:Event ;
     ns1:eventType "COMPLETED" ;
-    ns1:instance <http://example.org/instance/b633afd4-52aa-4aa5-9ba3-5d83a9a2aa08> ;
-    ns1:timestamp "2026-01-17T12:36:15.532176" ;
+    ns1:instance <http://example.org/instance/079547b7-c725-44f2-af13-d6e6d69675a4> ;
+    ns1:timestamp "2026-01-17T13:35:29.670952" ;
     ns1:user "System" .
 
-ns1:event_bb4782aa-6814-4f68-a644-a3bc3185f84e a ns1:Event ;
-    ns1:details "http://example.org/bpmn/EndEvent_1" ;
-    ns1:eventType "END" ;
-    ns1:instance <http://example.org/instance/b633afd4-52aa-4aa5-9ba3-5d83a9a2aa08> ;
-    ns1:timestamp "2026-01-17T12:36:15.530756" ;
+ns1:event_fda30ea2-0b4d-4894-baaf-6d108659abfa a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/079547b7-c725-44f2-af13-d6e6d69675a4> ;
+    ns1:timestamp "2026-01-17T13:35:29.667414" ;
     ns1:user "System" .
 
