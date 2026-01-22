@@ -1158,4 +1158,72 @@ We appreciate responsible disclosure and will respond promptly to security repor
 
 ---
 
+### 16. AI Transparency
+
+This project was developed with the assistance of multiple AI coding assistants. Below is a breakdown of which AI models contributed to different aspects of the development:
+
+#### 16.1 Development Contributions
+
+| Task Category | AI Model(s) Used | Contribution |
+|--------------|------------------|--------------|
+| Core RDF Engine | OpenCode Zen (MiniMax M2.1) | Initial architecture, token-based execution engine |
+| BPMN Parser (bpmn2rdf.py) | Claude Sonnet 4.5 (Anthropic) | Initial BPMN XML to RDF conversion, namespace handling |
+| RDF to BPMN Converter | OpenCode Zen (MiniMax M2.1) | RDF triples back to BPMN XML, element categorization |
+| Storage Service | OpenCode Zen (MiniMax M2.1) | Instance management, token lifecycle, multi-instance support |
+| Error Handling | OpenCode Zen (MiniMax M2.1) | Error events, cancel/compensation events, boundary events |
+| Script Tasks | OpenCode Zen (MiniMax M2.1), Nano Banana | Python script execution with security controls |
+| Camunda Listeners | OpenCode Zen (MiniMax M2.1) | Execution/task listeners, topic-based handlers |
+| REST API | OpenCode Zen (MiniMax M2.1) | FastAPI endpoints, process/instance/task management |
+| Test Suite | OpenCode Zen (MiniMax M2.1) | Unit tests, integration tests, roundtrip tests |
+
+#### 16.2 AI Models Reference
+
+| Model | Provider | Contribution Area |
+|-------|----------|-------------------|
+| **Gemini 3 Flash** | Google | Ideation, initial project setup, documentation review |
+| **Nano Banana** | Nano Banana AI | Project logo and visual branding |
+| **Claude Sonnet 4.5** | Anthropic | Initial BPMN to RDF parser (bpmn2rdf.py) implementation |
+| **MiniMax M2.1** | MiniMax (via OpenCode Zen) | Primary implementation, feature development, bug fixes |
+
+#### 16.3 Development Process
+
+1. **Planning**: Feature requirements defined with OpenCode Zen (MiniMax M2.1)
+2. **Implementation**: Primary code written by OpenCode Zen (MiniMax M2.1)
+3. **Review**: AI models reviewed code for issues and improvements
+4. **Testing**: Test cases written and executed to verify functionality
+5. **Documentation**: README and inline documentation updated
+
+#### 16.4 Transparency Statement
+
+- All AI-generated code has been reviewed and tested
+- No AI model has direct access to production systems
+- AI assistance was used for development only; final deployment decisions made by humans
+- All 156 automated tests pass to verify correctness
+
+---
+
+### 17. Credits
+
+#### Core Team
+- **Lead Developer**: OpenCode Zen (MiniMax M2.1 AI Assistant)
+- **Initial Parser Implementation**: Claude Sonnet 4.5 (Anthropic) - bpmn2rdf.py
+- **Project Ideation**: Gemini 3 Flash (Google)
+- **Visual Branding**: Nano Banana (Nano Banana AI) - Project logo
+
+#### AI Assistance
+Special thanks to the following AI models for their contributions:
+- **Gemini 3 Flash** - Project ideation and initial setup
+- **Nano Banana** - Project logo and visual branding
+- **Claude Sonnet 4.5** - Initial BPMN to RDF parser implementation
+- **MiniMax M2.1** (via OpenCode Zen) - Primary implementation partner
+
+#### Technology Stack
+Built with:
+- [Python](https://www.python.org/) - Programming language
+- [rdflib](https://rdflib.dev/) - RDF library for Python
+- [FastAPI](https://fastapi.tiangolo.com/) - Modern API framework
+- [BPMN 2.0](https://www.omg.org/spec/BPMN/2.0/) - Process modeling standard
+
+---
+
 **Note**: This document is for informational purposes only. Always conduct a thorough security assessment before deploying in production environments.
