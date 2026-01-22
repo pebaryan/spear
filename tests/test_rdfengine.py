@@ -1,6 +1,6 @@
 from pytest import fixture, raises
 from rdflib import Graph, Namespace, URIRef, XSD, Literal
-from rdfengine import (
+from src.core.rdfengine import (
     RDFEngine,
     ProcessContext,
     evaluate_condition,

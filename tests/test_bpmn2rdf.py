@@ -1,7 +1,7 @@
 import pytest
 from pytest import fixture, raises, raises, raises
 from rdflib import Graph, Namespace, URIRef, XSD
-from bpmn2rdf import BPMNToRDFConverter
+from src.conversion.bpmn2rdf import BPMNToRDFConverter
 import xml.etree.ElementTree as ET
 import io
 

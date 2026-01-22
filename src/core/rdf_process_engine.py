@@ -17,7 +17,7 @@ LOG = Namespace("http://example.org/audit/")
 TOKEN = Namespace("http://example.org/token/")
 
 # Import ProcessContext from existing rdfengine.py
-from rdfengine import ProcessContext
+from .rdfengine import ProcessContext
 
 
 class ProcessInstance:
@@ -40,7 +40,7 @@ class ProcessInstance:
             "status": self.status,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
-            "token_count": len(self.tokens)
+            "token_count": len(self.tokens),
         }
 
 
@@ -76,15 +76,17 @@ class RDFProcessEngine:
         self.instance_graph = instance_graph or definition_graph
         self.instances = {}
         self.topics = {}
-        self.uri_base = "http://example.org/bpmn/"  # For instance URIs, not BPMN element URIs
+        self.uri_base = (
+            "http://example.org/bpmn/"  # For instance URIs, not BPMN element URIs
+        )
 
     def register_topic_handler(self, topic, handler):
         """Register a handler function for a service task topic"""
         self.topics[topic] = handler
 
-    def start_process_instance(self, process_definition_uri,
-                             initial_variables=None,
-                             start_event_id=None):
+    def start_process_instance(
+        self, process_definition_uri, initial_variables=None, start_event_id=None
+    ):
         """
         Start a new process instance
 
@@ -110,7 +112,9 @@ class RDFProcessEngine:
         # Find start event(s)
         start_events = self._find_start_events(process_definition_uri, start_event_id)
         if not start_events:
-            raise ValueError(f"No start events found in process {process_definition_uri}")
+            raise ValueError(
+                f"No start events found in process {process_definition_uri}"
+            )
 
         # Create tokens at start events
         for start_event_uri in start_events:
@@ -120,7 +124,9 @@ class RDFProcessEngine:
 
             # Log instance start
             if start_event_uri:
-                self._log_event(instance.instance_uri, start_event_uri, "START", "System")
+                self._log_event(
+                    instance.instance_uri, start_event_uri, "START", "System"
+                )
 
         # Change status to running
         instance.status = "RUNNING"
@@ -132,7 +138,9 @@ class RDFProcessEngine:
         # Start execution
         self._execute_instance(instance)
 
-        logger.info(f"Started process instance {instance.instance_id} for process {process_definition_uri}")
+        logger.info(
+            f"Started process instance {instance.instance_id} for process {process_definition_uri}"
+        )
         return instance
 
     def stop_process_instance(self, instance_id, reason="User request"):
@@ -167,7 +175,13 @@ class RDFProcessEngine:
                 token.status = "CONSUMED"
                 # Log token consumption
                 if token.current_node:
-                    self._log_event(instance.instance_uri, token.current_node, "TERMINATE", "System", reason)
+                    self._log_event(
+                        instance.instance_uri,
+                        token.current_node,
+                        "TERMINATE",
+                        "System",
+                        reason,
+                    )
 
         # Cancel any scheduled activities (timers, etc.)
         self._cancel_scheduled_activities(instance)
@@ -188,7 +202,10 @@ class RDFProcessEngine:
         """List process instances with optional filtering"""
         instances = []
         for instance in self.instances.values():
-            if process_definition_uri and str(instance.process_definition_uri) != process_definition_uri:
+            if (
+                process_definition_uri
+                and str(instance.process_definition_uri) != process_definition_uri
+            ):
                 continue
             if status and instance.status != status:
                 continue
@@ -279,7 +296,9 @@ class RDFProcessEngine:
                 context = ProcessContext(self.instance_graph, instance.instance_uri)
                 self.topics[topic](context)
                 if token.current_node:
-                    self._log_event(instance.instance_uri, token.current_node, "COMPLETE", "System")
+                    self._log_event(
+                        instance.instance_uri, token.current_node, "COMPLETE", "System"
+                    )
                 self._move_token_to_next_node(instance, token)
             except Exception as e:
                 logger.error(f"Service task {topic} failed: {e}")
@@ -348,12 +367,23 @@ class RDFProcessEngine:
         # Add current state
         self.instance_graph.add((instance_uri, RDF.type, INST.ProcessInstance))
         self.instance_graph.add((instance_uri, INST.status, Literal(instance.status)))
-        self.instance_graph.add((instance_uri, INST.processDefinition,
-                                instance.process_definition_uri))
-        self.instance_graph.add((instance_uri, INST.createdAt,
-                                Literal(instance.created_at.isoformat(), datatype=XSD.dateTime)))
-        self.instance_graph.add((instance_uri, INST.updatedAt,
-                                Literal(instance.updated_at.isoformat(), datatype=XSD.dateTime)))
+        self.instance_graph.add(
+            (instance_uri, INST.processDefinition, instance.process_definition_uri)
+        )
+        self.instance_graph.add(
+            (
+                instance_uri,
+                INST.createdAt,
+                Literal(instance.created_at.isoformat(), datatype=XSD.dateTime),
+            )
+        )
+        self.instance_graph.add(
+            (
+                instance_uri,
+                INST.updatedAt,
+                Literal(instance.updated_at.isoformat(), datatype=XSD.dateTime),
+            )
+        )
 
     def _log_event(self, instance_uri, node_uri, event_type, user, details=""):
         """Log an audit event"""
@@ -364,8 +394,13 @@ class RDFProcessEngine:
         if node_uri:
             self.instance_graph.add((event_uri, LOG.node, node_uri))
         self.instance_graph.add((event_uri, LOG.eventType, Literal(event_type)))
-        self.instance_graph.add((event_uri, LOG.timestamp,
-                                Literal(datetime.now().isoformat(), datatype=XSD.dateTime)))
+        self.instance_graph.add(
+            (
+                event_uri,
+                LOG.timestamp,
+                Literal(datetime.now().isoformat(), datatype=XSD.dateTime),
+            )
+        )
         self.instance_graph.add((event_uri, LOG.user, Literal(user)))
         if details:
             self.instance_graph.add((event_uri, LOG.details, Literal(details)))

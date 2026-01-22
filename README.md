@@ -18,54 +18,556 @@ The **Semantic Process Engine** is a lightweight, Python-based BPMN orchestrator
 
 The engine follows a decoupled, asynchronous pattern:
 
-* **Data Layer:** A Triplestore (Fuseki, GraphDB) storing Process Definitions and Runtime State.
+* **Data Layer:** In-memory RDF graphs (rdflib) storing Process Definitions and Runtime State.
 * **Orchestration:** A Python core using `rdflib` to move "Tokens" through the graph.
 * **Execution:** Background workers that trigger Python functions based on `bpmn:topic`.
-* **Interface:** A Flask Web API for starting instances and completing human tasks.
+* **Interface:** A FastAPI REST API for managing processes, instances, and topic handlers.
 
 ---
 
-### 4. Core Concepts
+### 4. Supported BPMN Elements
 
-| Concept | Implementation |
-| --- | --- |
-| **Definitions** | Turtle (.ttl) files defining the BPMN graph structure. |
-| **State** | RDF Triples tracking token positions and process variables. |
-| **Gateways** | SPARQL `ASK` queries evaluated in real-time. |
-| **Audit** | A dedicated Named Graph containing a stream of activity events. |
+SPEAR supports a comprehensive set of BPMN 2.0 elements:
+
+#### 4.1 Events
+
+| Element | Support | Description |
+|---------|---------|-------------|
+| **StartEvent** | ✅ Full | Process initiation point, supports multiple start events |
+| **EndEvent** | ✅ Full | Process termination, supports message end events |
+| **Intermediate Throw Event** | ✅ Full | Message throw events |
+| **Intermediate Catch Event** | ✅ Full | Message receive tasks, timer events |
+| **Boundary Events** | ✅ Full | Attached to activities, supports message/timer/error/signal |
+
+#### 4.2 Activities
+
+| Element | Support | Description |
+|---------|---------|-------------|
+| **Service Task** | ✅ Full | Execute registered topic handlers |
+| **User Task** | ✅ Full | Manual tasks requiring human intervention |
+| **Send Task** | ✅ Full | Message sending via HTTP handlers |
+| **Receive Task** | ✅ Full | Message waiting and receiving |
+| **Script Task** | ⚠️ Partial | Python script execution support |
+| **Manual Task** | ✅ Basic | Documented-only tasks |
+
+#### 4.3 Gateways
+
+| Element | Support | Description |
+|---------|---------|-------------|
+| **Exclusive Gateway** | ✅ Full | Single outgoing flow based on conditions |
+| **Parallel Gateway** | ✅ Full | All outgoing flows activated simultaneously |
+| **Inclusive Gateway** | ✅ Full | Multiple flows based on evaluated conditions |
+| **Event-Based Gateway** | ✅ Full | Wait for specific events before proceeding |
+
+#### 4.4 Subprocesses
+
+| Element | Support | Description |
+|---------|---------|-------------|
+| **Embedded Subprocess** | ✅ Full | Nested process definitions within parent |
+| **Event Subprocess** | ✅ Full | Triggered by boundary events |
+| **Call Activity** | ✅ Full | References external process definitions |
+
+#### 4.5 Multi-Instance
+
+| Element | Support | Description |
+|---------|---------|-------------|
+| **Parallel MI** | ✅ Full | Concurrent execution of multiple instances |
+| **Sequential MI** | ✅ Full | Sequential iteration with loop cardinality |
+| **MI Completion Condition** | ✅ Full | Continue until condition is met |
 
 ---
 
-### 5. Getting Started
+### 5. REST API Reference
 
-1. **Start Triplestore:** Ensure a SPARQL 1.1 compatible store is running.
-2. **Import BPMN Models:** Convert BPMN 2.0 XML files to RDF using the bpmn2rdf converter:
+SPEAR provides a comprehensive REST API built with FastAPI. All endpoints are documented at `/docs`.
+
+#### 5.1 Process Definitions
+
+```http
+# List all processes
+GET /api/v1/processes?status=active&page=1&page_size=20
+
+# Get specific process
+GET /api/v1/processes/{process_id}
+
+# Deploy new process
+POST /api/v1/processes
+Content-Type: application/json
+{
+  "name": "Order Process",
+  "description": "Order fulfillment workflow",
+  "version": "1.0.0",
+  "bpmn_file": "<?xml version=\"1.0\"...>"
+}
+
+# Update process
+PUT /api/v1/processes/{process_id}
+
+# Get RDF representation
+GET /api/v1/processes/{process_id}/rdf
+
+# Get process statistics
+GET /api/v1/processes/{process_id}/statistics
+
+# Delete process
+DELETE /api/v1/processes/{process_id}
+```
+
+#### 5.2 Process Instances
+
+```http
+# List instances
+GET /api/v1/instances?process_id={id}&status=RUNNING&page=1
+
+# Get instance details
+GET /api/v1/instances/{instance_id}
+
+# Start new instance
+POST /api/v1/instances
+{
+  "process_id": "order-process-id",
+  "variables": {"orderId": "12345", "amount": 150.00},
+  "start_event_id": null
+}
+
+# Stop instance
+POST /api/v1/instances/{instance_id}/stop
+{"reason": "Customer cancellation"}
+```
+
+#### 5.3 Variables
+
+```http
+# Get instance variables
+GET /api/v1/instances/{instance_id}/variables
+
+# Set variable
+POST /api/v1/instances/{instance_id}/variables
+{"name": "status", "value": "approved", "datatype": "string"}
+
+# Get specific variable
+GET /api/v1/instances/{instance_id}/variables/{name}
+```
+
+#### 5.4 Topic Handlers
+
+```http
+# List all handlers
+GET /api/v1/topics
+
+# Register HTTP handler
+POST /api/v1/topics
+{
+  "topic": "send_notification",
+  "handler_type": "http",
+  "description": "Send push notification",
+  "http_config": {
+    "url": "https://api.example.com/notify/${userId}",
+    "method": "POST",
+    "headers": {"Authorization": "Bearer ${token}"},
+    "response_extract": {
+      "messageId": "$.id",
+      "status": "$.status"
+    }
+  },
+  "async_execution": false
+}
+
+# Register custom function handler
+POST /api/v1/topics
+{
+  "topic": "calculate_tax",
+  "handler_type": "function",
+  "description": "Calculate order tax"
+}
+
+# Test handler
+POST /api/v1/topics/{topic}/test
+{"variables": {"amount": 100}}
+
+# Update handler
+PUT /api/v1/topics/{topic}
+
+# Unregister handler
+DELETE /api/v1/topics/{topic}
+```
+
+#### 5.5 Tasks
+
+```http
+# List user tasks
+GET /api/v1/tasks?process_id={id}&assignee={user}
+
+# Claim task
+POST /api/v1/tasks/{task_id}/claim
+{"assignee": "user@example.com"}
+
+# Complete task
+POST /api/v1/tasks/{task_id}/complete
+{"variables": {"approval": true}}
+```
+
+#### 5.6 System Endpoints
+
+```http
+# Health check
+GET /health
+
+# API info
+GET /info
+
+# System statistics
+GET /statistics
+
+# Export all processes as RDF
+GET /export/processes
+```
+
+---
+
+### 6. Topic Handlers & Service Tasks
+
+Service tasks execute custom logic through registered topic handlers.
+
+#### 6.1 Handler Types
+
+**Function Handlers:**
+```python
+from src.core import ProcessContext
+
+def calculate_tax(context: ProcessContext):
+    amount = float(context.get_variable("orderTotal"))
+    tax = amount * 0.10
+    context.set_variable("taxAmount", tax)
+    print(f"Calculated tax: {tax}")
+
+# Register via API or code
+engine.register_topic_handler("calculate_tax", calculate_tax)
+```
+
+**HTTP Handlers:**
+```python
+# Automatic variable substitution in URL, headers, body
+# Response data extraction using JSONPath
+{
+  "url": "https://api.example.com/users/${userId}",
+  "method": "POST",
+  "headers": {
+    "Authorization": "Bearer ${apiToken}",
+    "Content-Type": "application/json"
+  },
+  "data": {
+    "name": "${userName}",
+    "amount": ${orderAmount}
+  },
+  "response_extract": {
+    "userId": "$.id",
+    "email": "$.contact.email"
+  }
+}
+```
+
+#### 6.2 Built-in Handlers
+
+SPEAR includes ready-to-use HTTP handlers:
+
+| Topic | Description |
+|-------|-------------|
+| `get_user` | Fetch user details from JSONPlaceholder |
+| `create_post` | Create posts via JSONPlaceholder API |
+| `send_email` | Send email notifications (template-based) |
+| `get_weather` | Fetch weather data from OpenWeatherMap |
+
+---
+
+### 7. Condition Expressions
+
+Exclusive and inclusive gateways evaluate conditions using SPARQL ASK queries.
+
+#### 7.1 Camunda Expression Syntax
+
+```xml
+<sequenceFlow id="Flow_approved" sourceRef="gateway1" targetRef="task_approve">
+  <conditionExpression xsi:type="tFormalExpression"
+    camunda:expression="${approved == true}"/>
+</sequenceFlow>
+```
+
+#### 7.2 Supported Operators
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `==` or `eq` | Equals | `${status == "approved"}` |
+| `!=` or `neq` | Not equals | `${status != "rejected"}` |
+| `>` or `gt` | Greater than | `${amount > 1000}` |
+| `>=` or `gte` | Greater than or equal | `${score >= 70}` |
+| `<` or `lt` | Less than | `${balance < 0}` |
+| `<=` or `lte` | Less than or equal | `${quantity <= 10}` |
+
+#### 7.3 SPARQL Query Generation
+
+Expressions are automatically converted to SPARQL ASK queries:
+
+```
+${amount > 1000} → ASK { ?instance var:amount ?v . FILTER(?v > 1000) }
+${approved == true} → ASK { ?instance var:approved ?v . FILTER(?v = "true") }
+```
+
+---
+
+### 8. Process Variables
+
+Variables store data during process execution and persist as RDF literals.
+
+#### 8.1 Variable Types
+
+```python
+# String
+context.set_variable("customerName", "John Doe")
+
+# Number (integer)
+context.set_variable("quantity", 5, datatype=XSD.integer)
+
+# Decimal
+context.set_variable("amount", 99.99, datatype=XSD.decimal)
+
+# Boolean
+context.set_variable("approved", True, datatype=XSD.boolean)
+
+# DateTime
+from datetime import datetime
+context.set_variable("orderDate", datetime.now(), datatype=XSD.dateTime)
+```
+
+#### 8.2 Variable Access
+
+```python
+# Get variable value
+name = context.get_variable("customerName")
+
+# Check if variable exists
+if context.get_variable("status"):
+    # Process variable
+```
+
+#### 8.3 Variable Scope
+
+- **Instance Variables:** Available throughout the entire process instance
+- **Task Variables:** Created and used within specific service tasks
+- **Automatic Persistence:** All variables are automatically persisted to RDF storage
+
+---
+
+### 9. Audit Logging
+
+Every process action is logged as RDF triples for complete traceability.
+
+#### 9.1 Event Types
+
+| Event Type | Description |
+|------------|-------------|
+| `START` | Process instance started |
+| `END` | Process instance completed |
+| `COMPLETE` | Task completed |
+| `TERMINATE` | Instance stopped prematurely |
+| `CLAIM` | User task claimed |
+| `COMPLETE` | Task finished |
+| `CUSTOM` | Custom audit events |
+
+#### 9.2 Audit Log Structure
+
+Each event includes:
+- **Event URI:** Unique identifier
+- **Instance:** Reference to process instance
+- **Node:** Activity where event occurred
+- **Event Type:** Type of event
+- **Timestamp:** When event occurred (ISO 8601)
+- **User:** Who triggered the event
+- **Details:** Optional additional information
+
+#### 9.3 Query Audit Logs
+
+```sparql
+SELECT ?event ?type ?timestamp ?user
+WHERE {
+  ?event rdf:type log:Event .
+  ?event log:instance ?instance .
+  ?event log:eventType ?type .
+  ?event log:timestamp ?timestamp .
+  ?event log:user ?user .
+}
+ORDER BY ?timestamp
+```
+
+---
+
+### 10. Multi-Instance Activities
+
+Execute the same activity multiple times in parallel or sequentially.
+
+#### 10.1 Parallel Multi-Instance
+
+```xml
+<serviceTask id="reviewDocuments" name="Review Documents">
+  <multiInstanceLoopCharacteristics isParallel="true">
+    <loopCardinality>${documentCount}</loopCardinality>
+    <completionCondition>
+      ${nrOfCompletedInstances >= nrOfInstances}
+    </completionCondition>
+  </multiInstanceLoopCharacteristics>
+</serviceTask>
+```
+
+#### 10.2 Sequential Multi-Instance
+
+```xml
+<serviceTask id="processItems" name="Process Items">
+  <multiInstanceLoopCharacteristics isParallel="false">
+    <loopCardinality>5</loopCardinality>
+    <dataInput>${itemList}</dataInput>
+    <dataOutput>${processedItems}</dataOutput>
+  </multiInstanceLoopCharacteristics>
+</serviceTask>
+```
+
+#### 10.3 Multi-Instance Variables
+
+| Variable | Description |
+|----------|-------------|
+| `nrOfInstances` | Total number of instances |
+| `nrOfActiveInstances` | Currently executing |
+| `nrOfCompletedInstances` | Completed successfully |
+| `loopCounter` | Current iteration (1-based) |
+
+---
+
+### 11. Subprocesses
+
+#### 11.1 Embedded (Expanded) Subprocess
+
+```xml
+<subProcess id="orderFulfillment" name="Order Fulfillment">
+  <startEvent id="subStart"/>
+  <task id="validateOrder"/>
+  <endEvent id="subEnd"/>
+  <sequenceFlow sourceRef="subStart" targetRef="validateOrder"/>
+  <sequenceFlow sourceRef="validateOrder" targetRef="subEnd"/>
+</subProcess>
+```
+
+#### 11.2 Event Subprocess
+
+```xml
+<subProcess id="errorHandler" triggeredByEvent="true">
+  <startEvent id="errorStart">
+    <errorEventDefinition errorRef="Error_1"/>
+  </startEvent>
+  <serviceTask id="handleError"/>
+  <endEvent id="errorEnd"/>
+</subProcess>
+```
+
+#### 11.3 Call Activity (Collapsed Subprocess)
+
+```xml
+<callActivity id="callApproval" calledElement="ApprovalProcess">
+  <extensionElements>
+    <camunda:in variables="all"/>
+    <camunda:out variables="approvalResult"/>
+  </extensionElements>
+</callActivity>
+```
+
+---
+
+### 12. Getting Started
+
+1. **Install Dependencies:**
    ```bash
-   python bpmn2rdf.py myprocess.bpmn -o myprocess.ttl
+   pip install -r requirements.txt
    ```
-   Or use programmatically:
+
+2. **Start the API Server:**
+   ```bash
+   python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+
+3. **Access API Documentation:**
+   - Swagger UI: http://localhost:8000/docs
+   - ReDoc: http://localhost:8000/redoc
+
+4. **Deploy a Process:**
    ```python
-   from bpmn2rdf import BPMNToRDFConverter
-   converter = BPMNToRDFConverter()
-   graph = converter.parse_bpmn_to_graph("myprocess.bpmn")
+   import requests
+   
+   response = requests.post("http://localhost:8000/api/v1/processes", json={
+       "name": "Order Process",
+       "description": "Order fulfillment workflow",
+       "version": "1.0.0",
+       "bpmn_file": """<?xml version="1.0" encoding="UTF-8"?>
+       <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+         <process id="OrderProcess" isExecutable="true">
+           <startEvent id="StartEvent_1"/>
+           <serviceTask id="ProcessOrder" camunda:topic="process_order"/>
+           <endEvent id="EndEvent_1"/>
+           <sequenceFlow sourceRef="StartEvent_1" targetRef="ProcessOrder"/>
+           <sequenceFlow sourceRef="ProcessOrder" targetRef="EndEvent_1"/>
+         </process>
+       </definitions>"""
+   })
+   process_id = response.json()["id"]
    ```
-3. **Bootstrap:** Run `python bootstrap.py` to upload process maps.
-4. **Launch Engine:** Run `python app.py` to start the Flask API and Worker thread.
-5. **Monitor:** Use the included SPARQL queries to view real-time performance and bottlenecks.
+
+5. **Start an Instance:**
+   ```python
+   response = requests.post("http://localhost:8000/api/v1/instances", json={
+       "process_id": process_id,
+       "variables": {"orderId": "12345", "amount": 99.99}
+   })
+   instance_id = response.json()["id"]
+   ```
+
+6. **Register a Topic Handler:**
+   ```python
+   requests.post("http://localhost:8000/api/v1/topics", json={
+       "topic": "process_order",
+       "handler_type": "function",
+       "description": "Process customer order"
+   })
+   
+   # Register handler function
+   from src.core import RDFProcessEngine, ProcessContext
+   
+   def process_order(context: ProcessContext):
+       order_id = context.get_variable("orderId")
+       amount = context.get_variable("amount")
+       print(f"Processing order {order_id}: ${amount}")
+       context.set_variable("processed", True)
+   
+   engine = RDFProcessEngine(Graph())
+   engine.register_topic_handler("process_order", process_order)
+   ```
 
 ---
 
-### 6. Process Mining & Analytics
+### 13. Process Mining & Analytics
 
 The engine includes a built-in export utility to generate XES-compatible CSVs. This allows for immediate visualization of process heatmaps and performance analysis in standard mining tools.
 
+```python
+from src.export.sparql2xe import export_to_xes
+
+# Export all instances to XES format
+xes_data = export_to_xes(graph, "order-process")
+```
+
 ---
 
-### 7. Security Considerations
+### 14. Security Considerations
 
 While SPEAR is designed as a lightweight BPMN orchestrator for process automation, it's important to understand the security implications when deploying in production environments.
 
-#### 7.1 XML Parsing (XXE Vulnerability)
+#### 14.1 XML Parsing (XXE Vulnerability)
 
 **Issue**: The BPMN-to-RDF converter uses Python's `xml.etree.ElementTree` to parse BPMN 2.0 XML files. By default, this parser is vulnerable to XML External Entity (XXE) attacks if deployed with untrusted input.
 
@@ -88,7 +590,7 @@ tree = ET.parse(file_path)  # Vulnerable to XXE if untrusted
    ```
 3. **Content Security Policy**: Restrict file upload endpoints to authenticated/authorized users only
 
-#### 7.2 CORS Configuration
+#### 14.2 CORS Configuration
 
 **Issue**: The FastAPI application is configured with permissive CORS settings allowing all origins with credentials.
 
@@ -111,7 +613,7 @@ allow_credentials=True,
 2. **Production Configuration**: Set `ALLOWED_ORIGINS=https://yourdomain.com` in production
 3. **Network Segmentation**: Deploy API on internal network, not publicly accessible
 
-#### 7.3 Input Validation
+#### 14.3 Input Validation
 
 **Issue**: API endpoints currently lack input validation for:
 - BPMN XML content size
@@ -148,7 +650,7 @@ allow_credentials=True,
        bpmn_content: constr(max_length=10_000_000)
    ```
 
-#### 7.4 Rate Limiting
+#### 14.4 Rate Limiting
 
 **Issue**: No rate limiting is currently implemented on API endpoints.
 
@@ -171,7 +673,7 @@ allow_credentials=True,
 
 2. **Reverse Proxy**: Configure rate limiting at nginx/Apache level
 
-#### 7.5 Process Variables
+#### 14.5 Process Variables
 
 **Issue**: Process variables are stored as RDF literals without type validation or sanitization.
 
@@ -184,7 +686,7 @@ allow_credentials=True,
 2. **Sanitize User Input**: If variables contain user input, sanitize to prevent injection
 3. **Limit Variable Size**: Set maximum size for variable values
 
-#### 7.6 Topic Handler Security
+#### 14.6 Topic Handler Security
 
 **Issue**: Topic handlers are registered dynamically and execute arbitrary Python code.
 
@@ -198,7 +700,7 @@ allow_credentials=True,
 3. **Audit Handlers**: Log all handler registrations and executions
 4. **Validate Handler Functions**: Ensure handlers don't accept unsafe parameters
 
-#### 7.7 RDF Graph Security
+#### 14.7 RDF Graph Security
 
 **Issue**: The RDF triples store (definitions, instances, audit) is not access-controlled.
 
@@ -212,7 +714,7 @@ allow_credentials=True,
 3. **Encryption**: Use TLS for all connections to the triplestore
 4. **Named Graphs**: Use named graphs for logical separation of data
 
-#### 7.8 Audit Log Integrity
+#### 14.8 Audit Log Integrity
 
 **Issue**: Audit logs are stored as RDF triples that could be modified.
 
@@ -227,9 +729,9 @@ allow_credentials=True,
 
 ---
 
-### 8. Deployment Recommendations
+### 14. Deployment Recommendations
 
-#### 8.1 Development vs Production
+#### 15.1 Development vs Production
 
 | Component | Development | Production |
 |-----------|-------------|------------|
@@ -241,7 +743,7 @@ allow_credentials=True,
 | **Triplestore** | Local Fuseki | Secured Fuseki/GraphDB |
 | **Network** | localhost | Internal network only |
 
-#### 8.2 Security Checklist
+#### 15.2 Security Checklist
 
 - [ ] Restrict CORS origins for production deployment
 - [ ] Implement XXE protection on XML parsing
@@ -255,7 +757,7 @@ allow_credentials=True,
 - [ ] Regular security audits and updates
 - [ ] Monitor logs for suspicious activity
 
-#### 8.3 Environment Variables for Production
+#### 15.3 Environment Variables for Production
 
 ```bash
 # CORS Configuration
@@ -283,7 +785,7 @@ AUDIT_LOG_ENDPOINT=https://audit.example.com/api
 
 ---
 
-### 9. Reporting Security Issues
+### 15. Reporting Security Issues
 
 If you discover a security vulnerability in SPEAR, please report it responsibly:
 

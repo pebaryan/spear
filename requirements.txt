@@ -11,6 +11,7 @@ pydantic>=2.0.0
 # Testing dependencies
 pytest>=7.0.0
 pytest-cov>=4.0.0
+httpx>=0.25.0
 
 # Optional: Graph database connection
 # sparqlwrapper>=1.8.0
