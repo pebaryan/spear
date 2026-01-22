@@ -69,6 +69,9 @@ class RDFStorageService:
         # Pending messages waiting for correlation
         self.pending_messages = []
 
+        # Script task execution - disabled by default for security
+        self.script_tasks_enabled = False
+
         # BPMN converter for deployment
         self.converter = BPMNToRDFConverter()
 
@@ -115,7 +118,9 @@ class RDFStorageService:
         process_uri = PROC[process_id]
 
         # Convert BPMN to RDF
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".bpmn", delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".bpmn", delete=False, encoding="utf-8"
+        ) as tmp:
             tmp.write(bpmn_content)
             temp_file = tmp.name
 
@@ -780,6 +785,11 @@ class RDFStorageService:
                 instance_uri, token_uri, current_node, instance_id
             )
 
+        elif BPMN.ScriptTask in node_types or "scripttask" in str(node_types).lower():
+            self._execute_script_task(
+                instance_uri, token_uri, current_node, instance_id
+            )
+
         elif BPMN.UserTask in node_types or BPMN.userTask in node_types:
             mi_info = self._is_multi_instance(current_node)
 
@@ -828,6 +838,11 @@ class RDFStorageService:
                 assignee=assignee,
                 candidate_users=candidate_users if candidate_users else None,
                 candidate_groups=candidate_groups if candidate_groups else None,
+            )
+
+            # Execute "create" task listeners
+            self._execute_task_listeners(
+                instance_uri, token_uri, current_node, instance_id, "create"
             )
 
             self._log_instance_event(
@@ -1092,6 +1107,11 @@ class RDFStorageService:
         instance_id: str,
     ):
         """Execute a service task and move token to next node"""
+        # Execute "start" execution listeners
+        self._execute_execution_listeners(
+            instance_uri, token_uri, node_uri, instance_id, "start"
+        )
+
         mi_info = self._is_multi_instance(node_uri)
 
         if mi_info["is_multi_instance"]:
@@ -1157,7 +1177,239 @@ class RDFStorageService:
         self._execute_service_task_handler(
             instance_uri, token_uri, node_uri, instance_id
         )
+
+        # Execute "end" execution listeners
+        self._execute_execution_listeners(
+            instance_uri, token_uri, node_uri, instance_id, "end"
+        )
+
         self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+
+    def _execute_script_task(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+    ):
+        """Execute a script task if script execution is enabled, otherwise log and skip"""
+        script_format = None
+        script_code = None
+
+        for s, p, o in self.definitions_graph.triples(
+            (node_uri, BPMN.scriptFormat, None)
+        ):
+            script_format = str(o)
+            break
+
+        for s, p, o in self.definitions_graph.triples((node_uri, BPMN.script, None)):
+            script_code = str(o)
+            break
+
+        node_id = str(node_uri).split("/")[-1]
+
+        if not script_code:
+            logger.warning(
+                f"ScriptTask {node_id} has no script content - skipping execution"
+            )
+            self._log_instance_event(
+                instance_uri,
+                "SCRIPT_TASK_SKIPPED",
+                "System",
+                f"ScriptTask {node_id} - no script content",
+            )
+            self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+            return
+
+        if not self.script_tasks_enabled:
+            logger.info(
+                f"ScriptTask {node_id} execution disabled by configuration - skipping"
+            )
+            self._log_instance_event(
+                instance_uri,
+                "SCRIPT_TASK_DISABLED",
+                "System",
+                f"ScriptTask {node_id} - script execution disabled",
+            )
+            self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+            return
+
+        logger.info(
+            f"Executing ScriptTask {node_id} (format: {script_format or 'python'})"
+        )
+        self._log_instance_event(
+            instance_uri,
+            "SCRIPT_TASK_STARTED",
+            "System",
+            f"ScriptTask {node_id} started",
+        )
+
+        try:
+            self._run_script(
+                instance_uri, node_uri, instance_id, script_code, script_format
+            )
+
+            logger.info(f"ScriptTask {node_id} completed successfully")
+            self._log_instance_event(
+                instance_uri,
+                "SCRIPT_TASK_COMPLETED",
+                "System",
+                f"ScriptTask {node_id} completed",
+            )
+        except Exception as e:
+            logger.error(f"ScriptTask {node_id} failed: {e}")
+            self._log_instance_event(
+                instance_uri,
+                "SCRIPT_TASK_ERROR",
+                "System",
+                f"ScriptTask {node_id} failed: {str(e)}",
+            )
+            self.instances_graph.set((token_uri, INST.status, Literal("ERROR")))
+            self._save_graph(self.instances_graph, "instances.ttl")
+            return
+
+        self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+
+    def _run_script(
+        self,
+        instance_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        script_code: str,
+        script_format: str = None,
+    ):
+        """Execute a Python script with access to process variables"""
+        variables = self.get_instance_variables(instance_id)
+
+        local_vars = {"variables": dict(variables)}
+
+        exec(script_code, {"print": print, "datetime": datetime}, local_vars)
+
+        updated_vars = {
+            k: v
+            for k, v in local_vars.items()
+            if k != "variables" and not k.startswith("_")
+        }
+
+        for name, value in updated_vars.items():
+            self.set_instance_variable(instance_id, name, value)
+
+    def _execute_execution_listeners(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        event: str,
+    ):
+        """Execute all execution listeners for a specific event"""
+        for listener_uri in self.definitions_graph.subjects(
+            BPMN.listenerElement, node_uri
+        ):
+            listener_type = self.definitions_graph.value(listener_uri, RDF.type)
+            if listener_type and "ExecutionListener" not in str(listener_type):
+                continue
+
+            listener_event = self.definitions_graph.value(
+                listener_uri, BPMN.listenerEvent
+            )
+            if listener_event and str(listener_event) != event:
+                continue
+
+            expression = self.definitions_graph.value(
+                listener_uri, BPMN.listenerExpression
+            )
+            if expression and expression in self.topic_handlers:
+                self._execute_listener(
+                    instance_uri,
+                    node_uri,
+                    instance_id,
+                    str(expression),
+                    "execution",
+                    event,
+                )
+
+    def _execute_task_listeners(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        event: str,
+    ):
+        """Execute all task listeners for a specific event"""
+        for listener_uri in self.definitions_graph.subjects(
+            BPMN.listenerElement, node_uri
+        ):
+            listener_type = self.definitions_graph.value(listener_uri, RDF.type)
+            if listener_type and "TaskListener" not in str(listener_type):
+                continue
+
+            listener_event = self.definitions_graph.value(
+                listener_uri, BPMN.listenerEvent
+            )
+            if listener_event and str(listener_event) != event:
+                continue
+
+            expression = self.definitions_graph.value(
+                listener_uri, BPMN.listenerExpression
+            )
+            if expression and expression in self.topic_handlers:
+                self._execute_listener(
+                    instance_uri, node_uri, instance_id, str(expression), "task", event
+                )
+
+    def _execute_listener(
+        self,
+        instance_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        expression: str,
+        listener_type: str,
+        event: str,
+    ):
+        """Execute a single listener via its topic handler"""
+        handler = self.topic_handlers.get(expression)
+        if not handler:
+            return
+
+        node_id = str(node_uri).split("/")[-1]
+
+        logger.info(
+            f"Executing {listener_type} listener '{expression}' "
+            f"(event: {event}) on node {node_id}"
+        )
+
+        try:
+            from src.core.rdfengine import ProcessContext
+
+            context = ProcessContext(self, instance_uri)
+
+            if callable(handler):
+                if hasattr(handler, "__self__"):
+                    method = getattr(handler.__self__, handler.__name__)
+                    method(context)
+                else:
+                    handler(context)
+            elif isinstance(handler, dict):
+                handler_type = handler.get("type", "function")
+                if handler_type == "http":
+                    self._execute_http_handler(handler, context)
+
+            self._log_instance_event(
+                instance_uri,
+                "LISTENER_EXECUTED",
+                "System",
+                f"{listener_type.capitalize()} listener '{expression}' (event: {event})",
+            )
+        except Exception as e:
+            logger.error(f"Listener '{expression}' failed: {e}")
+            self._log_instance_event(
+                instance_uri,
+                "LISTENER_ERROR",
+                "System",
+                f"{listener_type.capitalize()} listener '{expression}' failed: {str(e)}",
+            )
 
     def _execute_service_task_handler(
         self,
@@ -2577,6 +2829,13 @@ class RDFStorageService:
             for name, value in variables.items():
                 self.set_instance_variable(instance_id, name, value)
 
+        # Execute "complete" task listeners
+        node_uri = self.tasks_graph.value(task_uri, TASK.node)
+        if node_uri:
+            self._execute_task_listeners(
+                instance_uri, None, node_uri, instance_id, "complete"
+            )
+
         self._log_task_event(task_uri, "COMPLETED", user_id)
         self._save_graph(self.tasks_graph, "tasks.ttl")
 
@@ -2597,6 +2856,15 @@ class RDFStorageService:
 
         self.tasks_graph.set((task_uri, TASK.assignee, Literal(assignee)))
         self.tasks_graph.set((task_uri, TASK.status, Literal("ASSIGNED")))
+
+        # Execute "assignment" task listeners
+        node_uri = self.tasks_graph.value(task_uri, TASK.node)
+        instance_uri = self.tasks_graph.value(task_uri, TASK.instance)
+        if node_uri and instance_uri:
+            instance_id = str(instance_uri).split("/")[-1]
+            self._execute_task_listeners(
+                instance_uri, None, node_uri, instance_id, "assignment"
+            )
 
         self._log_task_event(
             task_uri,

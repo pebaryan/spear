@@ -149,6 +149,7 @@ class RDFToBPMNConverter:
             "endevent": [],
             "servicetask": [],
             "usertask": [],
+            "scripttask": [],
             "exclusivegateway": [],
             "parallelgateway": [],
             "inclusivegateway": [],
@@ -219,6 +220,8 @@ class RDFToBPMNConverter:
                 elements["compensationintermediatethrow"].append(s)
             elif "compensationintermediatecatch" in elem_type:
                 elements["compensationintermediatecatch"].append(s)
+            elif "scripttask" in elem_type:
+                elements["scripttask"].append(s)
             elif "task" in elem_type:
                 elements["othertasks"].append(s)
             elif "event" in elem_type:
@@ -244,6 +247,10 @@ class RDFToBPMNConverter:
         # Add user tasks
         for elem in elements_by_type.get("usertask", []):
             self._add_usertask(process_elem, graph, elem)
+
+        # Add script tasks
+        for elem in elements_by_type.get("scripttask", []):
+            self._add_script_task(process_elem, graph, elem)
 
         # Add other tasks
         for elem in elements_by_type.get("othertasks", []):
@@ -543,6 +550,9 @@ class RDFToBPMNConverter:
         # Add multi-instance characteristics if present
         self._add_multi_instance_characteristics(elem, graph, elem_uri)
 
+        # Add execution listeners if they exist
+        self._add_execution_listeners(elem, graph, elem_uri)
+
         # Add incoming/outgoing
         self._add_incoming(elem, graph, elem_uri)
         self._add_outgoing(elem, graph, elem_uri)
@@ -567,6 +577,104 @@ class RDFToBPMNConverter:
 
         # Add assignee if exists
         self._add_assignee(elem, graph, elem_uri)
+
+        # Add multi-instance characteristics if present
+        self._add_multi_instance_characteristics(elem, graph, elem_uri)
+
+        # Add task listeners if they exist
+        self._add_task_listeners(elem, graph, elem_uri)
+
+        # Add incoming/outgoing
+        self._add_incoming(elem, graph, elem_uri)
+        self._add_outgoing(elem, graph, elem_uri)
+
+        self._processed_elements.add(elem_str)
+        self._element_map[elem_str] = elem
+
+    def _add_execution_listeners(
+        self, elem: ET.Element, graph: Graph, elem_uri: URIRef
+    ):
+        """Add execution listeners to an element if they exist"""
+        for listener_uri in graph.subjects(BPMN.listenerElement, elem_uri):
+            listener_type = graph.value(listener_uri, RDF.type)
+            if listener_type and "ExecutionListener" not in str(listener_type):
+                continue
+
+            event = graph.value(listener_uri, BPMN.listenerEvent)
+            expression = graph.value(listener_uri, BPMN.listenerExpression)
+            class_name = graph.value(listener_uri, BPMN.listenerClass)
+            delegate_expr = graph.value(listener_uri, BPMN.listenerDelegateExpression)
+
+            if event or expression or class_name or delegate_expr:
+                listener_elem = ET.SubElement(elem, "extensionElements")
+                exec_listener = ET.SubElement(
+                    listener_elem,
+                    "{http://camunda.org/schema/1.0/bpmn}executionListener",
+                )
+
+                event_str = str(event) if event else "start"
+                exec_listener.set("event", event_str)
+
+                if expression:
+                    exec_listener.set("expression", str(expression))
+                if class_name:
+                    exec_listener.set("class", str(class_name))
+                if delegate_expr:
+                    exec_listener.set("delegateExpression", str(delegate_expr))
+
+    def _add_task_listeners(self, elem: ET.Element, graph: Graph, elem_uri: URIRef):
+        """Add task listeners to an element if they exist"""
+        for listener_uri in graph.subjects(BPMN.listenerElement, elem_uri):
+            listener_type = graph.value(listener_uri, RDF.type)
+            if listener_type and "TaskListener" not in str(listener_type):
+                continue
+
+            event = graph.value(listener_uri, BPMN.listenerEvent)
+            expression = graph.value(listener_uri, BPMN.listenerExpression)
+            class_name = graph.value(listener_uri, BPMN.listenerClass)
+            delegate_expr = graph.value(listener_uri, BPMN.listenerDelegateExpression)
+
+            if event or expression or class_name or delegate_expr:
+                listener_elem = ET.SubElement(elem, "extensionElements")
+                task_listener = ET.SubElement(
+                    listener_elem, "{http://camunda.org/schema/1.0/bpmn}taskListener"
+                )
+
+                event_str = str(event) if event else "create"
+                task_listener.set("event", event_str)
+
+                if expression:
+                    task_listener.set("expression", str(expression))
+                if class_name:
+                    task_listener.set("class", str(class_name))
+                if delegate_expr:
+                    task_listener.set("delegateExpression", str(delegate_expr))
+
+    def _add_script_task(self, process_elem: ET.Element, graph: Graph, elem_uri):
+        """Convert and add a script task"""
+        elem_str = str(elem_uri)
+        if elem_str in self._processed_elements:
+            return
+
+        elem = ET.SubElement(process_elem, "scriptTask")
+        elem.set("id", self._get_element_id(elem_uri))
+
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
+        # Add name if exists
+        self._add_name_attribute(elem, graph, elem_uri)
+
+        # Add scriptFormat if exists
+        for s, p, o in graph.triples((elem_uri, BPMN.scriptFormat, None)):
+            elem.set("scriptFormat", str(o))
+            break
+
+        # Add script content
+        for s, p, o in graph.triples((elem_uri, BPMN.script, None)):
+            script_elem = ET.SubElement(elem, "script")
+            script_elem.text = str(o)
+            break
 
         # Add multi-instance characteristics if present
         self._add_multi_instance_characteristics(elem, graph, elem_uri)
@@ -1105,6 +1213,8 @@ class RDFToBPMNConverter:
                 self._add_servicetask(subprocess_elem, graph, child_uri)
             elif "usertask" in child_type:
                 self._add_usertask(subprocess_elem, graph, child_uri)
+            elif "scripttask" in child_type:
+                self._add_script_task(subprocess_elem, graph, child_uri)
             elif "exclusivegateway" in child_type:
                 self._add_gateway(subprocess_elem, graph, child_uri, "exclusiveGateway")
             elif "parallelgateway" in child_type:

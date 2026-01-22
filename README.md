@@ -119,8 +119,186 @@ SPEAR supports a comprehensive set of BPMN 2.0 elements:
 | **User Task** | ✅ Full | Manual tasks requiring human intervention |
 | **Send Task** | ✅ Full | Message sending via HTTP handlers |
 | **Receive Task** | ✅ Full | Message waiting and receiving |
-| **Script Task** | ⚠️ Partial | Python script execution support |
+| **Script Task** | ✅ Full | Python script execution (secure by default) |
 | **Manual Task** | ✅ Basic | Documented-only tasks |
+
+##### 4.2.1 Script Tasks
+
+SPEAR supports Script Tasks for executing Python code within process flows. Script tasks can read and modify process variables using simple Python expressions.
+
+**Security:** Script task execution is **disabled by default** for security. It must be explicitly enabled before execution.
+
+```xml
+<scriptTask id="CalculateTotal" name="Calculate Order Total" 
+           scriptFormat="python">
+  <script>
+total = quantity * price
+tax = total * 0.10
+grand_total = total + tax
+  </script>
+</scriptTask>
+```
+
+**Configuration:**
+```python
+from src.api.storage import RDFStorageService
+
+storage = RDFStorageService()
+
+# Enable script task execution (not recommended for production)
+storage.script_tasks_enabled = True  # SECURITY: Only enable in trusted environments
+```
+
+**Script Variables:**
+
+| Variable | Description |
+|----------|-------------|
+| `variables` | Dictionary of all process instance variables |
+| Direct access | Variables are accessible as `variableName` in script |
+| Assignments | Variables can be set by assignment: `total = quantity * price` |
+
+**Example with Variables:**
+
+```xml
+<scriptTask id="CalculateTax" scriptFormat="python">
+  <script>
+subtotal = items_total
+tax = subtotal * 0.08
+total = subtotal + tax
+  </script>
+</scriptTask>
+```
+
+**Execution Behavior:**
+
+| Setting | Behavior |
+|---------|----------|
+| Disabled (default) | Logs warning and skips to next node |
+| Enabled | Executes script, updates variables, moves to next node |
+| Script error | Instance status set to ERROR |
+
+**Security Considerations:**
+
+- Script execution uses Python's `exec()` with restricted globals
+- Only `print` and `datetime` are available as built-ins
+- Scripts run in the same process as the engine
+- Production use: Enable only in trusted environments
+- Alternative: Use Service Tasks with registered topic handlers for production workflows
+
+##### 4.2.2 Camunda Listeners
+
+SPEAR supports Camunda-style listeners for executing custom logic at specific points in the process and task lifecycle. Listeners reference registered topic handlers, avoiding inline script execution.
+
+**Supported Listener Types:**
+
+| Listener Type | Events | Description |
+|--------------|--------|-------------|
+| **Execution Listener** | `start`, `end`, `take` | Execute when an activity starts, ends, or a flow is taken |
+| **Task Listener** | `create`, `assignment`, `complete` | Execute when a user task is created, assigned, or completed |
+
+**BPMN Example:**
+
+```xml
+<serviceTask id="ProcessOrder" camunda:topic="process_order">
+  <extensionElements>
+    <!-- Execute when activity starts -->
+    <camunda:executionListener event="start" expression="log_order_start" />
+    
+    <!-- Execute when activity ends -->
+    <camunda:executionListener event="end" expression="log_order_complete" />
+  </extensionElements>
+</serviceTask>
+
+<userTask id="ReviewTask" name="Review Order">
+  <extensionElements>
+    <!-- Execute when task is created -->
+    <camunda:taskListener event="create" expression="notify_reviewer" />
+    
+    <!-- Execute when task is assigned -->
+    <camunda:taskListener event="assignment" expression="send_assignment_email" />
+    
+    <!-- Execute when task is completed -->
+    <camunda:taskListener event="complete" expression="validate_approval" />
+  </extensionElements>
+</userTask>
+```
+
+**Listener Attributes:**
+
+| Attribute | Description | Use Case |
+|-----------|-------------|----------|
+| `expression` | Topic name referencing a registered handler | SPEAR-native topic handlers |
+| `class` | Java class name for Camunda compatibility | External Java listeners |
+| `delegateExpression` | Spring bean expression | Dependency injection integration |
+| `event` | Event type (required) | When to trigger the listener |
+
+**BPMN Example with All Attributes:**
+
+```xml
+<serviceTask id="ProcessOrder" camunda:topic="process_order">
+  <extensionElements>
+    <!-- SPEAR-native: Topic expression -->
+    <camunda:executionListener event="start" expression="log_order_start" />
+    
+    <!-- Java class: For Camunda compatibility -->
+    <camunda:executionListener event="end" class="com.example.OrderListener" />
+    
+    <!-- Delegate expression: Spring bean reference -->
+    <camunda:executionListener event="take" delegateExpression="${orderFlowDelegate}" />
+  </extensionElements>
+</serviceTask>
+```
+
+**RDF Storage:**
+
+Listeners are stored in RDF with full attribute preservation:
+
+```turtle
+@prefix bpmn: <http://dkm.fbk.eu/index.php/BPMN2_Ontology#> .
+
+<http://example.org/bpmn/executionListener_1234>
+    rdf:type <http://example.org/bpmn/ExecutionListener> ;
+    bpmn:listenerElement <http://example.org/bpmn/ProcessOrder> ;
+    bpmn:listenerEvent "start" ;
+    bpmn:listenerExpression "log_order_start" ;
+    bpmn:listenerClass "com.example.OrderListener" ;
+    bpmn:listenerDelegateExpression "${orderFlowDelegate}" .
+```
+
+**Roundtrip Support:**
+
+All listener attributes are preserved during BPMN import/export:
+- `expression` - Preserved ✓
+- `class` - Preserved ✓
+- `delegateExpression` - Preserved ✓
+- `event` - Preserved ✓
+
+**Execution Behavior:**
+
+| Event | Trigger Point |
+|-------|---------------|
+| `executionListener: start` | Before service task executes |
+| `executionListener: end` | After service task completes |
+| `executionListener: take` | When sequence flow is taken |
+| `taskListener: create` | When user task is created |
+| `taskListener: assignment` | When user is assigned to task |
+| `taskListener: complete` | When user task is completed |
+
+**Security Benefits:**
+
+- **No inline scripts** - Listeners reference registered topic handlers only
+- **Explicit registration** - Handlers must be explicitly added to `topic_handlers`
+- **Reuses topic infrastructure** - Same security model as service tasks
+- **Audit trail** - All listener executions logged as `LISTENER_EXECUTED`
+
+**Comparison: Listeners vs Script Tasks**
+
+| Feature | Listeners | Script Tasks |
+|---------|-----------|--------------|
+| Code location | Registered handlers | BPMN XML |
+| Security | Safe (explicit registration) | Requires opt-in execution |
+| Reusability | Topic registry | Copy-paste |
+| Production use | Recommended | Use with caution |
 
 #### 4.3 Gateways
 

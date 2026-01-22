@@ -34,6 +34,15 @@ ERROR_REF = URIRef(BPMN + "errorRef")
 CANCEL_EVENT_DEFINITION = URIRef(BPMN + "cancelEventDefinition")
 COMPENSATION_EVENT_DEFINITION = URIRef(BPMN + "compensationEventDefinition")
 
+# Listener Type URIs (for Camunda listener support)
+BPMN_EXECUTION_LISTENER = URIRef(BPMN + "executionListener")
+BPMN_TASK_LISTENER = URIRef(BPMN + "taskListener")
+
+# Listener Properties
+LISTENER_EXPRESSION = URIRef(BPMN + "listenerExpression")
+LISTENER_EVENT = URIRef(BPMN + "listenerEvent")
+LISTENER_ELEMENT = URIRef(BPMN + "listenerElement")
+
 # Import ProcessContext from existing rdfengine.py
 from .rdfengine import ProcessContext
 

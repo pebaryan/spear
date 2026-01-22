@@ -505,6 +505,26 @@ class BPMNToRDFConverter:
                 for child in element:
                     self._process_element(child, element_uri)
 
+            elif tag_name == "scriptTask":
+                self.triples.append(
+                    f"{element_uri} rdf:type <http://example.org/bpmn/ScriptTask> ."
+                )
+
+                script_format = element.get("scriptFormat", "python")
+                if script_format:
+                    self.triples.append(
+                        f'{element_uri} bpmn:scriptFormat "{self._escape_string(script_format)}" .'
+                    )
+
+                for child in element:
+                    child_tag = self._get_tag_name(child.tag)
+                    if child_tag == "script":
+                        script_text = child.text.strip() if child.text else ""
+                        if script_text:
+                            self.triples.append(
+                                f'{element_uri} bpmn:script "{self._escape_string(script_text)}" .'
+                            )
+
             elif tag_name == "callActivity":
                 # Handle call activity (collapsed subprocess)
                 called_element = element.get("calledElement", "")
@@ -569,12 +589,20 @@ class BPMNToRDFConverter:
         self.triples.append("")  # Empty line for readability
 
     def _process_extension_elements(self, element, parent_uri):
-        """Process Camunda extension elements"""
+        """Process Camunda extension elements including listeners"""
+        import uuid
+
         for child in element:
             tag_name = self._get_tag_name(child.tag)
 
-            # Handle different Camunda extensions
-            if "camunda.org" in child.tag or tag_name.startswith("camunda"):
+            # Handle execution listeners
+            if tag_name == "executionListener":
+                self._process_execution_listener(child, parent_uri)
+            # Handle task listeners
+            elif tag_name == "taskListener":
+                self._process_task_listener(child, parent_uri)
+            # Handle other Camunda extensions
+            elif "camunda.org" in child.tag or tag_name.startswith("camunda"):
                 extension_uri = f"{parent_uri}_ext_{tag_name}_{id(child)}"
                 self.triples.append(f"{extension_uri} rdf:type camunda:{tag_name} .")
                 self.triples.append(f"{parent_uri} bpmn:hasExtension {extension_uri} .")
@@ -610,6 +638,86 @@ class BPMNToRDFConverter:
                             self.triples.append(
                                 f'{nested_uri} camunda:{attr_name} "{self._escape_string(attr_value)}" .'
                             )
+
+    def _process_execution_listener(self, element, parent_uri):
+        """Process executionListener element and convert to RDF"""
+        import uuid
+
+        listener_id = str(uuid.uuid4())[:8]
+        listener_uri = f"<http://example.org/bpmn/executionListener_{listener_id}>"
+
+        # Get event type (default: start)
+        event = element.get("event", "start")
+
+        # Get all listener attributes
+        expression = element.get("expression", "")
+        class_name = element.get("class", "")
+        delegate_expression = element.get("delegateExpression", "")
+
+        # Create listener if at least one attribute is present
+        if expression or class_name or delegate_expression:
+            self.triples.append(
+                f"{listener_uri} rdf:type <http://example.org/bpmn/ExecutionListener> ."
+            )
+            self.triples.append(f"{listener_uri} bpmn:listenerElement {parent_uri} .")
+            self.triples.append(f'{listener_uri} bpmn:listenerEvent "{event}" .')
+
+            if expression:
+                self.triples.append(
+                    f'{listener_uri} bpmn:listenerExpression "{self._escape_string(expression)}" .'
+                )
+            if class_name:
+                self.triples.append(
+                    f'{listener_uri} bpmn:listenerClass "{self._escape_string(class_name)}" .'
+                )
+            if delegate_expression:
+                self.triples.append(
+                    f'{listener_uri} bpmn:listenerDelegateExpression "{self._escape_string(delegate_expression)}" .'
+                )
+
+            # Link listener to parent element
+            self.triples.append(
+                f"{parent_uri} bpmn:hasExecutionListener {listener_uri} ."
+            )
+
+    def _process_task_listener(self, element, parent_uri):
+        """Process taskListener element and convert to RDF"""
+        import uuid
+
+        listener_id = str(uuid.uuid4())[:8]
+        listener_uri = f"<http://example.org/bpmn/taskListener_{listener_id}>"
+
+        # Get event type (default: create)
+        event = element.get("event", "create")
+
+        # Get all listener attributes
+        expression = element.get("expression", "")
+        class_name = element.get("class", "")
+        delegate_expression = element.get("delegateExpression", "")
+
+        # Create listener if at least one attribute is present
+        if expression or class_name or delegate_expression:
+            self.triples.append(
+                f"{listener_uri} rdf:type <http://example.org/bpmn/TaskListener> ."
+            )
+            self.triples.append(f"{listener_uri} bpmn:listenerElement {parent_uri} .")
+            self.triples.append(f'{listener_uri} bpmn:listenerEvent "{event}" .')
+
+            if expression:
+                self.triples.append(
+                    f'{listener_uri} bpmn:listenerExpression "{self._escape_string(expression)}" .'
+                )
+            if class_name:
+                self.triples.append(
+                    f'{listener_uri} bpmn:listenerClass "{self._escape_string(class_name)}" .'
+                )
+            if delegate_expression:
+                self.triples.append(
+                    f'{listener_uri} bpmn:listenerDelegateExpression "{self._escape_string(delegate_expression)}" .'
+                )
+
+            # Link listener to parent element
+            self.triples.append(f"{parent_uri} bpmn:hasTaskListener {listener_uri} .")
 
     def _process_condition_expression(self, element, flow_uri):
         """Process conditionExpression element and store in standardized format
