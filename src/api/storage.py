@@ -62,6 +62,12 @@ class RDFStorageService:
         # Topic registry for service task handlers
         self.topic_handlers = {}
 
+        # Message registry for receive tasks and event-based gateways
+        self.message_handlers = {}
+
+        # Pending messages waiting for correlation
+        self.pending_messages = []
+
         # BPMN converter for deployment
         self.converter = BPMNToRDFConverter()
 
@@ -554,7 +560,6 @@ class RDFStorageService:
     def _execute_instance(self, instance_uri: URIRef, instance_id: str):
         """Execute a process instance by processing all tokens"""
         while True:
-            # Get all active tokens
             active_tokens = []
             for token_uri in self.instances_graph.objects(instance_uri, INST.hasToken):
                 token_status = self.instances_graph.value(token_uri, INST.status)
@@ -564,21 +569,18 @@ class RDFStorageService:
             if not active_tokens:
                 break
 
-            # Execute each active token
             for token_uri in active_tokens:
                 self._execute_token(instance_uri, token_uri, instance_id)
 
-            # Check if instance completed
-            if self._is_instance_completed(instance_uri):
-                self.instances_graph.set(
-                    (instance_uri, INST.status, Literal("COMPLETED"))
-                )
-                self.instances_graph.set(
-                    (instance_uri, INST.updatedAt, Literal(datetime.now().isoformat()))
-                )
-                self._log_instance_event(instance_uri, "COMPLETED", "System")
-                self._save_graph(self.instances_graph, "instances.ttl")
-                break
+            self._save_graph(self.instances_graph, "instances.ttl")
+
+        if self._is_instance_completed(instance_uri):
+            self.instances_graph.set((instance_uri, INST.status, Literal("COMPLETED")))
+            self.instances_graph.set(
+                (instance_uri, INST.updatedAt, Literal(datetime.now().isoformat()))
+            )
+            self._log_instance_event(instance_uri, "COMPLETED", "System")
+            self._save_graph(self.instances_graph, "instances.ttl")
 
     def _execute_token(self, instance_uri: URIRef, token_uri: URIRef, instance_id: str):
         """Execute a single token through the process"""
@@ -608,6 +610,28 @@ class RDFStorageService:
             )
 
         elif node_type == BPMN.UserTask or node_type == BPMN.userTask:
+            mi_info = self._is_multi_instance(current_node)
+
+            if mi_info["is_multi_instance"]:
+                loop_instance = self.instances_graph.value(token_uri, INST.loopInstance)
+                if loop_instance is None:
+                    self._create_multi_instance_tokens(
+                        instance_uri, token_uri, current_node, instance_id, mi_info
+                    )
+                    self._log_instance_event(
+                        instance_uri,
+                        "MULTI_INSTANCE_STARTED",
+                        "System",
+                        f"{str(current_node)} - {'parallel' if mi_info['is_parallel'] else 'sequential'}",
+                    )
+                    return
+                else:
+                    completed = self._complete_loop_instance(
+                        instance_uri, token_uri, current_node, instance_id, mi_info
+                    )
+                    if completed:
+                        return
+
             task_name = "User Task"
             name_elem = self.definitions_graph.value(current_node, RDFS.label)
             if name_elem:
@@ -642,6 +666,16 @@ class RDFStorageService:
                 f"{str(current_node)} (task: {task['id']})",
             )
             self.instances_graph.set((token_uri, INST.status, Literal("WAITING")))
+
+        elif node_type == BPMN.ReceiveTask or node_type == BPMN.receiveTask:
+            self._execute_receive_task(
+                instance_uri, token_uri, current_node, instance_id
+            )
+
+        elif node_type == BPMN.EventBasedGateway:
+            self._execute_event_based_gateway(
+                instance_uri, token_uri, current_node, instance_id
+            )
 
         elif node_type == BPMN.ExclusiveGateway:
             # Evaluate conditions to choose the correct outgoing flow
@@ -722,12 +756,85 @@ class RDFStorageService:
         instance_id: str,
     ):
         """Execute a service task and move token to next node"""
-        # Get topic from node
+        mi_info = self._is_multi_instance(node_uri)
+
+        if mi_info["is_multi_instance"]:
+            loop_instance = self.instances_graph.value(token_uri, INST.loopInstance)
+
+            if loop_instance is None:
+                count = 3
+                if mi_info["loop_cardinality"]:
+                    try:
+                        count = int(mi_info["loop_cardinality"])
+                    except ValueError:
+                        pass
+
+                logger.info(
+                    f"Creating {count} parallel tokens for multi-instance activity {node_uri}"
+                )
+
+                for i in range(count):
+                    loop_token_uri = INST[
+                        f"token_{instance_id}_{str(uuid.uuid4())[:8]}"
+                    ]
+                    self.instances_graph.add((loop_token_uri, RDF.type, INST.Token))
+                    self.instances_graph.add(
+                        (loop_token_uri, INST.belongsTo, instance_uri)
+                    )
+                    self.instances_graph.add(
+                        (loop_token_uri, INST.status, Literal("ACTIVE"))
+                    )
+                    self.instances_graph.add(
+                        (loop_token_uri, INST.currentNode, node_uri)
+                    )
+                    self.instances_graph.add(
+                        (loop_token_uri, INST.loopInstance, Literal(str(i)))
+                    )
+                    self.instances_graph.add(
+                        (instance_uri, INST.hasToken, loop_token_uri)
+                    )
+
+                    self._execute_service_task_handler(
+                        instance_uri, loop_token_uri, node_uri, instance_id
+                    )
+                    self.instances_graph.set(
+                        (loop_token_uri, INST.status, Literal("CONSUMED"))
+                    )
+
+                self._log_instance_event(
+                    instance_uri,
+                    "MULTI_INSTANCE_STARTED",
+                    "System",
+                    f"{str(node_uri)} - parallel ({count} instances)",
+                )
+
+                self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
+
+                self._advance_multi_instance(instance_uri, node_uri, instance_id)
+                return
+
+            self._complete_loop_instance(
+                instance_uri, token_uri, node_uri, instance_id, mi_info
+            )
+            return
+
+        self._execute_service_task_handler(
+            instance_uri, token_uri, node_uri, instance_id
+        )
+        self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+
+    def _execute_service_task_handler(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+    ):
+        """Execute the actual service task handler"""
         topic = None
         for s, p, o in self.definitions_graph.triples((node_uri, BPMN.topic, None)):
             topic = str(o)
             break
-        # Also check camunda:topic
         if not topic:
             for s, p, o in self.definitions_graph.triples(
                 (node_uri, URIRef("http://camunda.org/schema/1.0/bpmn#topic"), None)
@@ -736,17 +843,14 @@ class RDFStorageService:
                 break
 
         if not topic:
-            # No topic, just move to next node
             self._log_instance_event(
                 instance_uri,
                 "SERVICE_TASK",
                 "System",
                 f"{str(node_uri)} (no topic configured)",
             )
-            self._move_token_to_next_node(instance_uri, token_uri, instance_id)
             return
 
-        # Get current variables
         variables = {}
         for var_uri in self.instances_graph.objects(instance_uri, INST.hasVariable):
             name = self.instances_graph.value(var_uri, VAR.name)
@@ -755,14 +859,11 @@ class RDFStorageService:
                 variables[str(name)] = str(value)
 
         try:
-            # Execute the handler
             updated_variables = self.execute_service_task(instance_id, topic, variables)
 
-            # Update variables
             for name, value in updated_variables.items():
                 self.set_instance_variable(instance_id, name, value)
 
-            # Log completion
             self._log_instance_event(
                 instance_uri,
                 "SERVICE_TASK",
@@ -770,11 +871,7 @@ class RDFStorageService:
                 f"{str(node_uri)} (topic: {topic})",
             )
 
-            # Move to next node
-            self._move_token_to_next_node(instance_uri, token_uri, instance_id)
-
         except ValueError as e:
-            # No handler registered - log warning and continue
             logger.warning(str(e))
             self._log_instance_event(
                 instance_uri,
@@ -782,10 +879,8 @@ class RDFStorageService:
                 "System",
                 f"{str(node_uri)} (topic: {topic}) - no handler",
             )
-            self._move_token_to_next_node(instance_uri, token_uri, instance_id)
 
         except Exception as e:
-            # Handler failed - set token to error state
             logger.error(f"Service task failed: {e}")
             self.instances_graph.set((token_uri, INST.status, Literal("ERROR")))
             self._log_instance_event(
@@ -1113,6 +1208,108 @@ class RDFStorageService:
         logger.warning(f"No valid path found at exclusive gateway {gateway_uri}")
         return None
 
+    def _execute_event_based_gateway(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        current_node: URIRef,
+        instance_id: str,
+    ) -> None:
+        """
+        Execute an event-based gateway.
+
+        Event-based gateways wait for one of several possible events:
+        - Message events (receive tasks)
+        - Timer events
+
+        The first event to trigger determines the path taken.
+        """
+        outgoing_targets = []
+        for s, p, flow_uri in self.definitions_graph.triples(
+            (current_node, BPMN.outgoing, None)
+        ):
+            for ss, pp, target in self.definitions_graph.triples(
+                (flow_uri, BPMN.targetRef, None)
+            ):
+                outgoing_targets.append((flow_uri, target))
+
+        if not outgoing_targets:
+            self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
+            return
+
+        waiting_tasks = []
+        for flow_uri, target in outgoing_targets:
+            target_type = None
+            for s, p, o in self.definitions_graph.triples((target, RDF.type, None)):
+                target_type = o
+                break
+
+            if target_type in [BPMN.ReceiveTask, BPMN.receiveTask]:
+                message_name = None
+                for s, p, o in self.definitions_graph.triples(
+                    (target, BPMN.message, None)
+                ):
+                    message_name = str(o)
+                    break
+                if not message_name:
+                    for s, p, o in self.definitions_graph.triples(
+                        (
+                            target,
+                            URIRef("http://camunda.org/schema/1.0/bpmn#message"),
+                            None,
+                        )
+                    ):
+                        message_name = str(o)
+                        break
+
+                if message_name:
+                    waiting_tasks.append(
+                        {"type": "message", "target": target, "message": message_name}
+                    )
+                else:
+                    waiting_tasks.append({"type": "receive", "target": target})
+
+        if waiting_tasks:
+            self.instances_graph.set((token_uri, INST.status, Literal("WAITING")))
+
+            for task_info in waiting_tasks:
+                target = task_info["target"]
+                existing_tokens = []
+                for tok in self.instances_graph.objects(instance_uri, INST.hasToken):
+                    status = self.instances_graph.value(tok, INST.status)
+                    current = self.instances_graph.value(tok, INST.currentNode)
+                    if status and str(status) == "ACTIVE" and current == target:
+                        existing_tokens.append(tok)
+
+                if not existing_tokens:
+                    new_token_uri = INST[f"token_{instance_id}_{str(uuid.uuid4())[:8]}"]
+                    self.instances_graph.add((new_token_uri, RDF.type, INST.Token))
+                    self.instances_graph.add(
+                        (new_token_uri, INST.belongsTo, instance_uri)
+                    )
+                    self.instances_graph.add(
+                        (new_token_uri, INST.status, Literal("WAITING"))
+                    )
+                    self.instances_graph.add((new_token_uri, INST.currentNode, target))
+                    self.instances_graph.add(
+                        (instance_uri, INST.hasToken, new_token_uri)
+                    )
+
+            self._log_instance_event(
+                instance_uri,
+                "WAITING_FOR_EVENT",
+                "System",
+                f"Event-based gateway {current_node} waiting for {len(waiting_tasks)} events",
+            )
+            logger.info(
+                f"Event-based gateway at {current_node}, created {len(waiting_tasks)} waiting tokens"
+            )
+        else:
+            self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
+            logger.warning(
+                f"Event-based gateway {current_node} has no message/receive targets"
+            )
+
     def _move_token_to_next_node(
         self, instance_uri: URIRef, token_uri: URIRef, instance_id: str
     ):
@@ -1230,6 +1427,242 @@ class RDFStorageService:
         self.instances_graph.add((merged_token_uri, INST.status, Literal("ACTIVE")))
         self.instances_graph.add((merged_token_uri, INST.currentNode, next_node))
         self.instances_graph.add((instance_uri, INST.hasToken, merged_token_uri))
+
+    def _is_multi_instance(self, node_uri: URIRef) -> Dict[str, Any]:
+        """Check if a node has multi-instance characteristics"""
+        result = {
+            "is_multi_instance": False,
+            "is_parallel": False,
+            "is_sequential": False,
+            "loop_cardinality": None,
+            "data_input": None,
+            "data_output": None,
+            "completion_condition": None,
+        }
+
+        for s, p, o in self.definitions_graph.triples(
+            (node_uri, BPMN.loopCharacteristics, None)
+        ):
+            loop_char_uri = o
+            result["is_multi_instance"] = True
+
+            for ss, pp, oo in self.definitions_graph.triples(
+                (loop_char_uri, RDF.type, None)
+            ):
+                if "Parallel" in str(oo):
+                    result["is_parallel"] = True
+                elif "Sequential" in str(oo):
+                    result["is_sequential"] = True
+
+            for ss, pp, oo in self.definitions_graph.triples(
+                (loop_char_uri, BPMN.loopCardinality, None)
+            ):
+                result["loop_cardinality"] = str(oo)
+            for ss, pp, oo in self.definitions_graph.triples(
+                (loop_char_uri, BPMN.cardinality, None)
+            ):
+                result["loop_cardinality"] = str(oo)
+
+            for ss, pp, oo in self.definitions_graph.triples(
+                (loop_char_uri, BPMN.dataInput, None)
+            ):
+                result["data_input"] = str(oo)
+            for ss, pp, oo in self.definitions_graph.triples(
+                (loop_char_uri, BPMN.dataOutput, None)
+            ):
+                result["data_output"] = str(oo)
+
+            for ss, pp, oo in self.definitions_graph.triples(
+                (loop_char_uri, BPMN.completionCondition, None)
+            ):
+                result["completion_condition"] = str(oo)
+
+            break
+
+        return result
+
+    def _create_multi_instance_tokens(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        mi_info: Dict[str, Any],
+    ) -> List[URIRef]:
+        """Create tokens for multi-instance activity execution"""
+        created_tokens = []
+
+        if mi_info["is_parallel"]:
+            if mi_info["loop_cardinality"]:
+                try:
+                    count = int(mi_info["loop_cardinality"])
+                except ValueError:
+                    count = 3
+            else:
+                count = 3
+
+            logger.info(
+                f"Creating {count} parallel tokens for multi-instance activity {node_uri}"
+            )
+
+            for i in range(count):
+                loop_token_uri = INST[f"token_{instance_id}_{str(uuid.uuid4())[:8]}"]
+                self.instances_graph.add((loop_token_uri, RDF.type, INST.Token))
+                self.instances_graph.add((loop_token_uri, INST.belongsTo, instance_uri))
+                self.instances_graph.add(
+                    (loop_token_uri, INST.status, Literal("ACTIVE"))
+                )
+                self.instances_graph.add((loop_token_uri, INST.currentNode, node_uri))
+                self.instances_graph.add(
+                    (loop_token_uri, INST.loopInstance, Literal(str(i)))
+                )
+                self.instances_graph.add((instance_uri, INST.hasToken, loop_token_uri))
+
+                created_tokens.append(loop_token_uri)
+
+            self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
+
+        elif mi_info["is_sequential"]:
+            loop_token_uri = INST[f"token_{instance_id}_{str(uuid.uuid4())[:8]}"]
+            self.instances_graph.add((loop_token_uri, RDF.type, INST.Token))
+            self.instances_graph.add((loop_token_uri, INST.belongsTo, instance_uri))
+            self.instances_graph.add((loop_token_uri, INST.status, Literal("ACTIVE")))
+            self.instances_graph.add((loop_token_uri, INST.currentNode, node_uri))
+            self.instances_graph.add((loop_token_uri, INST.loopInstance, Literal("0")))
+            self.instances_graph.add(
+                (
+                    loop_token_uri,
+                    INST.loopTotal,
+                    Literal(mi_info["loop_cardinality"] or "3"),
+                )
+            )
+            self.instances_graph.add((instance_uri, INST.hasToken, loop_token_uri))
+
+            created_tokens.append(loop_token_uri)
+
+            self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
+
+        return created_tokens
+
+    def _complete_loop_instance(
+        self,
+        instance_uri: URIRef,
+        completed_token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        mi_info: Dict[str, Any],
+    ) -> bool:
+        """Handle completion of a single loop instance"""
+        instance_num = None
+        for o in self.instances_graph.objects(completed_token_uri, INST.loopInstance):
+            instance_num = int(str(o)) if o else 0
+            break
+
+        total_count = 3
+        for o in self.instances_graph.objects(completed_token_uri, INST.loopTotal):
+            try:
+                total_count = int(str(o))
+            except (ValueError, TypeError):
+                pass
+            break
+
+        if mi_info["is_parallel"]:
+            consumed_count = 0
+            for tok in self.instances_graph.objects(instance_uri, INST.hasToken):
+                status = self.instances_graph.value(tok, INST.status)
+                current = self.instances_graph.value(tok, INST.currentNode)
+                if status and str(status) == "CONSUMED" and current == node_uri:
+                    consumed_count += 1
+
+            next_nodes = []
+            for s, p, o in self.definitions_graph.triples(
+                (node_uri, BPMN.outgoing, None)
+            ):
+                for ss, pp, target in self.definitions_graph.triples(
+                    (o, BPMN.targetRef, None)
+                ):
+                    next_nodes.append(target)
+                    break
+
+            already_advanced = False
+            for next_node in next_nodes:
+                for tok in self.instances_graph.objects(instance_uri, INST.hasToken):
+                    current = self.instances_graph.value(tok, INST.currentNode)
+                    if current == next_node:
+                        already_advanced = True
+                        break
+                if already_advanced:
+                    break
+
+            should_advance = not already_advanced and consumed_count >= total_count - 1
+
+            self.instances_graph.set(
+                (completed_token_uri, INST.status, Literal("CONSUMED"))
+            )
+
+            logger.info(
+                f"Parallel loop {instance_num} completed. {consumed_count}/{total_count} instances done, advance={should_advance}"
+            )
+
+            if should_advance:
+                self._advance_multi_instance(instance_uri, node_uri, instance_id)
+                return True
+
+        elif mi_info["is_sequential"]:
+            next_instance = instance_num + 1
+            self.instances_graph.set(
+                (completed_token_uri, INST.status, Literal("CONSUMED"))
+            )
+            if next_instance < total_count:
+                next_token_uri = INST[f"token_{instance_id}_{str(uuid.uuid4())[:8]}"]
+                self.instances_graph.add((next_token_uri, RDF.type, INST.Token))
+                self.instances_graph.add((next_token_uri, INST.belongsTo, instance_uri))
+                self.instances_graph.add(
+                    (next_token_uri, INST.status, Literal("ACTIVE"))
+                )
+                self.instances_graph.add((next_token_uri, INST.currentNode, node_uri))
+                self.instances_graph.add(
+                    (next_token_uri, INST.loopInstance, Literal(str(next_instance)))
+                )
+                self.instances_graph.add(
+                    (next_token_uri, INST.loopTotal, Literal(str(total_count)))
+                )
+                self.instances_graph.add((instance_uri, INST.hasToken, next_token_uri))
+
+                logger.info(
+                    f"Sequential loop {instance_num} completed. Starting instance {next_instance}/{total_count}"
+                )
+            else:
+                logger.info(
+                    f"Sequential loop {instance_num} completed. All {total_count} instances done"
+                )
+                self._advance_multi_instance(instance_uri, node_uri, instance_id)
+                return True
+
+        return False
+
+    def _advance_multi_instance(
+        self, instance_uri: URIRef, node_uri: URIRef, instance_id: str
+    ):
+        """Advance past a completed multi-instance activity"""
+        next_nodes = []
+        for s, p, o in self.definitions_graph.triples((node_uri, BPMN.outgoing, None)):
+            for ss, pp, target in self.definitions_graph.triples(
+                (o, BPMN.targetRef, None)
+            ):
+                next_nodes.append(target)
+                break
+
+        if next_nodes:
+            self.instances_graph.set((instance_uri, INST.currentNode, next_nodes[0]))
+            new_token_uri = INST[f"token_{instance_id}_{str(uuid.uuid4())[:8]}"]
+            self.instances_graph.add((new_token_uri, RDF.type, INST.Token))
+            self.instances_graph.add((new_token_uri, INST.belongsTo, instance_uri))
+            self.instances_graph.add((new_token_uri, INST.status, Literal("ACTIVE")))
+            self.instances_graph.add((new_token_uri, INST.currentNode, next_nodes[0]))
+            self.instances_graph.add((instance_uri, INST.hasToken, new_token_uri))
+
+            logger.info(f"Advanced past multi-instance activity to {next_nodes[0]}")
 
     # ==================== Task Management ====================
 
@@ -1705,6 +2138,223 @@ class RDFStorageService:
         except Exception as e:
             logger.error(f"Service task {topic} failed for instance {instance_id}: {e}")
             raise
+
+    # ==================== Message Handling ====================
+
+    def register_message_handler(
+        self,
+        message_name: str,
+        handler_function: callable,
+        description: str = "",
+    ) -> bool:
+        """
+        Register a handler for a message (for receive tasks and event-based gateways).
+
+        Args:
+            message_name: The message name to register
+            handler_function: The function to call when message is received
+            description: Human-readable description of the handler
+
+        Returns:
+            True if registered successfully
+        """
+        from datetime import datetime
+
+        self.message_handlers[message_name] = {
+            "function": handler_function,
+            "description": description,
+            "registered_at": datetime.utcnow().isoformat(),
+        }
+
+        logger.info(f"Registered handler for message: {message_name}")
+        return True
+
+    def unregister_message_handler(self, message_name: str) -> bool:
+        """
+        Unregister a handler for a message.
+
+        Args:
+            message_name: The message name to unregister
+
+        Returns:
+            True if unregistered, False if message didn't exist
+        """
+        if message_name in self.message_handlers:
+            del self.message_handlers[message_name]
+            logger.info(f"Unregistered handler for message: {message_name}")
+            return True
+        return False
+
+    def send_message(
+        self,
+        message_name: str,
+        instance_id: str = None,
+        variables: Dict[str, Any] = None,
+        correlation_id: str = None,
+    ) -> Dict[str, Any]:
+        """
+        Send a message to waiting receive tasks or event-based gateways.
+
+        Args:
+            message_name: The message name
+            instance_id: Optional specific instance to target
+            variables: Optional variables to merge with the message
+            correlation_id: Optional correlation ID for routing
+
+        Returns:
+            Dictionary with status and matched task info
+        """
+        from datetime import datetime
+
+        message = {
+            "name": message_name,
+            "instance_id": instance_id,
+            "variables": variables or {},
+            "correlation_id": correlation_id,
+            "received_at": datetime.utcnow().isoformat(),
+        }
+
+        matched = []
+
+        for token_uri in self.instances_graph.subjects(RDF.type, INST.Token):
+            token_status = self.instances_graph.value(token_uri, INST.status)
+            if not token_status or str(token_status) != "WAITING":
+                continue
+
+            current_node = self.instances_graph.value(token_uri, INST.currentNode)
+            if not current_node:
+                continue
+
+            node_type = None
+            for s, p, o in self.definitions_graph.triples(
+                (current_node, RDF.type, None)
+            ):
+                node_type = o
+                break
+
+            if node_type not in [BPMN.ReceiveTask, BPMN.receiveTask]:
+                continue
+
+            node_message = None
+            for s, p, o in self.definitions_graph.triples(
+                (current_node, BPMN.message, None)
+            ):
+                node_message = str(o)
+                break
+            if not node_message:
+                for s, p, o in self.definitions_graph.triples(
+                    (
+                        current_node,
+                        URIRef("http://camunda.org/schema/1.0/bpmn#message"),
+                        None,
+                    )
+                ):
+                    node_message = str(o)
+                    break
+
+            if node_message != message_name:
+                continue
+
+            instance_uri = self.instances_graph.value(token_uri, INST.belongsTo)
+            if instance_uri and instance_id:
+                inst_id = str(instance_uri).split("/")[-1]
+                if inst_id != instance_id:
+                    continue
+
+            matched.append(
+                {
+                    "token_uri": str(token_uri),
+                    "node_uri": str(current_node),
+                    "instance_uri": str(instance_uri) if instance_uri else None,
+                }
+            )
+
+        if matched:
+            for match in matched:
+                token_uri = URIRef(match["token_uri"])
+                self.instances_graph.set((token_uri, INST.status, Literal("ACTIVE")))
+                current_node = URIRef(match["node_uri"])
+                instance_uri = (
+                    URIRef(match["instance_uri"]) if match["instance_uri"] else None
+                )
+
+                if variables:
+                    instance_id_for_var = (
+                        str(match["instance_uri"]).split("/")[-1]
+                        if match["instance_uri"]
+                        else None
+                    )
+                    if instance_id_for_var:
+                        for var_name, var_value in variables.items():
+                            var_uri = VAR[f"{instance_id_for_var}_{var_name}"]
+                            self.instances_graph.add(
+                                (var_uri, VAR.name, Literal(var_name))
+                            )
+                            self.instances_graph.add(
+                                (var_uri, VAR.value, Literal(str(var_value)))
+                            )
+
+                self._log_instance_event(
+                    instance_uri,
+                    "MESSAGE_RECEIVED",
+                    "System",
+                    f"Message '{message_name}' received at {current_node}",
+                )
+
+            logger.info(
+                f"Message '{message_name}' matched {len(matched)} waiting tasks"
+            )
+
+        message["matched_count"] = len(matched)
+        message["matched_tasks"] = matched
+
+        return {
+            "status": "delivered" if matched else "no_match",
+            "message_name": message_name,
+            "matched_count": len(matched),
+            "tasks": matched,
+        }
+
+    def _execute_receive_task(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+    ) -> None:
+        """
+        Execute a receive task - wait for a message.
+        """
+        message_name = None
+        for s, p, o in self.definitions_graph.triples((node_uri, BPMN.message, None)):
+            message_name = str(o)
+            break
+        if not message_name:
+            for s, p, o in self.definitions_graph.triples(
+                (node_uri, URIRef("http://camunda.org/schema/1.0/bpmn#message"), None)
+            ):
+                message_name = str(o)
+                break
+
+        if message_name:
+            self.instances_graph.set((token_uri, INST.status, Literal("WAITING")))
+            self._log_instance_event(
+                instance_uri,
+                "WAITING_FOR_MESSAGE",
+                "System",
+                f"Waiting for message '{message_name}' at {node_uri}",
+            )
+            logger.info(
+                f"Token at receive task {node_uri}, waiting for message: {message_name}"
+            )
+        else:
+            self._log_instance_event(
+                instance_uri,
+                "RECEIVE_TASK",
+                "System",
+                f"{str(node_uri)} (no message configured)",
+            )
+            self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
 
 
 # Global storage instance for sharing across modules

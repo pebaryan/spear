@@ -245,6 +245,57 @@ class BPMNToRDFConverter:
                     self.triples.append(
                         f"{element_uri} bpmn:incoming {self._get_uri(ref)} ."
                     )
+            elif child_tag == "multiInstanceLoopCharacteristics":
+                import uuid
+
+                mi_uuid = str(uuid.uuid4())[:8]
+                node_name = element_uri.split("/")[-1].strip("<>")
+                mi_uri = f"<http://example.org/bpmn/{node_name}_loop_{mi_uuid}>"
+                is_parallel = child.get("isParallel", "false").lower() == "true"
+                is_sequential = child.get("isSequential", "false").lower() == "true"
+
+                self.triples.append(
+                    f"{mi_uri} rdf:type <http://example.org/bpmn/MultiInstanceLoopCharacteristics> ."
+                )
+                self.triples.append(
+                    f"{element_uri} bpmn:loopCharacteristics {mi_uri} ."
+                )
+
+                if is_parallel:
+                    self.triples.append(
+                        f"{mi_uri} rdf:type <http://example.org/bpmn/ParallelMultiInstance> ."
+                    )
+                if is_sequential:
+                    self.triples.append(
+                        f"{mi_uri} rdf:type <http://example.org/bpmn/SequentialMultiInstance> ."
+                    )
+
+                for nested in child:
+                    nested_tag = self._get_tag_name(nested.tag)
+                    if nested_tag == "loopCardinality":
+                        cardinality = nested.text.strip() if nested.text else ""
+                        if cardinality:
+                            self.triples.append(
+                                f'{mi_uri} bpmn:loopCardinality "{self._escape_string(cardinality)}" .'
+                            )
+                    elif nested_tag == "completionCondition":
+                        condition = nested.text.strip() if nested.text else ""
+                        if condition:
+                            self.triples.append(
+                                f'{mi_uri} bpmn:completionCondition "{self._escape_string(condition)}" .'
+                            )
+                    elif nested_tag == "dataInput":
+                        data_input = nested.text.strip() if nested.text else ""
+                        if data_input:
+                            self.triples.append(
+                                f'{mi_uri} bpmn:dataInput "{self._escape_string(data_input)}" .'
+                            )
+                    elif nested_tag == "dataOutput":
+                        data_output = nested.text.strip() if nested.text else ""
+                        if data_output:
+                            self.triples.append(
+                                f'{mi_uri} bpmn:dataOutput "{self._escape_string(data_output)}" .'
+                            )
             else:
                 self._process_element(child, element_uri)
 

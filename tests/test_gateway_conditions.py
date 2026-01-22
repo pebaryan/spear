@@ -511,3 +511,193 @@ def test_gateway_conversion_to_graph():
 
     assert "ASK" in condition_str, "Condition should be SPARQL ASK query"
     assert "active" in condition_str, "Condition should reference variable"
+
+
+class TestEventBasedGateway:
+    """Test event-based gateway and receive task functionality"""
+
+    @pytest.fixture
+    def storage(self):
+        from src.api.storage import RDFStorageService
+
+        temp_dir = tempfile.mkdtemp()
+        storage = RDFStorageService(storage_path=temp_dir)
+        yield storage
+        import shutil
+
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_receive_task_waits_for_message(self, storage):
+        """Test that receive task waits for a message"""
+        from rdflib import RDF
+        from src.api.storage import INST
+
+        process_id = storage.deploy_process(
+            name="Receive Task Process",
+            description="Test receive task message waiting",
+            bpmn_content="""<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                              xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+                <bpmn:process id="receiveProc">
+                    <bpmn:startEvent id="start1"/>
+                    <bpmn:receiveTask id="task1" name="Wait for Order" camunda:message="orderReceived"/>
+                    <bpmn:endEvent id="end1"/>
+                    <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="task1"/>
+                    <bpmn:sequenceFlow id="flow2" sourceRef="task1" targetRef="end1"/>
+                </bpmn:process>
+            </bpmn:definitions>""",
+        )
+
+        result = storage.create_instance(process_id=process_id)
+        instance_id = result["id"]
+        instance = storage.get_instance(instance_id)
+        print(f"Instance status after create: {instance['status']}")
+
+        instance_uri = f"http://example.org/instance/{instance_id}"
+
+        for token_uri in storage.instances_graph.subjects(RDF.type, INST.Token):
+            token_status = storage.instances_graph.value(token_uri, INST.status)
+            current_node = storage.instances_graph.value(token_uri, INST.currentNode)
+            print(f"Token status: {token_status}, current node: {current_node}")
+
+            if current_node and "task1" in str(current_node):
+                assert str(token_status) == "WAITING", (
+                    "Token should be waiting for message"
+                )
+                print("Receive task correctly waiting for message")
+
+    def test_send_message_to_receive_task(self, storage):
+        """Test sending a message to a waiting receive task"""
+        process_id = storage.deploy_process(
+            name="Receive Task Process",
+            description="Test message delivery",
+            bpmn_content="""<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                              xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+                <bpmn:process id="receiveProc">
+                    <bpmn:startEvent id="start1"/>
+                    <bpmn:receiveTask id="task1" name="Wait for Order" camunda:message="orderReceived"/>
+                    <bpmn:endEvent id="end1"/>
+                    <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="task1"/>
+                    <bpmn:sequenceFlow id="flow2" sourceRef="task1" targetRef="end1"/>
+                </bpmn:process>
+            </bpmn:definitions>""",
+        )
+
+        result = storage.create_instance(process_id=process_id)
+        instance_id = result["id"]
+
+        result = storage.send_message(
+            message_name="orderReceived",
+            instance_id=instance_id,
+            variables={"orderId": "ORD-12345", "amount": "150.00"},
+        )
+
+        print(f"Message result: {result}")
+        assert result["status"] == "delivered", (
+            f"Message should be delivered, got {result['status']}"
+        )
+        assert result["matched_count"] == 1, (
+            f"Should match 1 task, got {result['matched_count']}"
+        )
+        print("Message delivered successfully to waiting task")
+
+    def test_send_message_wrong_name(self, storage):
+        """Test sending a message with wrong name doesn't match"""
+        process_id = storage.deploy_process(
+            name="Receive Task Process",
+            description="Test non-matching message",
+            bpmn_content="""<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                              xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+                <bpmn:process id="receiveProc">
+                    <bpmn:startEvent id="start1"/>
+                    <bpmn:receiveTask id="task1" name="Wait for Order" camunda:message="orderReceived"/>
+                    <bpmn:endEvent id="end1"/>
+                    <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="task1"/>
+                    <bpmn:sequenceFlow id="flow2" sourceRef="task1" targetRef="end1"/>
+                </bpmn:process>
+            </bpmn:definitions>""",
+        )
+
+        result = storage.create_instance(process_id=process_id)
+        instance_id = result["id"]
+
+        result = storage.send_message(
+            message_name="wrongMessage",
+            instance_id=instance_id,
+        )
+
+        print(f"Message result: {result}")
+        assert result["status"] == "no_match", (
+            f"Message should not match, got {result['status']}"
+        )
+        assert result["matched_count"] == 0, (
+            f"Should match 0 tasks, got {result['matched_count']}"
+        )
+        print("Wrong message correctly not matched")
+
+    def test_event_based_gateway(self, storage):
+        """Test event-based gateway creates waiting tokens for multiple events"""
+        from rdflib import RDF
+        from src.api.storage import INST
+
+        process_id = storage.deploy_process(
+            name="Event Gateway Process",
+            description="Test event-based gateway",
+            bpmn_content="""<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                              xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+                <bpmn:process id="eventGatewayProc">
+                    <bpmn:startEvent id="start1"/>
+                    <bpmn:eventBasedGateway id="gateway1"/>
+                    <bpmn:receiveTask id="taskEmail" name="Email Response" camunda:message="emailResponse"/>
+                    <bpmn:receiveTask id="taskSms" name="SMS Response" camunda:message="smsResponse"/>
+                    <bpmn:endEvent id="end1"/>
+                    <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="gateway1"/>
+                    <bpmn:sequenceFlow id="flow2" sourceRef="gateway1" targetRef="taskEmail"/>
+                    <bpmn:sequenceFlow id="flow3" sourceRef="gateway1" targetRef="taskSms"/>
+                    <bpmn:sequenceFlow id="flow4" sourceRef="taskEmail" targetRef="end1"/>
+                    <bpmn:sequenceFlow id="flow5" sourceRef="taskSms" targetRef="end1"/>
+                </bpmn:process>
+            </bpmn:definitions>""",
+        )
+
+        result = storage.create_instance(process_id=process_id)
+        instance_id = result["id"]
+
+        waiting_count = 0
+        for token_uri in storage.instances_graph.subjects(RDF.type, INST.Token):
+            token_status = storage.instances_graph.value(token_uri, INST.status)
+            if token_status and str(token_status) == "WAITING":
+                waiting_count += 1
+
+        print(f"Waiting tokens after event-based gateway: {waiting_count}")
+        assert waiting_count == 2, f"Should have 2 waiting tokens, got {waiting_count}"
+        print("Event-based gateway correctly created 2 waiting tokens")
+
+    def test_message_updates_variables(self, storage):
+        """Test that message variables are stored in instance"""
+        process_id = storage.deploy_process(
+            name="Receive Task Process",
+            description="Test variable updates from message",
+            bpmn_content="""<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                              xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+                <bpmn:process id="receiveProc">
+                    <bpmn:startEvent id="start1"/>
+                    <bpmn:receiveTask id="task1" name="Wait for Order" camunda:message="orderReceived"/>
+                    <bpmn:endEvent id="end1"/>
+                    <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="task1"/>
+                    <bpmn:sequenceFlow id="flow2" sourceRef="task1" targetRef="end1"/>
+                </bpmn:process>
+            </bpmn:definitions>""",
+        )
+
+        result = storage.create_instance(process_id=process_id)
+        instance_id = result["id"]
+
+        storage.send_message(
+            message_name="orderReceived",
+            instance_id=instance_id,
+            variables={"orderId": "ORD-999", "total": "250.00"},
+        )
+
+        instance = storage.get_instance(instance_id)
+        print(f"Instance after message: {instance['status']}")
+        print("Message with variables sent successfully")
