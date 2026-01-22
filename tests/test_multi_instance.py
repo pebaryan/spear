@@ -377,5 +377,237 @@ class TestMultiInstanceLoopCardinality:
         print("Single instance cardinality detected")
 
 
+class TestMessageEndEvents:
+    """Tests for message end events"""
+
+    @pytest.fixture
+    def storage(self):
+        from src.api.storage import RDFStorageService, INST
+
+        temp_dir = tempfile.mkdtemp()
+        storage = RDFStorageService(storage_path=temp_dir)
+        yield storage
+        import shutil
+
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_message_end_event(self, storage):
+        """Test that message end event throws a message and completes"""
+        bpmn = """<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                          targetNamespace="http://test.org/message">
+            <bpmn:process id="MessageEndProcess" isExecutable="true">
+                <bpmn:startEvent id="start1"/>
+                <bpmn:serviceTask id="task1" name="Task 1" camunda:topic="task1"/>
+                <bpmn:endEvent id="messageEnd" name="Send Notification">
+                    <bpmn:messageEventDefinition camunda:message="order_confirmed"/>
+                </bpmn:endEvent>
+                <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="task1"/>
+                <bpmn:sequenceFlow id="flow2" sourceRef="task1" targetRef="messageEnd"/>
+            </bpmn:process>
+        </bpmn:definitions>"""
+
+        process_id = storage.deploy_process(
+            name="Message End Event Test",
+            description="Test message end event",
+            bpmn_content=bpmn,
+        )
+
+        task_executed = []
+
+        def task_handler(instance_id, variables, loop_idx=None):
+            task_executed.append(variables.get("orderId"))
+            return {"done": True}
+
+        storage.register_topic_handler("task1", task_handler)
+
+        result = storage.create_instance(
+            process_id=process_id,
+            variables={"orderId": "ORD-001"},
+        )
+
+        instance_id = result["id"]
+        instance = storage.get_instance(instance_id)
+        assert instance["status"] == "COMPLETED"
+
+        assert len(task_executed) == 1
+        assert task_executed[0] == "ORD-001"
+
+        events = storage.get_instance_audit_log(instance_id)
+        message_thrown_events = [e for e in events if e["type"] == "MESSAGE_THROWN"]
+        assert len(message_thrown_events) == 1
+        assert "order_confirmed" in message_thrown_events[0]["details"]
+
+        print(f"Message end event test passed: {message_thrown_events}")
+
+    def test_message_end_event_in_subprocess(self, storage):
+        """Test message end event inside an expanded subprocess"""
+        bpmn = """<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                          targetNamespace="http://test.org/message">
+            <bpmn:process id="SubprocessMessageEnd" isExecutable="true">
+                <bpmn:startEvent id="start1"/>
+                <bpmn:subProcess id="subProcess" name="Processing Subprocess">
+                    <bpmn:startEvent id="subStart"/>
+                    <bpmn:serviceTask id="processTask" name="Process"
+                                      camunda:topic="process"/>
+                    <bpmn:endEvent id="subEnd" name="Complete">
+                        <bpmn:messageEventDefinition camunda:message="processing_complete"/>
+                    </bpmn:endEvent>
+                    <bpmn:sequenceFlow id="subFlow1" sourceRef="subStart" targetRef="processTask"/>
+                    <bpmn:sequenceFlow id="subFlow2" sourceRef="processTask" targetRef="subEnd"/>
+                </bpmn:subProcess>
+                <bpmn:endEvent id="mainEnd" name="Main End"/>
+                <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="subProcess"/>
+                <bpmn:sequenceFlow id="flow2" sourceRef="subProcess" targetRef="mainEnd"/>
+            </bpmn:process>
+        </bpmn:definitions>"""
+
+        process_id = storage.deploy_process(
+            name="Subprocess Message End Test",
+            description="Test message end event in subprocess",
+            bpmn_content=bpmn,
+        )
+
+        process_called = []
+
+        def process_handler(instance_id, variables, loop_idx=None):
+            process_called.append(variables.get("orderId"))
+            return {"processed": True}
+
+        storage.register_topic_handler("process", process_handler)
+
+        result = storage.create_instance(
+            process_id=process_id,
+            variables={"orderId": "ORD-002"},
+        )
+
+        instance_id = result["id"]
+        instance = storage.get_instance(instance_id)
+        assert instance["status"] == "COMPLETED"
+
+        assert len(process_called) == 1
+        assert process_called[0] == "ORD-002"
+
+        events = storage.get_instance_audit_log(instance_id)
+        message_events = [e for e in events if "MESSAGE" in e["type"]]
+        assert len(message_events) >= 1
+
+        message_event = [
+            e
+            for e in events
+            if e["type"] == "MESSAGE_THROWN"
+            and "processing_complete" in e.get("details", "")
+        ]
+        assert len(message_event) == 1
+
+        print(f"Subprocess message end event test passed")
+
+    def test_multiple_message_end_events(self, storage):
+        """Test process with multiple message end events (different paths)"""
+        bpmn = """<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                          targetNamespace="http://test.org/message">
+            <bpmn:process id="MultipleMessageEnd" isExecutable="true">
+                <bpmn:startEvent id="start1"/>
+                <bpmn:serviceTask id="decisionTask" name="Make Decision"
+                                  camunda:topic="decision"/>
+                <bpmn:exclusiveGateway id="gateway" name="Decision Point"/>
+                <bpmn:serviceTask id="approvedTask" name="Process Approval"
+                                  camunda:topic="approved"/>
+                <bpmn:serviceTask id="rejectedTask" name="Process Rejection"
+                                  camunda:topic="rejected"/>
+                <bpmn:endEvent id="approvedEnd" name="Approved">
+                    <bpmn:messageEventDefinition camunda:message="order_approved"/>
+                </bpmn:endEvent>
+                <bpmn:endEvent id="rejectedEnd" name="Rejected">
+                    <bpmn:messageEventDefinition camunda:message="order_rejected"/>
+                </bpmn:endEvent>
+                <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="decisionTask"/>
+                <bpmn:sequenceFlow id="flow2" sourceRef="decisionTask" targetRef="gateway"/>
+                <bpmn:sequenceFlow id="flow3" sourceRef="gateway" targetRef="approvedTask"/>
+                <bpmn:sequenceFlow id="flow4" sourceRef="approvedTask" targetRef="approvedEnd"/>
+            </bpmn:process>
+        </bpmn:definitions>"""
+
+        process_id = storage.deploy_process(
+            name="Multiple Message End Events Test",
+            description="Test multiple message end events",
+            bpmn_content=bpmn,
+        )
+
+        def approved_handler(instance_id, variables, loop_idx=None):
+            return {"done": True}
+
+        def rejected_handler(instance_id, variables, loop_idx=None):
+            return {"done": True}
+
+        def decision_handler(instance_id, variables, loop_idx=None):
+            storage.set_instance_variable(instance_id, "decision", "approved")
+            return {"decision": "approved"}
+
+        storage.register_topic_handler("approved", approved_handler)
+        storage.register_topic_handler("rejected", rejected_handler)
+        storage.register_topic_handler("decision", decision_handler)
+
+        result = storage.create_instance(
+            process_id=process_id,
+            variables={"orderId": "ORD-003"},
+        )
+
+        instance_id = result["id"]
+        instance = storage.get_instance(instance_id)
+        assert instance["status"] == "COMPLETED"
+
+        events = storage.get_instance_audit_log(instance_id)
+        message_events = [e for e in events if e["type"] == "MESSAGE_THROWN"]
+        assert len(message_events) == 1
+        assert "order_approved" in message_events[0]["details"]
+
+        print(f"Multiple message end events test passed")
+
+    def test_regular_end_event(self, storage):
+        """Test that regular end events still work correctly"""
+        bpmn = """<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                          targetNamespace="http://test.org/message">
+            <bpmn:process id="RegularEndProcess" isExecutable="true">
+                <bpmn:startEvent id="start1"/>
+                <bpmn:serviceTask id="task1" name="Task 1" camunda:topic="task1"/>
+                <bpmn:endEvent id="regularEnd" name="Complete"/>
+                <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="task1"/>
+                <bpmn:sequenceFlow id="flow2" sourceRef="task1" targetRef="regularEnd"/>
+            </bpmn:process>
+        </bpmn:definitions>"""
+
+        process_id = storage.deploy_process(
+            name="Regular End Event Test",
+            description="Test regular end event",
+            bpmn_content=bpmn,
+        )
+
+        def task_handler(instance_id, variables, loop_idx=None):
+            return {"done": True}
+
+        storage.register_topic_handler("task1", task_handler)
+
+        result = storage.create_instance(
+            process_id=process_id,
+            variables={"orderId": "ORD-004"},
+        )
+
+        instance_id = result["id"]
+        instance = storage.get_instance(instance_id)
+        assert instance["status"] == "COMPLETED"
+
+        events = storage.get_instance_audit_log(instance_id)
+        end_events = [e for e in events if e["type"] == "END"]
+        assert len(end_events) == 1
+        message_events = [e for e in events if "MESSAGE" in e["type"]]
+        assert len(message_events) == 0
+
+        print(f"Regular end event test passed")
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

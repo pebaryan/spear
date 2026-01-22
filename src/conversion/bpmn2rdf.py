@@ -186,6 +186,7 @@ class BPMNToRDFConverter:
                     "targetRef",
                     "processRef",
                     "calledElement",
+                    "attachedToRef",
                 ]:
                     self.triples.append(
                         f"{element_uri} bpmn:{attr_name} {self._get_uri(attr_value)} ."
@@ -240,6 +241,25 @@ class BPMNToRDFConverter:
             elif child_tag == "conditionExpression":
                 # Process condition expression with full details
                 self._process_condition_expression(child, element_uri)
+            elif tag_name == "endEvent":
+                for nested in element:
+                    nested_tag = self._get_tag_name(nested.tag)
+                    if nested_tag == "messageEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/MessageEndEvent> ."
+                        )
+                        message_ref = nested.get("messageRef", "")
+                        if message_ref:
+                            self.triples.append(
+                                f"{element_uri} bpmn:messageRef <{message_ref}> ."
+                            )
+                        camunda_message = nested.get(
+                            "{http://camunda.org/schema/1.0/bpmn}message", ""
+                        )
+                        if camunda_message:
+                            self.triples.append(
+                                f'{element_uri} camunda:message "{self._escape_string(camunda_message)}" .'
+                            )
             elif child_tag == "outgoing":
                 ref = child.text.strip() if child.text else ""
                 if ref:
@@ -303,6 +323,96 @@ class BPMNToRDFConverter:
                             self.triples.append(
                                 f'{mi_uri} bpmn:dataOutput "{self._escape_string(data_output)}" .'
                             )
+            elif tag_name in ["intermediateCatchEvent", "intermediateThrowEvent"]:
+                attached_to_ref = element.get("attachedToRef", "")
+                if attached_to_ref:
+                    self.triples.append(
+                        f"{element_uri} rdf:type <http://example.org/bpmn/BoundaryEvent> ."
+                    )
+                    self.triples.append(
+                        f"{element_uri} bpmn:attachedToRef <{attached_to_ref}> ."
+                    )
+                    attached_uri = self._get_uri(attached_to_ref)
+                    self.triples.append(
+                        f"{attached_uri} bpmn:hasBoundaryEvent {element_uri} ."
+                    )
+
+                    is_interrupting = (
+                        element.get("cancelActivity", "true").lower() == "true"
+                    )
+                    self.triples.append(
+                        f'{element_uri} bpmn:interrupting "{str(is_interrupting).lower()}" .'
+                    )
+
+                for child in element:
+                    child_tag = self._get_tag_name(child.tag)
+                    if child_tag == "messageEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/MessageBoundaryEvent> ."
+                        )
+                        message_ref = child.get("messageRef", "")
+                        if message_ref:
+                            self.triples.append(
+                                f"{element_uri} bpmn:messageRef <{message_ref}> ."
+                            )
+                        camunda_message = child.get(
+                            "{http://camunda.org/schema/1.0/bpmn}message", ""
+                        )
+                        if camunda_message:
+                            self.triples.append(
+                                f'{element_uri} camunda:message "{self._escape_string(camunda_message)}" .'
+                            )
+                    elif child_tag == "timerEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/TimerBoundaryEvent> ."
+                        )
+                    elif child_tag == "errorEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/ErrorBoundaryEvent> ."
+                        )
+                    elif child_tag == "signalEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/SignalBoundaryEvent> ."
+                        )
+
+            elif tag_name == "subProcess":
+                # Handle expanded (embedded) subprocess
+                triggered_by_event = (
+                    element.get("triggeredByEvent", "false").lower() == "true"
+                )
+
+                if triggered_by_event:
+                    # Event subprocess
+                    self.triples.append(
+                        f"{element_uri} rdf:type <http://example.org/bpmn/EventSubprocess> ."
+                    )
+                    self.triples.append(f'{element_uri} bpmn:triggeredByEvent "true" .')
+                else:
+                    # Expanded subprocess
+                    self.triples.append(
+                        f"{element_uri} rdf:type <http://example.org/bpmn/ExpandedSubprocess> ."
+                    )
+
+                # Process all child elements of the subprocess
+                for child in element:
+                    self._process_element(child, element_uri)
+
+            elif tag_name == "callActivity":
+                # Handle call activity (collapsed subprocess)
+                called_element = element.get("calledElement", "")
+
+                self.triples.append(
+                    f"{element_uri} rdf:type <http://example.org/bpmn/CallActivity> ."
+                )
+
+                if called_element:
+                    self.triples.append(
+                        f"{element_uri} bpmn:calledElement <{called_element}> ."
+                    )
+
+                # Process child elements if any
+                for child in element:
+                    self._process_element(child, element_uri)
             else:
                 self._process_element(child, element_uri)
 

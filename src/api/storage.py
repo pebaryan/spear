@@ -141,7 +141,8 @@ class RDFStorageService:
 
             # Link process to its BPMN elements
             for s, p, o in bpmn_graph.triples((None, RDF.type, None)):
-                if "StartEvent" in str(o) or "Process" in str(o):
+                o_lower = str(o).lower()
+                if "startevent" in o_lower or "process" in o_lower:
                     self.definitions_graph.add((process_uri, PROC.hasElement, s))
 
             # Save to disk
@@ -349,19 +350,29 @@ class RDFStorageService:
         if start_event_id:
             start_event_uri = URIRef(f"http://example.org/bpmn/{start_event_id}")
         else:
-            # Find first start event (check both StartEvent and startEvent)
+            # Find first start event linked to this process definition
+            elements_found = []
             for s, p, o in self.definitions_graph.triples(
-                (None, RDF.type, BPMN.StartEvent)
+                (process_uri, PROC.hasElement, None)
             ):
-                start_event_uri = s
-                break
-            if not start_event_uri:
-                for s, p, o in self.definitions_graph.triples(
-                    (None, RDF.type, BPMN.startEvent)
+                elements_found.append(o)
+
+            logger.debug(f"Found {len(elements_found)} elements linked to process")
+            for elem in elements_found:
+                logger.debug(f"  Checking element: {elem}")
+                # Check if this element is a start event (case-insensitive check)
+                for ss, pp, oo in self.definitions_graph.triples(
+                    (elem, RDF.type, None)
                 ):
-                    start_event_uri = s
+                    logger.debug(f"    Type: {oo}")
+                    if "startevent" in str(oo).lower():
+                        start_event_uri = elem
+                        logger.debug(f"    -> Found start event: {start_event_uri}")
+                        break
+                if start_event_uri:
                     break
 
+        logger.debug(f"Setting token currentNode to: {start_event_uri}")
         if start_event_uri:
             self.instances_graph.add((token_uri, INST.currentNode, start_event_uri))
 
@@ -484,14 +495,104 @@ class RDFStorageService:
 
         return self.get_instance(instance_id)
 
-    def set_instance_variable(self, instance_id: str, name: str, value: Any) -> bool:
-        """Set a variable on a process instance"""
+    # ==================== Loop-Scoped Variable Methods ====================
+
+    def _get_loop_scoped_name(self, base_name: str, loop_idx: int) -> str:
+        """Convert 'orderId' to 'orderId_loop0' for loop-scoped variables"""
+        return f"{base_name}_loop{loop_idx}"
+
+    def _parse_loop_scoped_name(self, scoped_name: str) -> tuple:
+        """Parse 'orderId_loop0' into ('orderId', 0)"""
+        if "_loop" in scoped_name:
+            parts = scoped_name.rsplit("_loop", 1)
+            if len(parts) == 2 and parts[1].isdigit():
+                return parts[0], int(parts[1])
+        return scoped_name, None
+
+    def _get_loop_index(self, token_uri: URIRef) -> Optional[int]:
+        """Extract loop index from a token URI"""
+        loop_idx = self.instances_graph.value(token_uri, INST.loopInstance)
+        if loop_idx:
+            try:
+                return int(str(loop_idx))
+            except ValueError:
+                pass
+        return None
+
+    def get_instance_variables(
+        self, instance_id: str, loop_idx: int = None, mi_info: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """Get variables for a process instance, optionally scoped to a loop instance"""
         instance_uri = INST[instance_id]
+
+        variables = {}
+        for var_uri in self.instances_graph.objects(instance_uri, INST.hasVariable):
+            name = self.instances_graph.value(var_uri, VAR.name)
+            value = self.instances_graph.value(var_uri, VAR.value)
+            if name and value:
+                name_str = str(name)
+                value_str = str(value)
+
+                if loop_idx is not None:
+                    base_name, var_loop_idx = self._parse_loop_scoped_name(name_str)
+                    if var_loop_idx == loop_idx:
+                        variables[base_name] = value_str
+                    elif var_loop_idx is None:
+                        variables[name_str] = value_str
+                else:
+                    variables[name_str] = value_str
+
+        if loop_idx is not None and mi_info and mi_info.get("data_input"):
+            data_input = mi_info["data_input"]
+            data_output = mi_info.get("data_output", "item")
+
+            # First try loop-scoped variable
+            input_var_name_scoped = f"{data_input}_loop{loop_idx}"
+            input_value = None
+
+            for var_uri in self.instances_graph.objects(instance_uri, INST.hasVariable):
+                name = self.instances_graph.value(var_uri, VAR.name)
+                if name and str(name) == input_var_name_scoped:
+                    value = self.instances_graph.value(var_uri, VAR.value)
+                    if value:
+                        input_value = str(value)
+                    break
+
+            # If not found, try non-scoped variable
+            if input_value is None:
+                for var_uri in self.instances_graph.objects(
+                    instance_uri, INST.hasVariable
+                ):
+                    name = self.instances_graph.value(var_uri, VAR.name)
+                    if name and str(name) == data_input:
+                        value = self.instances_graph.value(var_uri, VAR.value)
+                        if value:
+                            input_value = str(value)
+                        break
+
+            if input_value:
+                items = input_value.split(",")
+                if loop_idx < len(items):
+                    variables[data_output] = items[loop_idx].strip()
+
+        return variables
+
+    def set_instance_variable(
+        self, instance_id: str, name: str, value: Any, loop_idx: int = None
+    ) -> bool:
+        """Set a variable on a process instance, optionally scoped to a loop instance"""
+        instance_uri = INST[instance_id]
+
+        # Build the variable name (with loop scope if specified)
+        if loop_idx is not None:
+            var_name = self._get_loop_scoped_name(name, loop_idx)
+        else:
+            var_name = name
 
         # Find existing variable
         var_uri = None
         for v in self.instances_graph.objects(instance_uri, INST.hasVariable):
-            if self.instances_graph.value(v, VAR.name) == Literal(name):
+            if self.instances_graph.value(v, VAR.name) == Literal(var_name):
                 var_uri = v
                 break
 
@@ -500,19 +601,14 @@ class RDFStorageService:
             self.instances_graph.set((var_uri, VAR.value, Literal(str(value))))
         else:
             # Create new variable
-            var_uri = VAR[f"{instance_id}_{name}"]
+            var_uri = VAR[f"{instance_id}_{var_name}"]
             self.instances_graph.add((instance_uri, INST.hasVariable, var_uri))
-            self.instances_graph.add((var_uri, VAR.name, Literal(name)))
+            self.instances_graph.add((var_uri, VAR.name, Literal(var_name)))
             self.instances_graph.add((var_uri, VAR.value, Literal(str(value))))
 
         self._save_graph(self.instances_graph, "instances.ttl")
 
         return True
-
-    def get_instance_variables(self, instance_id: str) -> Dict[str, Any]:
-        """Get all variables for a process instance"""
-        instance_data = self.get_instance(instance_id)
-        return instance_data.get("variables", {}) if instance_data else {}
 
     # ==================== Audit Log Operations ====================
 
@@ -587,30 +683,87 @@ class RDFStorageService:
         """Execute a single token through the process"""
         current_node = self.instances_graph.value(token_uri, INST.currentNode)
         if not current_node:
+            # Token has no current node - mark as error
+            self.instances_graph.set((token_uri, INST.status, Literal("ERROR")))
+            self._log_instance_event(
+                instance_uri,
+                "TOKEN_ERROR",
+                "System",
+                f"Token has no current node",
+            )
             return
 
-        # Get node type
+        # Get node type - check all types to handle nodes with multiple types
         node_type = None
+        node_types = []
         for s, p, o in self.definitions_graph.triples((current_node, RDF.type, None)):
-            node_type = o
-            break
+            node_types.append(o)
 
-        logger.debug(f"Executing token at {current_node}, type: {node_type}")
+        logger.debug(f"Executing token at {current_node}, types: {node_types}")
 
-        if node_type == BPMN.StartEvent:
+        if BPMN.StartEvent in node_types or BPMN.startEvent in node_types:
             self._log_instance_event(instance_uri, "START", "System", str(current_node))
             self._move_token_to_next_node(instance_uri, token_uri, instance_id)
 
-        elif node_type == BPMN.EndEvent:
+        elif BPMN.EndEvent in node_types or BPMN.endEvent in node_types:
+            is_message_end_event = False
+            message_name = None
+            for s, p, o in self.definitions_graph.triples(
+                (current_node, RDF.type, None)
+            ):
+                if "MessageEndEvent" in str(o):
+                    is_message_end_event = True
+                    message_name = self.definitions_graph.value(
+                        current_node, BPMN.messageRef
+                    )
+                    if not message_name:
+                        message_name = self.definitions_graph.value(
+                            current_node,
+                            URIRef("http://camunda.org/schema/1.0/bpmn#message"),
+                        )
+                    if message_name:
+                        message_name = str(message_name)
+                    break
+
+            if is_message_end_event and message_name:
+                self._log_instance_event(
+                    instance_uri,
+                    "MESSAGE_END_EVENT",
+                    "System",
+                    f"Message end event triggered: {message_name}",
+                )
+                logger.info(
+                    f"Message end event at {current_node}, triggering message: {message_name}"
+                )
+                self._trigger_message_end_event(instance_uri, message_name)
+
+            sub_status = self.instances_graph.value(token_uri, INST.subprocessStatus)
+            if sub_status and str(sub_status) == "inside":
+                # We're inside an expanded subprocess - delegate to subprocess handler
+                # Find the parent subprocess of this end event
+                for parent_uri in self.definitions_graph.objects(
+                    current_node, BPMN.hasParent
+                ):
+                    # Check if parent is an expanded subprocess
+                    for ss, pp, oo in self.definitions_graph.triples(
+                        (parent_uri, RDF.type, None)
+                    ):
+                        if "expandedsubprocess" in str(oo).lower():
+                            # Call the expanded subprocess handler to handle completion
+                            self._execute_expanded_subprocess(
+                                instance_uri, token_uri, parent_uri, instance_id
+                            )
+                            return
+            # Not inside a subprocess or no parent subprocess - regular end event
             self._log_instance_event(instance_uri, "END", "System", str(current_node))
             self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
 
-        elif node_type == BPMN.ServiceTask or node_type == BPMN.serviceTask:
+        elif BPMN.ServiceTask in node_types or BPMN.serviceTask in node_types:
             self._execute_service_task(
                 instance_uri, token_uri, current_node, instance_id
             )
 
-        elif node_type == BPMN.UserTask or node_type == BPMN.userTask:
+        elif BPMN.UserTask in node_types or BPMN.userTask in node_types:
             mi_info = self._is_multi_instance(current_node)
 
             if mi_info["is_multi_instance"]:
@@ -668,18 +821,19 @@ class RDFStorageService:
             )
             self.instances_graph.set((token_uri, INST.status, Literal("WAITING")))
 
-        elif node_type == BPMN.ReceiveTask or node_type == BPMN.receiveTask:
+        elif BPMN.ReceiveTask in node_types or BPMN.receiveTask in node_types:
             self._execute_receive_task(
                 instance_uri, token_uri, current_node, instance_id
             )
 
-        elif node_type == BPMN.EventBasedGateway:
+        elif BPMN.EventBasedGateway in node_types:
             self._execute_event_based_gateway(
                 instance_uri, token_uri, current_node, instance_id
             )
 
-        elif node_type == BPMN.ExclusiveGateway or str(node_type).endswith(
-            "exclusiveGateway"
+        elif (
+            BPMN.ExclusiveGateway in node_types
+            or "exclusivegateway" in str(node_types).lower()
         ):
             # Evaluate conditions to choose the correct outgoing flow
             next_node = self._evaluate_gateway_conditions(instance_uri, current_node)
@@ -697,7 +851,7 @@ class RDFStorageService:
                     f"No valid path at {str(current_node)}",
                 )
 
-        elif node_type == BPMN.ParallelGateway:
+        elif BPMN.ParallelGateway in node_types:
             next_nodes = []
             for s, p, o in self.definitions_graph.triples(
                 (current_node, BPMN.outgoing, None)
@@ -743,7 +897,26 @@ class RDFStorageService:
                         (token_uri, INST.currentNode, next_nodes[0])
                     )
             else:
+                # No outgoing flows - consume token
                 self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
+
+        elif any("expandedsubprocess" in str(t).lower() for t in node_types):
+            self._execute_expanded_subprocess(
+                instance_uri, token_uri, current_node, instance_id
+            )
+
+        elif any("callactivity" in str(t).lower() for t in node_types):
+            self._execute_call_activity(
+                instance_uri, token_uri, current_node, instance_id
+            )
+
+        elif any("eventsubprocess" in str(t).lower() for t in node_types):
+            self._execute_event_subprocess(
+                instance_uri, token_uri, current_node, instance_id
+            )
+
+        elif any("intermediatecatchevent" in str(t).lower() for t in node_types):
+            self._move_token_to_next_node(instance_uri, token_uri, instance_id)
 
         else:
             # For other node types, just move to next node
@@ -854,18 +1027,24 @@ class RDFStorageService:
             )
             return
 
-        variables = {}
-        for var_uri in self.instances_graph.objects(instance_uri, INST.hasVariable):
-            name = self.instances_graph.value(var_uri, VAR.name)
-            value = self.instances_graph.value(var_uri, VAR.value)
-            if name and value:
-                variables[str(name)] = str(value)
+        # Get loop index for multi-instance activities
+        loop_idx = self._get_loop_index(token_uri)
+
+        # Get multi-instance info for dataInput/dataOutput handling
+        mi_info = self._is_multi_instance(node_uri)
+
+        # Get loop-scoped variables
+        variables = self.get_instance_variables(instance_id, loop_idx, mi_info)
 
         try:
-            updated_variables = self.execute_service_task(instance_id, topic, variables)
+            updated_variables = self.execute_service_task(
+                instance_id, topic, variables, loop_idx
+            )
 
-            for name, value in updated_variables.items():
-                self.set_instance_variable(instance_id, name, value)
+            # Store loop-scoped results
+            if updated_variables:
+                for name, value in updated_variables.items():
+                    self.set_instance_variable(instance_id, name, value, loop_idx)
 
             self._log_instance_event(
                 instance_uri,
@@ -892,6 +1071,313 @@ class RDFStorageService:
                 "System",
                 f"{str(node_uri)} (topic: {topic}): {str(e)}",
             )
+            return
+
+    def _execute_expanded_subprocess(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+    ):
+        """Execute an expanded (embedded) subprocess"""
+        mi_info = self._is_multi_instance(node_uri)
+
+        if mi_info["is_multi_instance"]:
+            loop_instance = self.instances_graph.value(token_uri, INST.loopInstance)
+
+            if loop_instance is None:
+                count = 3
+                if mi_info["loop_cardinality"]:
+                    try:
+                        count = int(mi_info["loop_cardinality"])
+                    except ValueError:
+                        pass
+
+                logger.info(
+                    f"Creating {count} parallel tokens for multi-instance expanded subprocess {node_uri}"
+                )
+
+                for i in range(count):
+                    loop_token_uri = INST[
+                        f"token_{instance_id}_{str(uuid.uuid4())[:8]}"
+                    ]
+                    self.instances_graph.add((loop_token_uri, RDF.type, INST.Token))
+                    self.instances_graph.add(
+                        (loop_token_uri, INST.belongsTo, instance_uri)
+                    )
+                    self.instances_graph.add(
+                        (loop_token_uri, INST.status, Literal("ACTIVE"))
+                    )
+                    self.instances_graph.add(
+                        (loop_token_uri, INST.currentNode, node_uri)
+                    )
+                    self.instances_graph.add(
+                        (loop_token_uri, INST.loopInstance, Literal(str(i)))
+                    )
+                    self.instances_graph.add(
+                        (instance_uri, INST.hasToken, loop_token_uri)
+                    )
+
+                    self._execute_expanded_subprocess_handler(
+                        instance_uri, loop_token_uri, node_uri, instance_id, i
+                    )
+
+                self._log_instance_event(
+                    instance_uri,
+                    "MULTI_INSTANCE_STARTED",
+                    "System",
+                    f"{str(node_uri)} - parallel ({count} instances)",
+                )
+
+                self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
+
+                self._advance_multi_instance(instance_uri, node_uri, instance_id)
+                return
+
+            loop_idx = int(str(loop_instance)) if loop_instance else 0
+            self._complete_subprocess_loop_instance(
+                instance_uri, token_uri, node_uri, instance_id, mi_info, loop_idx
+            )
+            return
+
+        self._execute_expanded_subprocess_handler(
+            instance_uri, token_uri, node_uri, instance_id, None
+        )
+
+    def _execute_expanded_subprocess_handler(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        loop_idx: Optional[int] = None,
+    ):
+        """Handle the actual execution of an expanded subprocess (single instance)"""
+        sub_status = self.instances_graph.value(token_uri, INST.subprocessStatus)
+
+        if not sub_status:
+            start_events = []
+            for child_uri in self.definitions_graph.subjects(BPMN.hasParent, node_uri):
+                for ss, pp, oo in self.definitions_graph.triples(
+                    (child_uri, RDF.type, None)
+                ):
+                    if "startevent" in str(oo).lower():
+                        start_events.append(child_uri)
+                        break
+
+            if not start_events:
+                self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
+                return
+
+            start_event = start_events[0]
+            sub_instance_id = f"{instance_id}_sub_{str(uuid.uuid4())[:8]}"
+
+            self.instances_graph.set((token_uri, INST.status, Literal("ACTIVE")))
+            self.instances_graph.set((token_uri, INST.currentNode, start_event))
+            self.instances_graph.set(
+                (token_uri, INST.subprocessStatus, Literal("inside"))
+            )
+            self.instances_graph.set(
+                (token_uri, INST.subprocessId, Literal(sub_instance_id))
+            )
+
+            loop_suffix = f"_loop{loop_idx}" if loop_idx is not None else ""
+            self._log_instance_event(
+                instance_uri,
+                "SUBPROCESS_STARTED",
+                "System",
+                f"Entered expanded subprocess {str(node_uri)}{loop_suffix}",
+            )
+
+            logger.info(
+                f"Entered expanded subprocess {node_uri}{loop_suffix}, starting at {start_event}"
+            )
+
+            self._execute_token(instance_uri, token_uri, instance_id)
+        else:
+            current_node = self.instances_graph.value(token_uri, INST.currentNode)
+
+            node_type = None
+            for s, p, o in self.definitions_graph.triples(
+                (current_node, RDF.type, None)
+            ):
+                node_type = o
+                break
+
+            if str(node_type).endswith("EndEvent") or str(node_type).endswith(
+                "endEvent"
+            ):
+                self.instances_graph.remove((token_uri, INST.subprocessStatus, None))
+                self.instances_graph.remove((token_uri, INST.subprocessId, None))
+
+                loop_suffix = f"_loop{loop_idx}" if loop_idx is not None else ""
+                self._log_instance_event(
+                    instance_uri,
+                    "SUBPROCESS_COMPLETED",
+                    "System",
+                    f"Completed expanded subprocess {str(node_uri)}{loop_suffix}",
+                )
+
+                logger.info(f"Completed expanded subprocess {node_uri}{loop_suffix}")
+
+                self.instances_graph.set((token_uri, INST.currentNode, node_uri))
+                self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+                self._execute_token(instance_uri, token_uri, instance_id)
+            else:
+                self._execute_token(instance_uri, token_uri, instance_id)
+
+    def _complete_subprocess_loop_instance(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        mi_info: Dict[str, Any],
+        loop_idx: int,
+    ):
+        """Complete a single loop instance of a multi-instance subprocess"""
+        loop_instance = self.instances_graph.value(token_uri, INST.loopInstance)
+        current_loop = int(str(loop_instance)) if loop_instance else 0
+
+        logger.info(
+            f"Completed loop instance {current_loop} of expanded subprocess {node_uri}"
+        )
+
+        self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
+
+        self._advance_multi_instance(instance_uri, node_uri, instance_id)
+
+    def _execute_call_activity(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+    ):
+        """Execute a call activity (collapsed subprocess)"""
+        # Get called element (subprocess definition)
+        called_element = self.definitions_graph.value(node_uri, BPMN.calledElement)
+
+        if not called_element:
+            logger.warning(f"Call activity {node_uri} has no calledElement")
+            self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+            return
+
+        called_element_str = str(called_element)
+        logger.info(f"Call activity {node_uri} calling subprocess {called_element_str}")
+
+        # Create a new instance of the called subprocess
+        # For now, we execute inline (synchronous)
+        # Find start events in called subprocess (elements with hasParent = called_element)
+        start_events = []
+        for child_uri in self.definitions_graph.subjects(
+            BPMN.hasParent, called_element
+        ):
+            for ss, pp, oo in self.definitions_graph.triples(
+                (child_uri, RDF.type, None)
+            ):
+                if str(oo).endswith("StartEvent") or str(oo).endswith("startEvent"):
+                    start_events.append(child_uri)
+                    break
+
+        if not start_events:
+            logger.warning(f"Called subprocess {called_element} has no start events")
+            self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+            return
+
+        # Execute the called subprocess inline
+        self._log_instance_event(
+            instance_uri,
+            "CALL_ACTIVITY_STARTED",
+            "System",
+            f"Started call to {called_element_str}",
+        )
+
+        # Create token for the called subprocess
+        sub_instance_id = f"{instance_id}_call_{str(uuid.uuid4())[:8]}"
+        sub_token_uri = INST[f"token_{sub_instance_id}"]
+
+        self.instances_graph.add((sub_token_uri, RDF.type, INST.Token))
+        self.instances_graph.add((sub_token_uri, INST.belongsTo, instance_uri))
+        self.instances_graph.add((sub_token_uri, INST.status, Literal("ACTIVE")))
+        self.instances_graph.add((sub_token_uri, INST.currentNode, start_events[0]))
+        self.instances_graph.add(
+            (sub_token_uri, INST.calledFrom, Literal(called_element_str))
+        )
+        self.instances_graph.add((instance_uri, INST.hasToken, sub_token_uri))
+
+        # Execute tokens starting from start event
+        # Continue execution until the call token is completed
+        while True:
+            token_status = self.instances_graph.value(sub_token_uri, INST.status)
+            if not token_status or str(token_status) != "ACTIVE":
+                break
+            self._execute_token(instance_uri, sub_token_uri, sub_instance_id)
+
+        # Clean up the call token
+        self.instances_graph.set((sub_token_uri, INST.status, Literal("CONSUMED")))
+
+        self._log_instance_event(
+            instance_uri,
+            "CALL_ACTIVITY_COMPLETED",
+            "System",
+            f"Completed call to {called_element_str}",
+        )
+
+        # Move to next node in parent process
+        self._move_token_to_next_node(instance_uri, token_uri, instance_id)
+
+    def _execute_event_subprocess(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+    ):
+        """Execute an event subprocess (triggered by events)"""
+        # Event subprocesses are started by events, not by regular token flow
+        # This method handles when an event triggers the subprocess
+        logger.info(f"Event subprocess {node_uri} triggered")
+
+        # Find start events in event subprocess
+        start_events = []
+        for s, p, o in self.definitions_graph.triples(
+            (node_uri, BPMN.hasFlowNode, None)
+        ):
+            for ss, pp, oo in self.definitions_graph.triples((o, RDF.type, None)):
+                # Look for event-start events (message, timer, error, etc.)
+                # Simplified: just find all start events
+                if str(oo).endswith("StartEvent") or str(oo).endswith("startEvent"):
+                    start_events.append(o)
+                    break
+
+        if not start_events:
+            logger.warning(f"Event subprocess {node_uri} has no start events")
+            return
+
+        # Create token in event subprocess
+        sub_instance_id = f"{instance_id}_event_{str(uuid.uuid4())[:8]}"
+        sub_token_uri = INST[f"token_{sub_instance_id}"]
+
+        self.instances_graph.add((sub_token_uri, RDF.type, INST.Token))
+        self.instances_graph.add((sub_token_uri, INST.belongsTo, instance_uri))
+        self.instances_graph.add((sub_token_uri, INST.status, Literal("ACTIVE")))
+        self.instances_graph.add((sub_token_uri, INST.currentNode, start_events[0]))
+        self.instances_graph.add(
+            (sub_token_uri, INST.eventSubprocess, Literal(str(node_uri)))
+        )
+        self.instances_graph.add((instance_uri, INST.hasToken, sub_token_uri))
+
+        self._log_instance_event(
+            instance_uri,
+            "EVENT_SUBPROCESS_STARTED",
+            "System",
+            f"Event subprocess {str(node_uri)} triggered",
+        )
+
+        # Execute the event subprocess
+        self._execute_token(instance_uri, sub_token_uri, sub_instance_id)
 
     def _evaluate_gateway_conditions(
         self, instance_uri: URIRef, gateway_uri: URIRef
@@ -2036,7 +2522,11 @@ class RDFStorageService:
         return topics
 
     def execute_service_task(
-        self, instance_id: str, topic: str, variables: Dict[str, Any]
+        self,
+        instance_id: str,
+        topic: str,
+        variables: Dict[str, Any],
+        loop_idx: int = None,
     ) -> Dict[str, Any]:
         """
         Execute a service task handler.
@@ -2045,6 +2535,7 @@ class RDFStorageService:
             instance_id: The process instance ID
             topic: The topic to execute
             variables: Current process variables
+            loop_idx: Loop instance index (for multi-instance activities)
 
         Returns:
             Updated variables after handler execution
@@ -2061,14 +2552,21 @@ class RDFStorageService:
         logger.info(f"Executing service task {topic} for instance {instance_id}")
 
         try:
-            # Execute the handler
+            # Execute the handler with loop_idx support
             if handler_info["async"]:
-                # For async execution, we would queue the task
-                # For now, still execute synchronously
-                updated_variables = handler_function(instance_id, variables)
+                updated_variables = handler_function(instance_id, variables, loop_idx)
             else:
-                updated_variables = handler_function(instance_id, variables)
+                updated_variables = handler_function(instance_id, variables, loop_idx)
 
+            logger.info(f"Service task {topic} completed for instance {instance_id}")
+            return updated_variables
+
+        except TypeError:
+            old_handler_function = handler_function
+            logger.debug(
+                f"Handler for {topic} doesn't support loop_idx, trying without it"
+            )
+            updated_variables = old_handler_function(instance_id, variables)
             logger.info(f"Service task {topic} completed for instance {instance_id}")
             return updated_variables
 
@@ -2243,14 +2741,108 @@ class RDFStorageService:
             )
 
         message["matched_count"] = len(matched)
-        message["matched_tasks"] = matched
+
+        boundary_matches = []
+        for token_uri in self.instances_graph.subjects(RDF.type, INST.Token):
+            token_status = self.instances_graph.value(token_uri, INST.status)
+            if not token_status or str(token_status) not in ["WAITING", "ACTIVE"]:
+                continue
+
+            current_node = self.instances_graph.value(token_uri, INST.currentNode)
+            if not current_node:
+                continue
+
+            nodes_to_check = [current_node]
+            for parent in self.definitions_graph.objects(current_node, BPMN.hasParent):
+                nodes_to_check.append(parent)
+
+            for node_to_check in nodes_to_check:
+                boundary_events = self.get_boundary_events_for_node(node_to_check)
+                for event_info in boundary_events:
+                    if (
+                        event_info["event_type"] == "message"
+                        and event_info["message_name"] == message_name
+                    ):
+                        instance_uri = self.instances_graph.value(
+                            token_uri, INST.belongsTo
+                        )
+                        if instance_uri and instance_id:
+                            inst_id = str(instance_uri).split("/")[-1]
+                            if inst_id != instance_id:
+                                continue
+
+                        boundary_matches.append(
+                            {
+                                "token_uri": str(token_uri),
+                                "boundary_event_uri": str(event_info["uri"]),
+                                "is_interrupting": event_info["is_interrupting"],
+                                "instance_uri": str(instance_uri)
+                                if instance_uri
+                                else None,
+                            }
+                        )
+
+        if boundary_matches:
+            for match in boundary_matches:
+                token_uri = URIRef(match["token_uri"])
+                instance_uri = (
+                    URIRef(match["instance_uri"]) if match["instance_uri"] else None
+                )
+                boundary_event_uri = URIRef(match["boundary_event_uri"])
+                instance_id_for_var = (
+                    str(match["instance_uri"]).split("/")[-1]
+                    if match["instance_uri"]
+                    else None
+                )
+
+                self.trigger_boundary_event(
+                    token_uri,
+                    instance_uri,
+                    boundary_event_uri,
+                    instance_id_for_var if instance_id_for_var else "",
+                    match["is_interrupting"],
+                    variables,
+                )
+
+            logger.info(
+                f"Message '{message_name}' matched {len(boundary_matches)} boundary events"
+            )
+
+        message["boundary_matches"] = boundary_matches
+        message["total_matches"] = len(matched) + len(boundary_matches)
 
         return {
-            "status": "delivered" if matched else "no_match",
+            "status": "delivered" if (matched or boundary_matches) else "no_match",
             "message_name": message_name,
-            "matched_count": len(matched),
+            "matched_count": len(matched) + len(boundary_matches),
             "tasks": matched,
+            "boundary_events": boundary_matches,
         }
+
+    def _trigger_message_end_event(
+        self,
+        instance_uri: URIRef,
+        message_name: str,
+    ) -> None:
+        """Trigger a message from a message end event.
+
+        Args:
+            instance_uri: URI of the process instance
+            message_name: Name of the message to trigger
+        """
+        instance_id = str(instance_uri).split("/")[-1]
+
+        logger.info(
+            f"Message end event threw message '{message_name}' "
+            f"from instance {instance_id}"
+        )
+
+        self._log_instance_event(
+            instance_uri,
+            "MESSAGE_THROWN",
+            "System",
+            f"Message '{message_name}' thrown from message end event",
+        )
 
     def _execute_receive_task(
         self,
@@ -2292,6 +2884,177 @@ class RDFStorageService:
                 f"{str(node_uri)} (no message configured)",
             )
             self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
+
+    def get_boundary_events_for_node(self, node_uri: URIRef) -> List[Dict[str, Any]]:
+        """Get all boundary events attached to a node.
+
+        Args:
+            node_uri: URI of the node to find boundary events for
+
+        Returns:
+            List of boundary event dictionaries with event details
+        """
+        boundary_events = []
+
+        for event_uri in self.definitions_graph.objects(
+            node_uri, BPMN.hasBoundaryEvent
+        ):
+            event_info = {
+                "uri": event_uri,
+                "is_interrupting": True,
+                "message_name": None,
+                "event_type": None,
+            }
+
+            for s, p, o in self.definitions_graph.triples((event_uri, RDF.type, None)):
+                o_str = str(o)
+                if "MessageBoundaryEvent" in o_str:
+                    event_info["event_type"] = "message"
+                    message_ref = self.definitions_graph.value(
+                        event_uri, BPMN.messageRef
+                    )
+                    if message_ref:
+                        event_info["message_name"] = str(message_ref).split("/")[-1]
+                    if not event_info["message_name"]:
+                        camunda_message = self.definitions_graph.value(
+                            event_uri,
+                            URIRef("http://camunda.org/schema/1.0/bpmn#message"),
+                        )
+                        if camunda_message:
+                            event_info["message_name"] = str(camunda_message)
+                    break
+                elif "TimerBoundaryEvent" in o_str:
+                    event_info["event_type"] = "timer"
+                    break
+                elif "ErrorBoundaryEvent" in o_str:
+                    event_info["event_type"] = "error"
+                    break
+                elif "SignalBoundaryEvent" in o_str:
+                    event_info["event_type"] = "signal"
+                    break
+
+            interrupting = self.definitions_graph.value(event_uri, BPMN.interrupting)
+            if interrupting:
+                event_info["is_interrupting"] = str(interrupting).lower() == "true"
+
+            boundary_events.append(event_info)
+
+        return boundary_events
+
+    def get_outgoing_flows_for_node(self, node_uri: URIRef) -> List[URIRef]:
+        """Get all outgoing flow targets from a node.
+
+        Args:
+            node_uri: URI of the node
+
+        Returns:
+            List of target node URIs
+        """
+        targets = []
+        for flow_uri in self.definitions_graph.objects(node_uri, BPMN.outgoing):
+            target = self.definitions_graph.value(flow_uri, BPMN.targetRef)
+            if target:
+                targets.append(target)
+        return targets
+
+    def trigger_boundary_event(
+        self,
+        token_uri: URIRef,
+        instance_uri: URIRef,
+        boundary_event_uri: URIRef,
+        instance_id: str,
+        is_interrupting: bool,
+        variables: Dict[str, Any] = None,
+    ) -> bool:
+        """Trigger a boundary event on a token.
+
+        Args:
+            token_uri: URI of the token at the parent activity
+            instance_uri: URI of the process instance
+            boundary_event_uri: URI of the boundary event to trigger
+            instance_id: Instance ID string
+            is_interrupting: Whether this is an interrupting boundary event
+            variables: Optional variables to pass with the event
+
+        Returns:
+            True if triggered successfully
+        """
+        logger.info(
+            f"Triggering boundary event {boundary_event_uri} "
+            f"(interrupting={is_interrupting})"
+        )
+
+        if is_interrupting:
+            self._log_instance_event(
+                instance_uri,
+                "BOUNDARY_INTERRUPTED",
+                "System",
+                f"Activity interrupted by boundary event {str(boundary_event_uri)}",
+            )
+
+        outgoing_targets = self.get_outgoing_flows_for_node(boundary_event_uri)
+        if not outgoing_targets:
+            logger.warning(f"Boundary event {boundary_event_uri} has no outgoing flows")
+            return False
+
+        next_node = outgoing_targets[0]
+
+        instance_id_for_vars = ""
+        if instance_uri:
+            instance_id_for_vars = str(instance_uri).split("/")[-1]
+        if not instance_id_for_vars:
+            instance_id_for_vars = instance_id if instance_id else ""
+
+        if is_interrupting:
+            self.instances_graph.set((token_uri, INST.currentNode, boundary_event_uri))
+            self.instances_graph.set((token_uri, INST.status, Literal("ACTIVE")))
+
+            self._log_instance_event(
+                instance_uri,
+                "BOUNDARY_EVENT_TRIGGERED",
+                "System",
+                f"Boundary event {str(boundary_event_uri)} triggered",
+            )
+
+            if variables:
+                for var_name, var_value in variables.items():
+                    self.set_instance_variable(
+                        instance_id_for_vars, var_name, var_value
+                    )
+
+            self._execute_token(instance_uri, token_uri, instance_id_for_vars)
+        else:
+            boundary_token_uri = INST[
+                f"token_{instance_id_for_vars}_{str(uuid.uuid4())[:8]}"
+            ]
+            self.instances_graph.add((boundary_token_uri, RDF.type, INST.Token))
+            self.instances_graph.add((boundary_token_uri, INST.belongsTo, instance_uri))
+            self.instances_graph.add(
+                (boundary_token_uri, INST.status, Literal("ACTIVE"))
+            )
+            self.instances_graph.add(
+                (boundary_token_uri, INST.currentNode, boundary_event_uri)
+            )
+            self.instances_graph.add((instance_uri, INST.hasToken, boundary_token_uri))
+
+            self._log_instance_event(
+                instance_uri,
+                "BOUNDARY_EVENT_NON_INTERRUPTING",
+                "System",
+                f"Non-interrupting boundary event {str(boundary_event_uri)} triggered",
+            )
+
+            if variables:
+                for var_name, var_value in variables.items():
+                    var_uri = VAR[f"{instance_id_for_vars}_{var_name}"]
+                    self.instances_graph.add((var_uri, VAR.name, Literal(var_name)))
+                    self.instances_graph.add(
+                        (var_uri, VAR.value, Literal(str(var_value)))
+                    )
+
+            self._execute_token(instance_uri, boundary_token_uri, instance_id_for_vars)
+
+        return True
 
 
 # Global storage instance for sharing across modules
