@@ -666,8 +666,11 @@ class RDFStorageService:
             if not active_tokens:
                 break
 
+            merged_gateways = set()
             for token_uri in active_tokens:
-                self._execute_token(instance_uri, token_uri, instance_id)
+                self._execute_token(
+                    instance_uri, token_uri, instance_id, merged_gateways
+                )
 
             self._save_graph(self.instances_graph, "instances.ttl")
 
@@ -679,8 +682,17 @@ class RDFStorageService:
             self._log_instance_event(instance_uri, "COMPLETED", "System")
             self._save_graph(self.instances_graph, "instances.ttl")
 
-    def _execute_token(self, instance_uri: URIRef, token_uri: URIRef, instance_id: str):
+    def _execute_token(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set = None,
+    ):
         """Execute a single token through the process"""
+        if merged_gateways is None:
+            merged_gateways = set()
+
         current_node = self.instances_graph.value(token_uri, INST.currentNode)
         if not current_node:
             # Token has no current node - mark as error
@@ -691,6 +703,11 @@ class RDFStorageService:
                 "System",
                 f"Token has no current node",
             )
+            return
+
+        # Skip tokens that are no longer active (may have been consumed by merge in same iteration)
+        token_status = self.instances_graph.value(token_uri, INST.status)
+        if token_status and str(token_status) in ["CONSUMED", "ERROR", "WAITING"]:
             return
 
         # Get node type - check all types to handle nodes with multiple types
@@ -878,15 +895,122 @@ class RDFStorageService:
                     self.instances_graph.add(
                         (instance_uri, INST.hasToken, new_token_uri)
                     )
+
+                self._log_instance_event(
+                    instance_uri,
+                    "PARALLEL_GATEWAY_FORK",
+                    "System",
+                    f"Parallel gateway {str(current_node)} forked to {len(next_nodes)} paths",
+                )
+
+                logger.info(
+                    f"Parallel gateway {current_node} created {len(next_nodes)} parallel paths"
+                )
             elif len(next_nodes) == 1:
+                self.instances_graph.set((token_uri, INST.currentNode, next_nodes[0]))
+
+        elif (
+            BPMN.InclusiveGateway in node_types
+            or "inclusivegateway" in str(node_types).lower()
+        ):
+            inclusive_next_nodes = []
+            for s, p, o in self.definitions_graph.triples(
+                (current_node, BPMN.outgoing, None)
+            ):
+                for ss, pp, target in self.definitions_graph.triples(
+                    (o, BPMN.targetRef, None)
+                ):
+                    inclusive_next_nodes.append((o, target))
+
+            if len(inclusive_next_nodes) > 1:
                 incoming_count = self._count_incoming_flows(current_node)
                 if incoming_count > 1:
                     waiting_count = self._count_waiting_tokens_at_incoming(
                         instance_uri, current_node
                     )
                     if waiting_count >= incoming_count:
-                        self._merge_parallel_tokens(
-                            instance_uri, current_node, instance_id, next_nodes[0]
+                        targets = [t for _, t in inclusive_next_nodes]
+                        self._merge_inclusive_tokens(
+                            instance_uri, current_node, instance_id, targets
+                        )
+                    else:
+                        self.instances_graph.set(
+                            (token_uri, INST.status, Literal("WAITING"))
+                        )
+                else:
+                    true_targets = []
+                    for flow_uri, target in inclusive_next_nodes:
+                        condition_result = self._evaluate_condition_for_flow(
+                            instance_uri, flow_uri
+                        )
+                        if condition_result:
+                            true_targets.append(target)
+
+                    if len(true_targets) > 1:
+                        self.instances_graph.set(
+                            (token_uri, INST.currentNode, true_targets[0])
+                        )
+                        for additional_target in true_targets[1:]:
+                            new_token_uri = INST[
+                                f"token_{instance_id}_{str(uuid.uuid4())[:8]}"
+                            ]
+                            self.instances_graph.add(
+                                (new_token_uri, RDF.type, INST.Token)
+                            )
+                            self.instances_graph.add(
+                                (new_token_uri, INST.belongsTo, instance_uri)
+                            )
+                            self.instances_graph.add(
+                                (new_token_uri, INST.status, Literal("ACTIVE"))
+                            )
+                            self.instances_graph.add(
+                                (new_token_uri, INST.currentNode, additional_target)
+                            )
+                            self.instances_graph.add(
+                                (instance_uri, INST.hasToken, new_token_uri)
+                            )
+
+                        self._log_instance_event(
+                            instance_uri,
+                            "INCLUSIVE_GATEWAY_FORK",
+                            "System",
+                            f"Inclusive gateway {str(current_node)} forked to {len(true_targets)} paths",
+                        )
+
+                        logger.info(
+                            f"Inclusive gateway {current_node} created {len(true_targets)} parallel paths"
+                        )
+                    elif len(true_targets) == 1:
+                        self.instances_graph.set(
+                            (token_uri, INST.currentNode, true_targets[0])
+                        )
+                    else:
+                        logger.warning(
+                            f"No outgoing paths taken from inclusive gateway {current_node}"
+                        )
+                        self.instances_graph.set(
+                            (token_uri, INST.status, Literal("CONSUMED"))
+                        )
+            elif len(inclusive_next_nodes) == 1:
+                incoming_count = self._count_incoming_flows(current_node)
+                if incoming_count > 1:
+                    # Skip if this gateway was already merged in this iteration
+                    if current_node in merged_gateways:
+                        self.instances_graph.set(
+                            (token_uri, INST.status, Literal("CONSUMED"))
+                        )
+                        return
+
+                    waiting_count = self._count_waiting_tokens_at_incoming(
+                        instance_uri, current_node
+                    )
+                    if waiting_count >= incoming_count:
+                        merged_gateways.add(current_node)
+                        self._merge_inclusive_tokens(
+                            instance_uri,
+                            current_node,
+                            instance_id,
+                            [inclusive_next_nodes[0][1]],
                         )
                     else:
                         self.instances_graph.set(
@@ -894,10 +1018,9 @@ class RDFStorageService:
                         )
                 else:
                     self.instances_graph.set(
-                        (token_uri, INST.currentNode, next_nodes[0])
+                        (token_uri, INST.currentNode, inclusive_next_nodes[0][1])
                     )
             else:
-                # No outgoing flows - consume token
                 self.instances_graph.set((token_uri, INST.status, Literal("CONSUMED")))
 
         elif any("expandedsubprocess" in str(t).lower() for t in node_types):
@@ -1507,6 +1630,68 @@ class RDFStorageService:
         logger.warning(f"No valid path found at exclusive gateway {gateway_uri}")
         return None
 
+    def _evaluate_condition_for_flow(
+        self, instance_uri: URIRef, flow_uri: URIRef
+    ) -> bool:
+        """Evaluate the condition on a single flow and return True/False.
+
+        Args:
+            instance_uri: URI of the process instance
+            flow_uri: URI of the sequence flow to check
+
+        Returns:
+            True if condition passes or no condition, False otherwise
+        """
+        try:
+            condition_body = self.definitions_graph.value(flow_uri, BPMN.conditionBody)
+
+            if not condition_body:
+                return True
+
+            condition_str = str(condition_body)
+
+            match = re.search(
+                r"\$\{(\w+)\s*(>=|<=|!=|==|gte|lte|neq|eq|gt|lt|>|>=|<|!=|=)\s*(.+)\}",
+                condition_str,
+            )
+
+            if not match:
+                match = re.search(
+                    r"(\w+)\s*(>=|<=|!=|==|gte|lte|neq|eq|gt|lt|>|>=|<|!=|=)\s*(.+)",
+                    condition_str,
+                )
+
+            if not match:
+                return True
+
+            var_name = match.group(1)
+            operator = match.group(2)
+            expected_value = match.group(3).strip()
+
+            if (expected_value.startswith("'") and expected_value.endswith("'")) or (
+                expected_value.startswith('"') and expected_value.endswith('"')
+            ):
+                expected_value = expected_value[1:-1]
+
+            instance_vars = {}
+            for var_uri in self.instances_graph.objects(instance_uri, INST.hasVariable):
+                var_name_from_uri = self.instances_graph.value(var_uri, VAR.name)
+                var_value = self.instances_graph.value(var_uri, VAR.value)
+                if var_name_from_uri and var_value:
+                    instance_vars[str(var_name_from_uri)] = str(var_value)
+
+            actual_value = instance_vars.get(var_name)
+
+            if actual_value is None:
+                return False
+
+            result = self._compare_values(actual_value, expected_value, operator)
+            return result
+
+        except Exception as e:
+            logger.warning(f"Failed to evaluate condition on flow {flow_uri}: {e}")
+            return False
+
     def _compare_values(self, actual: str, expected: str, operator: str) -> bool:
         """Compare two values using the given operator"""
         # Map operators
@@ -1806,11 +1991,9 @@ class RDFStorageService:
                     current_node = self.instances_graph.value(
                         token_uri, INST.currentNode
                     )
-                    if (
-                        status
-                        and str(status) in ["ACTIVE", "WAITING"]
-                        and current_node == target
-                    ):
+                    # For join detection, count tokens at the gateway regardless of status
+                    # (CONSUMED tokens may have arrived but not yet been merged)
+                    if current_node == gateway_uri:
                         count += 1
         return count
 
@@ -1831,15 +2014,11 @@ class RDFStorageService:
                 for token_uri in self.instances_graph.objects(
                     instance_uri, INST.hasToken
                 ):
-                    status = self.instances_graph.value(token_uri, INST.status)
                     current_node = self.instances_graph.value(
                         token_uri, INST.currentNode
                     )
-                    if (
-                        status
-                        and str(status) in ["ACTIVE", "WAITING"]
-                        and current_node == target
-                    ):
+                    # For join, tokens are at the gateway, not at the incoming target
+                    if current_node == gateway_uri:
                         self.instances_graph.set(
                             (token_uri, INST.status, Literal("CONSUMED"))
                         )
@@ -1850,6 +2029,80 @@ class RDFStorageService:
         self.instances_graph.add((merged_token_uri, INST.status, Literal("ACTIVE")))
         self.instances_graph.add((merged_token_uri, INST.currentNode, next_node))
         self.instances_graph.add((instance_uri, INST.hasToken, merged_token_uri))
+
+    def _merge_inclusive_tokens(
+        self,
+        instance_uri: URIRef,
+        gateway_uri: URIRef,
+        instance_id: str,
+        next_nodes: List[URIRef],
+    ):
+        """Consume all tokens waiting at inclusive gateway and create token(s) for next nodes"""
+        tokens_consumed = 0
+        for s, p, incoming_flow in self.definitions_graph.triples(
+            (gateway_uri, BPMN.incoming, None)
+        ):
+            for ss, pp, target in self.definitions_graph.triples(
+                (incoming_flow, BPMN.targetRef, None)
+            ):
+                for token_uri in self.instances_graph.objects(
+                    instance_uri, INST.hasToken
+                ):
+                    current_node = self.instances_graph.value(
+                        token_uri, INST.currentNode
+                    )
+                    # For join, tokens are at the gateway, not at the incoming target
+                    if current_node == gateway_uri:
+                        self.instances_graph.set(
+                            (token_uri, INST.status, Literal("CONSUMED"))
+                        )
+                        tokens_consumed += 1
+
+        if len(next_nodes) > 1:
+            logger.debug(
+                f"Inclusive gateway {gateway_uri} forking to {len(next_nodes)} paths"
+            )
+            for i, next_node in enumerate(next_nodes):
+                new_token_uri = INST[f"token_{instance_id}_{str(uuid.uuid4())[:8]}"]
+                self.instances_graph.add((new_token_uri, RDF.type, INST.Token))
+                self.instances_graph.add((new_token_uri, INST.belongsTo, instance_uri))
+                self.instances_graph.add(
+                    (new_token_uri, INST.status, Literal("ACTIVE"))
+                )
+                self.instances_graph.add((new_token_uri, INST.currentNode, next_node))
+                self.instances_graph.add((instance_uri, INST.hasToken, new_token_uri))
+                logger.debug(f"  Created token {new_token_uri} for node {next_node}")
+
+            self._log_instance_event(
+                instance_uri,
+                "INCLUSIVE_GATEWAY_MERGE",
+                "System",
+                f"Inclusive gateway {str(gateway_uri)} merged and forked to {len(next_nodes)} paths",
+            )
+
+            logger.info(
+                f"Inclusive gateway {gateway_uri} created {len(next_nodes)} tokens after merge"
+            )
+        elif len(next_nodes) == 1:
+            logger.debug(
+                f"Inclusive gateway {gateway_uri} merging to single path: {next_nodes[0]}"
+            )
+            merged_token_uri = INST[f"token_{instance_id}_{str(uuid.uuid4())[:8]}"]
+            self.instances_graph.add((merged_token_uri, RDF.type, INST.Token))
+            self.instances_graph.add((merged_token_uri, INST.belongsTo, instance_uri))
+            self.instances_graph.add((merged_token_uri, INST.status, Literal("ACTIVE")))
+            self.instances_graph.add(
+                (merged_token_uri, INST.currentNode, next_nodes[0])
+            )
+            self.instances_graph.add((instance_uri, INST.hasToken, merged_token_uri))
+            logger.debug(f"  Created merged token {merged_token_uri}")
+
+            self._log_instance_event(
+                instance_uri,
+                "INCLUSIVE_GATEWAY_MERGE",
+                "System",
+                f"Inclusive gateway {str(gateway_uri)} merged to single path",
+            )
 
     def _is_multi_instance(self, node_uri: URIRef) -> Dict[str, Any]:
         """Check if a node has multi-instance characteristics"""

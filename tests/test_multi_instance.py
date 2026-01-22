@@ -609,5 +609,257 @@ class TestMessageEndEvents:
         print(f"Regular end event test passed")
 
 
+class TestInclusiveGateway:
+    """Tests for inclusive gateway support"""
+
+    @pytest.fixture
+    def storage(self):
+        from src.api.storage import RDFStorageService, INST
+
+        temp_dir = tempfile.mkdtemp()
+        storage = RDFStorageService(storage_path=temp_dir)
+        yield storage
+        import shutil
+
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_inclusive_gateway_multiple_paths(self, storage):
+        """Test inclusive gateway forks to multiple paths based on conditions"""
+        bpmn = """<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                          targetNamespace="http://test.org/inclusive">
+            <bpmn:process id="InclusiveProcess" isExecutable="true">
+                <bpmn:startEvent id="start1"/>
+                <bpmn:serviceTask id="task1" name="Task 1" camunda:topic="task1"/>
+                <bpmn:inclusiveGateway id="gateway1"/>
+                <bpmn:serviceTask id="taskA" name="Task A" camunda:topic="taskA"/>
+                <bpmn:serviceTask id="taskB" name="Task B" camunda:topic="taskB"/>
+                <bpmn:serviceTask id="taskC" name="Task C" camunda:topic="taskC"/>
+                <bpmn:endEvent id="end1"/>
+                <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="task1"/>
+                <bpmn:sequenceFlow id="flow2" sourceRef="task1" targetRef="gateway1"/>
+                <bpmn:sequenceFlow id="flowA" sourceRef="gateway1" targetRef="taskA">
+                    <conditionExpression camunda:expression="${approved == true}"/>
+                </bpmn:sequenceFlow>
+                <bpmn:sequenceFlow id="flowB" sourceRef="gateway1" targetRef="taskB">
+                    <conditionExpression camunda:expression="${needsReview == true}"/>
+                </bpmn:sequenceFlow>
+                <bpmn:sequenceFlow id="flowC" sourceRef="gateway1" targetRef="taskC">
+                    <conditionExpression camunda:expression="${urgent == true}"/>
+                </bpmn:sequenceFlow>
+                <bpmn:sequenceFlow id="flowEnd" sourceRef="taskA" targetRef="end1"/>
+                <bpmn:sequenceFlow id="flowEndB" sourceRef="taskB" targetRef="end1"/>
+                <bpmn:sequenceFlow id="flowEndC" sourceRef="taskC" targetRef="end1"/>
+            </bpmn:process>
+        </bpmn:definitions>"""
+
+        process_id = storage.deploy_process(
+            name="Inclusive Gateway Multiple Paths",
+            description="Test inclusive gateway with multiple paths",
+            bpmn_content=bpmn,
+        )
+
+        task_calls = []
+
+        def task_handler(instance_id, variables, loop_idx=None):
+            task_calls.append("called")
+            return {"done": True}
+
+        storage.register_topic_handler("task1", task_handler)
+        storage.register_topic_handler("taskA", task_handler)
+        storage.register_topic_handler("taskB", task_handler)
+        storage.register_topic_handler("taskC", task_handler)
+
+        result = storage.create_instance(
+            process_id=process_id,
+            variables={
+                "orderId": "ORD-001",
+                "approved": "true",
+                "needsReview": "true",
+                "urgent": "true",
+            },
+        )
+
+        instance_id = result["id"]
+        instance = storage.get_instance(instance_id)
+        assert instance["status"] == "COMPLETED"
+
+        assert len(task_calls) == 4
+
+        events = storage.get_instance_audit_log(instance_id)
+        fork_events = [e for e in events if "INCLUSIVE_GATEWAY_FORK" in e["type"]]
+        assert len(fork_events) == 1
+        assert "3 paths" in fork_events[0]["details"]
+
+        print(f"Inclusive gateway multiple paths test passed: {len(task_calls)} tasks")
+
+    def test_inclusive_gateway_single_path(self, storage):
+        """Test inclusive gateway with only one condition true"""
+        bpmn = """<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                          targetNamespace="http://test.org/inclusive">
+            <bpmn:process id="InclusiveProcess" isExecutable="true">
+                <bpmn:startEvent id="start1"/>
+                <bpmn:serviceTask id="task1" name="Task 1" camunda:topic="task1"/>
+                <bpmn:inclusiveGateway id="gateway1"/>
+                <bpmn:serviceTask id="taskA" name="Task A" camunda:topic="taskA"/>
+                <bpmn:serviceTask id="taskB" name="Task B" camunda:topic="taskB"/>
+                <bpmn:endEvent id="end1"/>
+                <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="task1"/>
+                <bpmn:sequenceFlow id="flow2" sourceRef="task1" targetRef="gateway1"/>
+                <bpmn:sequenceFlow id="flowA" sourceRef="gateway1" targetRef="taskA">
+                    <conditionExpression camunda:expression="${approved == true}"/>
+                </bpmn:sequenceFlow>
+                <bpmn:sequenceFlow id="flowB" sourceRef="gateway1" targetRef="taskB">
+                    <conditionExpression camunda:expression="${needsReview == true}"/>
+                </bpmn:sequenceFlow>
+                <bpmn:sequenceFlow id="flowEndA" sourceRef="taskA" targetRef="end1"/>
+                <bpmn:sequenceFlow id="flowEndB" sourceRef="taskB" targetRef="end1"/>
+            </bpmn:process>
+        </bpmn:definitions>"""
+
+        process_id = storage.deploy_process(
+            name="Inclusive Gateway Single Path",
+            description="Test inclusive gateway with single path",
+            bpmn_content=bpmn,
+        )
+
+        task_calls = []
+
+        def task_handler(instance_id, variables, loop_idx=None):
+            task_calls.append("called")
+            return {"done": True}
+
+        storage.register_topic_handler("task1", task_handler)
+        storage.register_topic_handler("taskA", task_handler)
+        storage.register_topic_handler("taskB", task_handler)
+
+        result = storage.create_instance(
+            process_id=process_id,
+            variables={
+                "orderId": "ORD-002",
+                "approved": "true",
+                "needsReview": "false",
+            },
+        )
+
+        instance_id = result["id"]
+        instance = storage.get_instance(instance_id)
+        assert instance["status"] == "COMPLETED"
+
+        assert len(task_calls) == 2
+
+        print(f"Inclusive gateway single path test passed: {len(task_calls)} tasks")
+
+    def test_inclusive_gateway_no_conditions(self, storage):
+        """Test inclusive gateway with no conditions (all paths taken)"""
+        bpmn = """<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                          targetNamespace="http://test.org/inclusive">
+            <bpmn:process id="InclusiveProcess" isExecutable="true">
+                <bpmn:startEvent id="start1"/>
+                <bpmn:serviceTask id="task1" name="Task 1" camunda:topic="task1"/>
+                <bpmn:inclusiveGateway id="gateway1"/>
+                <bpmn:serviceTask id="taskA" name="Task A" camunda:topic="taskA"/>
+                <bpmn:serviceTask id="taskB" name="Task B" camunda:topic="taskB"/>
+                <bpmn:endEvent id="end1"/>
+                <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="task1"/>
+                <bpmn:sequenceFlow id="flow2" sourceRef="task1" targetRef="gateway1"/>
+                <bpmn:sequenceFlow id="flowA" sourceRef="gateway1" targetRef="taskA"/>
+                <bpmn:sequenceFlow id="flowB" sourceRef="gateway1" targetRef="taskB"/>
+                <bpmn:sequenceFlow id="flowEndA" sourceRef="taskA" targetRef="end1"/>
+                <bpmn:sequenceFlow id="flowEndB" sourceRef="taskB" targetRef="end1"/>
+            </bpmn:process>
+        </bpmn:definitions>"""
+
+        process_id = storage.deploy_process(
+            name="Inclusive Gateway No Conditions",
+            description="Test inclusive gateway with no conditions",
+            bpmn_content=bpmn,
+        )
+
+        task_calls = []
+
+        def task_handler(instance_id, variables, loop_idx=None):
+            task_calls.append("called")
+            return {"done": True}
+
+        storage.register_topic_handler("task1", task_handler)
+        storage.register_topic_handler("taskA", task_handler)
+        storage.register_topic_handler("taskB", task_handler)
+
+        result = storage.create_instance(
+            process_id=process_id,
+            variables={"orderId": "ORD-003"},
+        )
+
+        instance_id = result["id"]
+        instance = storage.get_instance(instance_id)
+        assert instance["status"] == "COMPLETED"
+
+        assert len(task_calls) == 3
+
+        print(f"Inclusive gateway no conditions test passed: {len(task_calls)} tasks")
+
+    def test_inclusive_gateway_parallel_join(self, storage):
+        """Test inclusive gateway join behavior (wait for all paths)"""
+        bpmn = """<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                          xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                          targetNamespace="http://test.org/inclusive">
+            <bpmn:process id="InclusiveProcess" isExecutable="true">
+                <bpmn:startEvent id="start1"/>
+                <bpmn:serviceTask id="task1" name="Task 1" camunda:topic="task1"/>
+                <bpmn:inclusiveGateway id="gateway1"/>
+                <bpmn:serviceTask id="taskA" name="Task A" camunda:topic="taskA"/>
+                <bpmn:serviceTask id="taskB" name="Task B" camunda:topic="taskB"/>
+                <bpmn:inclusiveGateway id="gateway2"/>
+                <bpmn:serviceTask id="taskFinal" name="Final Task" camunda:topic="taskFinal"/>
+                <bpmn:endEvent id="end1"/>
+                <bpmn:sequenceFlow id="flow1" sourceRef="start1" targetRef="task1"/>
+                <bpmn:sequenceFlow id="flow2" sourceRef="task1" targetRef="gateway1"/>
+                <bpmn:sequenceFlow id="flowA" sourceRef="gateway1" targetRef="taskA">
+                    <conditionExpression camunda:expression="${pathA == true}"/>
+                </bpmn:sequenceFlow>
+                <bpmn:sequenceFlow id="flowB" sourceRef="gateway1" targetRef="taskB">
+                    <conditionExpression camunda:expression="${pathB == true}"/>
+                </bpmn:sequenceFlow>
+                <bpmn:sequenceFlow id="flowToJoin" sourceRef="taskA" targetRef="gateway2"/>
+                <bpmn:sequenceFlow id="flowToJoinB" sourceRef="taskB" targetRef="gateway2"/>
+                <bpmn:sequenceFlow id="flowFinal" sourceRef="gateway2" targetRef="taskFinal"/>
+                <bpmn:sequenceFlow id="flowEnd" sourceRef="taskFinal" targetRef="end1"/>
+            </bpmn:process>
+        </bpmn:definitions>"""
+
+        process_id = storage.deploy_process(
+            name="Inclusive Gateway Join",
+            description="Test inclusive gateway join behavior",
+            bpmn_content=bpmn,
+        )
+
+        task_calls = []
+
+        def task_handler(instance_id, variables, loop_idx=None):
+            task_calls.append("called")
+            return {"done": True}
+
+        storage.register_topic_handler("task1", task_handler)
+        storage.register_topic_handler("taskA", task_handler)
+        storage.register_topic_handler("taskB", task_handler)
+        storage.register_topic_handler("taskFinal", task_handler)
+
+        result = storage.create_instance(
+            process_id=process_id,
+            variables={"orderId": "ORD-004", "pathA": "true", "pathB": "true"},
+        )
+
+        instance_id = result["id"]
+        instance = storage.get_instance(instance_id)
+        assert instance["status"] == "COMPLETED"
+
+        assert len(task_calls) == 4
+
+        print(f"Inclusive gateway join test passed: {len(task_calls)} tasks")
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
