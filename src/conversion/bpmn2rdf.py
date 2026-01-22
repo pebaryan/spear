@@ -13,6 +13,7 @@ import xml.etree.ElementTree as ET
 from typing import Dict, Set
 import sys
 import argparse
+import re
 from rdflib import Graph
 
 
@@ -165,9 +166,15 @@ class BPMNToRDFConverter:
                         break
 
                 if ns_prefix == "camunda":
-                    self.triples.append(
-                        f'{element_uri} camunda:{local_name} "{self._escape_string(attr_value)}" .'
-                    )
+                    # Special case: camunda:default should be a URI reference, not a string
+                    if local_name == "default":
+                        self.triples.append(
+                            f"{element_uri} camunda:default {self._get_uri(attr_value)} ."
+                        )
+                    else:
+                        self.triples.append(
+                            f'{element_uri} camunda:{local_name} "{self._escape_string(attr_value)}" .'
+                        )
                 else:
                     self.triples.append(
                         f'{element_uri} bpmn:{local_name} "{self._escape_string(attr_value)}" .'
@@ -427,8 +434,6 @@ class BPMNToRDFConverter:
             expr = expr[2:-1]
 
         # Parse simple expressions like "variable operator value"
-        import re
-
         # Match longer operators first (gte, lte, neq, eq, then single chars)
         match = re.match(
             r"(\w+)\s*(>=|<=|!=|==|gte|lte|neq|eq|>|>=|<=|<|!=|=)\s*(.+)", expr
@@ -468,177 +473,6 @@ class BPMNToRDFConverter:
                 sparql_value = value
             else:
                 # Variable reference or other - wrap in same ASK
-                return f"ASK {{ ?instance var:{var_name} ?{var_name} . FILTER(?{var_name} {sparql_op} {value}) }}"
-
-            return f"ASK {{ ?instance var:{var_name} ?v . FILTER(?v {sparql_op} {sparql_value}) }}"
-
-        # For complex expressions, return empty and let custom handler deal with it
-        return ""
-
-        # Remove ${} wrapper
-        expr = expression.strip()
-        if expr.startswith("${") and expr.endswith("}"):
-            expr = expr[2:-1]
-
-        # Parse simple expressions like "variable operator value"
-        import re
-
-        match = re.match(r"(\w+)\s*(>=|<=|==|!=|>|<|gt|gte|lte|eq|neq)\s*(.+)", expr)
-
-        if match:
-            var_name = match.group(1)
-            operator = match.group(2)
-            value = match.group(3).strip()
-
-            # Convert operator to SPARQL format
-            op_map = {
-                ">": ">",
-                "gt": ">",
-                ">=": ">=",
-                "gte": ">=",
-                "<": "<",
-                "lt": "<",
-                "<=": "<=",
-                "lte": "<=",
-                "==": "=",
-                "eq": "=",
-                "!=": "!=",
-                "neq": "!=",
-            }
-            sparql_op = op_map.get(operator, operator)
-
-            # Format value as string literal for comparison
-            if value.lower() in ("true", "false"):
-                # Convert boolean to string literal
-                sparql_value = f'"{value.lower()}"'
-            elif value.startswith('"') and value.endswith('"'):
-                # Already a string literal
-                sparql_value = value
-            elif re.match(r"^-?\d+\.?\d*$", value):
-                # Numeric literal - keep as is
-                sparql_value = value
-            else:
-                # Variable reference or other - wrap in same ASK
-                return f"ASK {{ ?instance var:{var_name} ?{var_name} . FILTER(?{var_name} {sparql_op} {value}) }}"
-
-            return f"ASK {{ ?instance var:{var_name} ?v . FILTER(?v {sparql_op} {sparql_value}) }}"
-
-        # For complex expressions, return empty and let custom handler deal with it
-        return ""
-
-        # Remove ${} wrapper
-        expr = expression.strip()
-        if expr.startswith("${") and expr.endswith("}"):
-            expr = expr[2:-1]
-
-        # Parse simple expressions like "variable operator value"
-        import re
-
-        match = re.match(r"(\w+)\s*(>=|<=|==|!=|>|<|=)\s*(.+)", expr)
-
-        if match:
-            var_name = match.group(1)
-            operator = match.group(2)
-            value = match.group(3).strip()
-
-            # Convert operator to SPARQL format
-            if operator == "==":
-                sparql_op = "="
-            else:
-                sparql_op = operator
-
-            # Format value as string literal for comparison
-            if value.lower() in ("true", "false"):
-                # Convert boolean to string literal
-                sparql_value = f'"{value.lower()}"'
-            elif value.startswith('"') and value.endswith('"'):
-                # Already a string literal
-                sparql_value = value
-            elif re.match(r"^-?\d+\.?\d*$", value):
-                # Numeric literal - keep as is
-                sparql_value = value
-            else:
-                # Variable reference or other - wrap in same ASK
-                return f"ASK {{ ?instance var:{var_name} ?{var_name} . FILTER(?{var_name} {sparql_op} {value}) }}"
-
-            return f"ASK {{ ?instance var:{var_name} ?v . FILTER(?v {sparql_op} {sparql_value}) }}"
-
-        # For complex expressions, return empty and let custom handler deal with it
-        return ""
-
-        # Remove ${} wrapper
-        expr = expression.strip()
-        if expr.startswith("${") and expr.endswith("}"):
-            expr = expr[2:-1]
-
-        # Parse simple expressions like "variable operator value"
-        import re
-
-        match = re.match(r"(\w+)\s*(>=|<=|==|!=|>|<|=)\s*(.+)", expr)
-
-        if match:
-            var_name = match.group(1)
-            operator = match.group(2)
-            value = match.group(3).strip()
-
-            # Convert operator to SPARQL format
-            if operator == "==":
-                sparql_op = "="
-            else:
-                sparql_op = operator
-
-            # Format value as string literal for comparison
-            if value.lower() in ("true", "false"):
-                # Convert boolean to string literal
-                sparql_value = f'"{value.lower()}"'
-            elif value.startswith('"') and value.endswith('"'):
-                # Already a string literal
-                sparql_value = value
-            elif re.match(r"^-?\d+\.?\d*$", value):
-                # Numeric literal - keep as is
-                sparql_value = value
-            else:
-                # Variable reference or other - wrap in same ASK
-                return f"ASK {{ ?instance var:{var_name} ?{var_name} . FILTER(?{var_name} {sparql_op} {value}) }}"
-
-            return f"ASK {{ ?instance var:{var_name} ?v . FILTER(?v {sparql_value}) }}"
-
-        # For complex expressions, return empty and let custom handler deal with it
-        return ""
-
-        # Remove ${} wrapper
-        expr = expression.strip()
-        if expr.startswith("${") and expr.endswith("}"):
-            expr = expr[2:-1]
-
-        # Parse simple expressions like "variable operator value"
-        import re
-
-        match = re.match(r"(\w+)\s*(>=|<=|==|!=|>|<|=)\s*(.+)", expr)
-
-        if match:
-            var_name = match.group(1)
-            operator = match.group(2)
-            value = match.group(3).strip()
-
-            # Convert operator to SPARQL format
-            if operator == "==":
-                sparql_op = "="
-            else:
-                sparql_op = operator
-
-            # Format value
-            if value.lower() in ("true", "false"):
-                # Boolean
-                sparql_value = value.lower()
-            elif value.startswith('"') and value.endswith('"'):
-                # String literal
-                sparql_value = value
-            elif re.match(r"^-?\d+\.?\d*$", value):
-                # Numeric literal
-                sparql_value = value
-            else:
-                # Variable reference - wrap in same ASK
                 return f"ASK {{ ?instance var:{var_name} ?{var_name} . FILTER(?{var_name} {sparql_op} {value}) }}"
 
             return f"ASK {{ ?instance var:{var_name} ?v . FILTER(?v {sparql_op} {sparql_value}) }}"

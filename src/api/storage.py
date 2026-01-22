@@ -3,6 +3,7 @@
 
 import os
 import uuid
+import re
 import tempfile
 from datetime import datetime
 from typing import Optional, Dict, Any, List
@@ -677,7 +678,9 @@ class RDFStorageService:
                 instance_uri, token_uri, current_node, instance_id
             )
 
-        elif node_type == BPMN.ExclusiveGateway:
+        elif node_type == BPMN.ExclusiveGateway or str(node_type).endswith(
+            "exclusiveGateway"
+        ):
             # Evaluate conditions to choose the correct outgoing flow
             next_node = self._evaluate_gateway_conditions(instance_uri, current_node)
             if next_node:
@@ -923,6 +926,11 @@ class RDFStorageService:
 
         # Get default flow if exists (for exclusive gateway)
         default_flow = self.definitions_graph.value(gateway_uri, BPMN.default)
+        if not default_flow:
+            # Also check camunda:default
+            default_flow = self.definitions_graph.value(
+                gateway_uri, URIRef("http://camunda.org/schema/1.0/bpmn#default")
+            )
 
         # Get instance variables for evaluation
         instance_vars = {}
@@ -947,8 +955,6 @@ class RDFStorageService:
                     condition_str = str(condition_body)
 
                     # Parse simple conditions: ${var op value} or just var op value
-                    import re
-
                     match = re.search(
                         r"\$\{(\w+)\s*(>=|<=|!=|==|gte|lte|neq|eq|gt|lt|>|>=|<|!=|=)\s*(.+)\}",
                         condition_str,
@@ -966,84 +972,15 @@ class RDFStorageService:
                         operator = match.group(2)
                         expected_value = match.group(3).strip()
 
-                        # Get actual value from instance
-                        actual_value = instance_vars.get(var_name)
-
-                        if actual_value is not None:
-                            # Compare values
-                            result = self._compare_values(
-                                actual_value, expected_value, operator
-                            )
-
-                            if result:
-                                logger.info(
-                                    f"Condition matched on flow {flow_uri}, proceeding to {target_uri}"
-                                )
-                                return target_uri
-
-                except Exception as e:
-                    logger.warning(
-                        f"Failed to evaluate condition on flow {flow_uri}: {e}"
-                    )
-                    continue
-
-        # No conditions matched - check if there's a default flow
-        if default_flow:
-            for flow_uri, target_uri in outgoing_flows:
-                if flow_uri == default_flow:
-                    logger.info(f"Using default flow {flow_uri}")
-                    return target_uri
-
-        # If only one outgoing flow with no conditions, use it
-        if len(outgoing_flows) == 1:
-            logger.info(
-                f"No conditions on single outgoing flow, proceeding to {outgoing_flows[0][1]}"
-            )
-            return outgoing_flows[0][1]
-
-        # No valid path found
-        logger.warning(f"No valid path found at exclusive gateway {gateway_uri}")
-        return None
-
-        # Get default flow if exists (for exclusive gateway)
-        default_flow = self.definitions_graph.value(gateway_uri, BPMN.default)
-
-        # Get instance variables for evaluation
-        instance_vars = {}
-        for var_uri in self.instances_graph.objects(instance_uri, INST.hasVariable):
-            var_name = self.instances_graph.value(var_uri, VAR.name)
-            var_value = self.instances_graph.value(var_uri, VAR.value)
-            if var_name and var_value:
-                instance_vars[str(var_name)] = str(var_value)
-
-        # Check each flow for conditions
-        for flow_uri, target_uri in outgoing_flows:
-            # Skip default flow - it's only used if no other conditions match
-            if default_flow and flow_uri == default_flow:
-                continue
-
-            # Get condition query
-            condition_query = self.definitions_graph.value(
-                flow_uri, BPMN.conditionQuery
-            )
-
-            if condition_query:
-                try:
-                    # Evaluate condition by checking instance variables
-                    condition_str = str(condition_query)
-
-                    # Parse simple conditions: ${var op value}
-                    import re
-
-                    match = re.search(
-                        r"\$\{(\w+)\s*(==|!=|>|<|>=|<=|eq|neq|gt|gte|lt|lte)\s*(.+)\}",
-                        condition_str,
-                    )
-
-                    if match:
-                        var_name = match.group(1)
-                        operator = match.group(2)
-                        expected_value = match.group(3).strip()
+                        # Strip quotes from expected value if present
+                        if (
+                            expected_value.startswith("'")
+                            and expected_value.endswith("'")
+                        ) or (
+                            expected_value.startswith('"')
+                            and expected_value.endswith('"')
+                        ):
+                            expected_value = expected_value[1:-1]
 
                         # Get actual value from instance
                         actual_value = instance_vars.get(var_name)
