@@ -14,7 +14,7 @@ from typing import Dict, Set
 import sys
 import argparse
 import re
-from rdflib import Graph
+from rdflib import Graph, RDF, RDFS, URIRef, Literal, Namespace
 
 
 class BPMNToRDFConverter:
@@ -36,6 +36,9 @@ class BPMNToRDFConverter:
             "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
             "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
             "xsd": "http://www.w3.org/2001/XMLSchema#",
+            "di": "http://example.org/di/",
+            "bpmndi": "http://www.omg.org/spec/BPMN/20100524/DI#",
+            "dc": "http://www.omg.org/spec/DD/20100524/DC#",
         }
 
         self.triples = []
@@ -56,6 +59,9 @@ class BPMNToRDFConverter:
 
         # Process all BPMN elements
         self._process_element(root, None)
+
+        # Extract and store diagram interchange (layout) information
+        self._extract_diagram_interchange(root)
 
         return "\n".join(self.triples)
 
@@ -598,6 +604,71 @@ class BPMNToRDFConverter:
         s = s.replace("\r", "\\r")
         s = s.replace("\t", "\\t")
         return s
+
+    def _extract_diagram_interchange(self, root: ET.Element):
+        """Extract and store BPMN Diagram Interchange (layout) information.
+
+        This method extracts visual layout information from the BPMN DI section
+        and stores it as RDF triples for later reconstruction.
+        """
+        # Define namespace prefixes
+        bpmndi_ns = "http://www.omg.org/spec/BPMN/20100524/DI"
+        dc_ns = "http://www.omg.org/spec/DD/20100524/DC"
+        di_ns = "http://www.omg.org/spec/DD/20100524/DI"
+
+        # Define RDF namespaces for storing DI info
+        DI = Namespace("http://example.org/di/")
+        DC = Namespace("http://www.omg.org/spec/DD/20100524/DC#")
+
+        # Find all BPMNDiagram elements
+        for diagram in root.findall(f".//{{{bpmndi_ns}}}BPMNDiagram"):
+            # Find all shapes (element positions)
+            for shape in diagram.findall(f".//{{{bpmndi_ns}}}BPMNShape"):
+                shape_id = shape.get("id")
+                bpmn_element = shape.get("bpmnElement")
+
+                # Get bounds
+                bounds = shape.find(f"{{{dc_ns}}}Bounds")
+                if bounds is not None:
+                    x = bounds.get("x")
+                    y = bounds.get("y")
+                    width = bounds.get("width")
+                    height = bounds.get("height")
+
+                    # Add RDF triple for bounds
+                    di_uri = f"<http://example.org/di/{shape_id}>"
+                    self.triples.append(
+                        f"{di_uri} a <http://www.omg.org/spec/BPMN/20100524/DI#BPMNShape> ."
+                    )
+                    self.triples.append(
+                        f'{di_uri} <{DI}bpmnElement> "{bpmn_element}" .'
+                    )
+                    self.triples.append(f'{di_uri} <{DC}x> "{x}" .')
+                    self.triples.append(f'{di_uri} <{DC}y> "{y}" .')
+                    self.triples.append(f'{di_uri} <{DC}width> "{width}" .')
+                    self.triples.append(f'{di_uri} <{DC}height> "{height}" .')
+
+            # Find all edges (flow waypoints)
+            for edge in diagram.findall(f".//{{{bpmndi_ns}}}BPMNEdge"):
+                edge_id = edge.get("id")
+                bpmn_element = edge.get("bpmnElement")
+
+                # Collect waypoints
+                waypoints = []
+                for waypoint in edge.findall(f"{{{di_ns}}}waypoint"):
+                    x = waypoint.get("x")
+                    y = waypoint.get("y")
+                    waypoints.append(f"{x},{y}")
+
+                # Add RDF triple for edge
+                di_uri = f"<http://example.org/di/{edge_id}>"
+                self.triples.append(
+                    f"{di_uri} a <http://www.omg.org/spec/BPMN/20100524/DI#BPMNEdge> ."
+                )
+                self.triples.append(f'{di_uri} <{DI}bpmnElement> "{bpmn_element}" .')
+                self.triples.append(
+                    f'{di_uri} <{DI}waypoint> "{"|".join(waypoints)}" .'
+                )
 
 
 def main():

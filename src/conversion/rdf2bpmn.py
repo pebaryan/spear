@@ -54,13 +54,14 @@ class RDFToBPMNConverter:
         self._processed_elements: Set[str] = set()
         self._element_map: Dict[str, ET.Element] = {}
 
-    def convert(self, process_id: str, storage) -> str:
+    def convert(self, process_id: str, storage, include_diagram: bool = False) -> str:
         """
         Convert a process ID to BPMN XML.
 
         Args:
             process_id: The process definition ID
             storage: RDFStorageService instance
+            include_diagram: Include diagram interchange (layout) information
 
         Returns:
             BPMN 2.0 XML as string
@@ -69,15 +70,18 @@ class RDFToBPMNConverter:
         if not graph:
             raise ValueError(f"Process {process_id} not found")
 
-        return self.convert_graph(graph, process_id)
+        return self.convert_graph(graph, process_id, include_diagram)
 
-    def convert_graph(self, graph: Graph, process_id: str = None) -> str:
+    def convert_graph(
+        self, graph: Graph, process_id: str = None, include_diagram: bool = False
+    ) -> str:
         """
         Convert an RDF graph to BPMN XML.
 
         Args:
             graph: rdflib Graph containing process definition
             process_id: Optional process ID for metadata
+            include_diagram: Include diagram interchange (layout) information
 
         Returns:
             BPMN 2.0 XML as string
@@ -100,6 +104,10 @@ class RDFToBPMNConverter:
 
         # Add sequence flows last (they reference other elements)
         self._add_sequence_flows(process_elem, graph, elements_by_type)
+
+        # Add diagram interchange (layout) information if requested
+        if include_diagram:
+            self._add_diagram_interchange(root, graph)
 
         # Return as string
         return self._serialize_xml(root)
@@ -274,6 +282,9 @@ class RDFToBPMNConverter:
         elem = ET.SubElement(process_elem, "startEvent")
         elem.set("id", self._get_element_id(elem_uri))
 
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
         # Add name if exists
         self._add_name_attribute(elem, graph, elem_uri)
 
@@ -292,6 +303,9 @@ class RDFToBPMNConverter:
         elem = ET.SubElement(process_elem, "endEvent")
         elem.set("id", self._get_element_id(elem_uri))
 
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
         # Add name if exists
         self._add_name_attribute(elem, graph, elem_uri)
 
@@ -309,6 +323,9 @@ class RDFToBPMNConverter:
 
         elem = ET.SubElement(process_elem, "serviceTask")
         elem.set("id", self._get_element_id(elem_uri))
+
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
 
         # Add name if exists
         self._add_name_attribute(elem, graph, elem_uri)
@@ -334,6 +351,9 @@ class RDFToBPMNConverter:
 
         elem = ET.SubElement(process_elem, "userTask")
         elem.set("id", self._get_element_id(elem_uri))
+
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
 
         # Add name if exists
         self._add_name_attribute(elem, graph, elem_uri)
@@ -362,6 +382,9 @@ class RDFToBPMNConverter:
         elem = ET.SubElement(process_elem, tag_name)
         elem.set("id", self._get_element_id(elem_uri))
 
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
         # Add name if exists
         self._add_name_attribute(elem, graph, elem_uri)
 
@@ -382,6 +405,9 @@ class RDFToBPMNConverter:
 
         elem = ET.SubElement(process_elem, gateway_type)
         elem.set("id", self._get_element_id(elem_uri))
+
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
 
         # Add name if exists
         self._add_name_attribute(elem, graph, elem_uri)
@@ -428,6 +454,9 @@ class RDFToBPMNConverter:
 
         # Add condition expression if exists (exclusive/inclusive gateways)
         self._add_condition_expression(flow, graph, flow_uri)
+
+        # Add documentation if exists
+        self._add_documentation(flow, graph, flow_uri)
 
         # Add name if exists
         self._add_name_attribute(flow, graph, flow_uri)
@@ -505,6 +534,30 @@ class RDFToBPMNConverter:
                 cond_elem.set(f"{{{XSI_NS}}}type", "tFormalExpression")
                 cond_elem.text = condition_body
 
+    def _add_documentation(self, elem: ET.Element, graph: Graph, elem_uri):
+        """Add documentation element to any BPMN element
+
+        Extracts documentation from:
+        - bpmn:documentation
+        - rdfs:comment
+        """
+        # Try bpmn:documentation first
+        doc_text = None
+        for s, p, o in graph.triples((elem_uri, BPMN.documentation, None)):
+            doc_text = str(o)
+            break
+
+        # Fall back to rdfs:comment
+        if not doc_text:
+            for s, p, o in graph.triples((elem_uri, RDFS.comment, None)):
+                doc_text = str(o)
+                break
+
+        # Add documentation element if found
+        if doc_text:
+            doc_elem = ET.SubElement(elem, "documentation")
+            doc_elem.text = doc_text
+
     def _get_element_id(self, uri) -> str:
         """Extract element ID from URI"""
         uri_str = str(uri)
@@ -535,6 +588,9 @@ class RDFToBPMNConverter:
         elem = ET.SubElement(process_elem, "intermediateCatchEvent")
         elem.set("id", self._get_element_id(elem_uri))
 
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
         # Add name if exists
         self._add_name_attribute(elem, graph, elem_uri)
 
@@ -562,6 +618,9 @@ class RDFToBPMNConverter:
         elem = ET.SubElement(process_elem, "intermediateThrowEvent")
         elem.set("id", self._get_element_id(elem_uri))
 
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
         # Add name if exists
         self._add_name_attribute(elem, graph, elem_uri)
 
@@ -583,6 +642,9 @@ class RDFToBPMNConverter:
 
         elem = ET.SubElement(process_elem, "boundaryEvent")
         elem.set("id", self._get_element_id(elem_uri))
+
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
 
         # Add name if exists
         self._add_name_attribute(elem, graph, elem_uri)
@@ -663,6 +725,9 @@ class RDFToBPMNConverter:
         elem = ET.SubElement(process_elem, "subProcess")
         elem.set("id", self._get_element_id(elem_uri))
 
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
         # Add name if exists
         self._add_name_attribute(elem, graph, elem_uri)
 
@@ -691,6 +756,9 @@ class RDFToBPMNConverter:
         elem = ET.SubElement(process_elem, "subProcess")
         elem.set("id", self._get_element_id(elem_uri))
 
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
         # Add name if exists
         self._add_name_attribute(elem, graph, elem_uri)
 
@@ -711,6 +779,9 @@ class RDFToBPMNConverter:
 
         elem = ET.SubElement(process_elem, "callActivity")
         elem.set("id", self._get_element_id(elem_uri))
+
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
 
         # Add name if exists
         self._add_name_attribute(elem, graph, elem_uri)
@@ -817,6 +888,92 @@ class RDFToBPMNConverter:
             elif "sequenceflow" in child_type:
                 # Sequence flows will be added at the end
                 pass
+
+    def _add_diagram_interchange(self, root: ET.Element, graph: Graph):
+        """Add BPMNDiagram element with diagram interchange (layout) information.
+
+        Reconstructs the DI section from RDF triples that were extracted from
+        the original BPMN file.
+        """
+        # Define DI namespaces
+        bpmndi_ns = "http://www.omg.org/spec/BPMN/20100524/DI"
+        dc_ns = "http://www.omg.org/spec/DD/20100524/DC"
+        di_ns = "http://www.omg.org/spec/DD/20100524/DI"
+
+        # Define RDF namespaces used in the graph
+        DI = Namespace("http://example.org/di/")
+        DC = Namespace("http://www.omg.org/spec/DD/20100524/DC#")
+        BPMNDI = Namespace("http://www.omg.org/spec/BPMN/20100524/DI#")
+
+        # Add DI namespace declarations to root
+        root.set("xmlns:bpmndi", bpmndi_ns)
+        root.set("xmlns:dc", dc_ns)
+        root.set("xmlns:di", di_ns)
+
+        # Create BPMNDiagram element
+        diagram = ET.SubElement(root, f"{{{bpmndi_ns}}}BPMNDiagram")
+
+        # Create BPMNPlane (assume all elements belong to one plane for now)
+        plane = ET.SubElement(diagram, f"{{{bpmndi_ns}}}BPMNPlane")
+
+        # Get process ID for the plane
+        if self._process_id:
+            plane.set("bpmnElement", f"Process_{self._process_id}")
+        else:
+            plane.set("bpmnElement", "Process_unknown")
+
+        # Find all BPMNShape entries in RDF and create shapes
+        for shape_uri in graph.subjects(RDF.type, BPMNDI.Shape):
+            shape_id = str(shape_uri).split("/")[-1]
+            bpmn_element = graph.value(shape_uri, DI.bpmnElement)
+
+            if not bpmn_element:
+                continue
+
+            # Create BPMNShape element
+            shape_elem = ET.SubElement(plane, f"{{{bpmndi_ns}}}BPMNShape")
+            shape_elem.set("id", shape_id)
+            shape_elem.set("bpmnElement", str(bpmn_element))
+
+            # Create Bounds element
+            bounds = ET.SubElement(shape_elem, f"{{{dc_ns}}}Bounds")
+            x = graph.value(shape_uri, DC.x)
+            y = graph.value(shape_uri, DC.y)
+            width = graph.value(shape_uri, DC.width)
+            height = graph.value(shape_uri, DC.height)
+
+            if x:
+                bounds.set("x", str(x))
+            if y:
+                bounds.set("y", str(y))
+            if width:
+                bounds.set("width", str(width))
+            if height:
+                bounds.set("height", str(height))
+
+        # Find all BPMNEdge entries in RDF and create edges
+        for edge_uri in graph.subjects(RDF.type, BPMNDI.Edge):
+            edge_id = str(edge_uri).split("/")[-1]
+            bpmn_element = graph.value(edge_uri, DI.bpmnElement)
+            waypoints_str = graph.value(edge_uri, DI.waypoint)
+
+            if not bpmn_element:
+                continue
+
+            # Create BPMNEdge element
+            edge_elem = ET.SubElement(plane, f"{{{bpmndi_ns}}}BPMNEdge")
+            edge_elem.set("id", edge_id)
+            edge_elem.set("bpmnElement", str(bpmn_element))
+
+            # Create waypoint elements
+            if waypoints_str:
+                waypoints = str(waypoints_str).split("|")
+                for waypoint_str in waypoints:
+                    if "," in waypoint_str:
+                        x, y = waypoint_str.split(",", 1)
+                        waypoint = ET.SubElement(edge_elem, f"{{{di_ns}}}waypoint")
+                        waypoint.set("x", x.strip())
+                        waypoint.set("y", y.strip())
 
     def _serialize_xml(self, root: ET.Element) -> str:
         """Serialize XML element to string with proper formatting"""

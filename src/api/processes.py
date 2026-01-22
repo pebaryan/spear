@@ -132,11 +132,16 @@ async def get_process_rdf(process_id: str):
 
 
 @router.get("/{process_id}/bpmn", response_class=Response)
-async def export_process_bpmn(process_id: str):
+async def export_process_bpmn(process_id: str, include_diagram: bool = False):
     """
     Export process as BPMN 2.0 XML.
 
     Returns the BPMN XML representation of the process definition.
+
+    Args:
+        process_id: Process definition ID
+        include_diagram: Include diagram interchange (layout) information
+                        from the original BPMN file (default: False)
     """
     from src.conversion import RDFToBPMNConverter
 
@@ -147,7 +152,7 @@ async def export_process_bpmn(process_id: str):
 
     # Convert to BPMN XML
     converter = RDFToBPMNConverter()
-    bpmn_xml = converter.convert(process_id, storage)
+    bpmn_xml = converter.convert(process_id, storage, include_diagram=include_diagram)
 
     # Get process name for filename
     process_name = process.get("name", "process").replace(" ", "_")

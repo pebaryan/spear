@@ -553,6 +553,232 @@ class TestRDFToBPMNConverter:
         assert "<boundaryEvent" in result
         assert "<endEvent" in result
 
+    def test_convert_with_documentation(self):
+        """Test that documentation is preserved in BPMN elements"""
+        converter = RDFToBPMNConverter()
+        graph = Graph()
+
+        # Create elements with documentation
+        start = URIRef("http://example.org/bpmn/StartEvent_1")
+        task = URIRef("http://example.org/bpmn/ServiceTask_1")
+        end = URIRef("http://example.org/bpmn/EndEvent_1")
+        flow1 = URIRef("http://example.org/bpmn/Flow_1")
+        flow2 = URIRef("http://example.org/bpmn/Flow_2")
+
+        # Add elements with documentation
+        graph.add((start, RDF.type, BPMN.StartEvent))
+        graph.add((start, RDFS.comment, Literal("This is the start of the process")))
+
+        graph.add((task, RDF.type, BPMN.ServiceTask))
+        graph.add((task, BPMN.topic, Literal("do_something")))
+        graph.add((task, BPMN.documentation, Literal("This task processes the order")))
+        graph.add((task, RDFS.comment, Literal("Another comment on the task")))
+
+        graph.add((end, RDF.type, BPMN.EndEvent))
+        graph.add((end, RDFS.comment, Literal("Process ends here")))
+
+        # Add flows
+        graph.add((flow1, RDF.type, BPMN.SequenceFlow))
+        graph.add((flow1, BPMN.sourceRef, start))
+        graph.add((flow1, BPMN.targetRef, task))
+        graph.add((flow1, RDFS.comment, Literal("Flow from start to task")))
+
+        graph.add((flow2, RDF.type, BPMN.SequenceFlow))
+        graph.add((flow2, BPMN.sourceRef, task))
+        graph.add((flow2, BPMN.targetRef, end))
+
+        result = converter.convert_graph(graph)
+
+        # Verify documentation is present
+        assert "<documentation" in result
+        assert "This task processes the order" in result
+        assert "This is the start of the process" in result
+        assert "Process ends here" in result
+        assert "Flow from start to task" in result
+
+    def test_convert_subprocess_with_documentation(self):
+        """Test that documentation is preserved in subprocesses"""
+        converter = RDFToBPMNConverter()
+        graph = Graph()
+
+        # Create subprocess with documentation
+        subprocess = URIRef("http://example.org/bpmn/SubProcess_1")
+        start = URIRef("http://example.org/bpmn/Start_1")
+        end = URIRef("http://example.org/bpmn/End_1")
+
+        graph.add(
+            (subprocess, RDF.type, URIRef("http://example.org/bpmn/ExpandedSubprocess"))
+        )
+        graph.add((subprocess, RDFS.label, Literal("Approval Process")))
+        graph.add(
+            (
+                subprocess,
+                BPMN.documentation,
+                Literal("This subprocess handles the approval workflow"),
+            )
+        )
+        graph.add((subprocess, RDFS.comment, Literal("Approval workflow for orders")))
+
+        graph.add((start, RDF.type, BPMN.StartEvent))
+        graph.add((start, BPMN.hasParent, subprocess))
+
+        graph.add((end, RDF.type, BPMN.EndEvent))
+        graph.add((end, BPMN.hasParent, subprocess))
+
+        result = converter.convert_graph(graph)
+
+        # Verify documentation in subprocess
+        assert "<subProcess" in result
+        # Note: bpmn:documentation takes precedence over rdfs:comment
+        assert "This subprocess handles the approval workflow" in result
+
+    def test_diagram_interchange_roundtrip(self):
+        """Test that diagram interchange (layout) information is preserved"""
+        converter = RDFToBPMNConverter()
+        graph = Graph()
+
+        # Create BPMNDI namespace for test
+        from rdflib import Namespace
+
+        BPMNDI = Namespace("http://www.omg.org/spec/BPMN/20100524/DI#")
+        DC = Namespace("http://www.omg.org/spec/DD/20100524/DC#")
+        DI = Namespace("http://example.org/di/")
+
+        # Create a simple process
+        start = URIRef("http://example.org/bpmn/StartEvent_1")
+        task = URIRef("http://example.org/bpmn/Task_1")
+        end = URIRef("http://example.org/bpmn/EndEvent_1")
+        flow1 = URIRef("http://example.org/bpmn/Flow_1")
+        flow2 = URIRef("http://example.org/bpmn/Flow_2")
+
+        # Add BPMN elements
+        graph.add((start, RDF.type, BPMN.StartEvent))
+        graph.add((task, RDF.type, BPMN.ServiceTask))
+        graph.add((end, RDF.type, BPMN.EndEvent))
+        graph.add((flow1, RDF.type, BPMN.SequenceFlow))
+        graph.add((flow1, BPMN.sourceRef, start))
+        graph.add((flow1, BPMN.targetRef, task))
+        graph.add((flow2, RDF.type, BPMN.SequenceFlow))
+        graph.add((flow2, BPMN.sourceRef, task))
+        graph.add((flow2, BPMN.targetRef, end))
+
+        # Add DI information (shapes)
+        shape1 = URIRef("http://example.org/di/StartEvent_1_di")
+        shape2 = URIRef("http://example.org/di/Task_1_di")
+        shape3 = URIRef("http://example.org/di/EndEvent_1_di")
+
+        graph.add((shape1, RDF.type, BPMNDI.Shape))
+        graph.add((shape1, DI.bpmnElement, Literal("StartEvent_1")))
+        graph.add((shape1, DC.x, Literal("179")))
+        graph.add((shape1, DC.y, Literal("99")))
+        graph.add((shape1, DC.width, Literal("36")))
+        graph.add((shape1, DC.height, Literal("36")))
+
+        graph.add((shape2, RDF.type, BPMNDI.Shape))
+        graph.add((shape2, DI.bpmnElement, Literal("Task_1")))
+        graph.add((shape2, DC.x, Literal("250")))
+        graph.add((shape2, DC.y, Literal("80")))
+        graph.add((shape2, DC.width, Literal("100")))
+        graph.add((shape2, DC.height, Literal("80")))
+
+        graph.add((shape3, RDF.type, BPMNDI.Shape))
+        graph.add((shape3, DI.bpmnElement, Literal("EndEvent_1")))
+        graph.add((shape3, DC.x, Literal("400")))
+        graph.add((shape3, DC.y, Literal("99")))
+        graph.add((shape3, DC.width, Literal("36")))
+        graph.add((shape3, DC.height, Literal("36")))
+
+        # Add DI information (edges)
+        edge1 = URIRef("http://example.org/di/Flow_1_di")
+        edge2 = URIRef("http://example.org/di/Flow_2_di")
+
+        graph.add((edge1, RDF.type, BPMNDI.Edge))
+        graph.add((edge1, DI.bpmnElement, Literal("Flow_1")))
+        graph.add((edge1, DI.waypoint, Literal("215,117| 270,117")))
+
+        graph.add((edge2, RDF.type, BPMNDI.Edge))
+        graph.add((edge2, DI.bpmnElement, Literal("Flow_2")))
+        graph.add((edge2, DI.waypoint, Literal("350,120| 400,117")))
+
+        # Convert to BPMN with DI
+        result = converter.convert_graph(graph, include_diagram=True)
+
+        # Verify DI namespaces are present
+        assert 'xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"' in result
+        assert 'xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"' in result
+        assert 'xmlns:di="http://www.omg.org/spec/DD/20100524/DI"' in result
+
+        # Verify BPMNDiagram element is present (may use bpmndi: prefix or ns prefix)
+        assert "BPMNDiagram" in result
+        assert "BPMNPlane" in result
+
+        # Verify shapes are present
+        assert "BPMNShape" in result
+        assert 'bpmnElement="StartEvent_1"' in result
+        assert 'bpmnElement="Task_1"' in result
+        assert 'bpmnElement="EndEvent_1"' in result
+
+        # Verify bounds are present
+        assert "Bounds" in result
+        assert 'x="179"' in result
+        assert 'y="99"' in result
+        assert 'width="36"' in result
+        assert 'height="36"' in result
+        assert 'width="100"' in result
+        assert 'height="80"' in result
+
+        # Verify edges are present
+        assert "BPMNEdge" in result
+        assert 'bpmnElement="Flow_1"' in result
+        assert 'bpmnElement="Flow_2"' in result
+
+        # Verify waypoints are present
+        assert "waypoint" in result
+        assert 'x="215"' in result
+        assert 'y="117"' in result
+
+    def test_diagram_interchange_disabled_by_default(self):
+        """Test that DI is not included by default (for backward compatibility)"""
+        converter = RDFToBPMNConverter()
+        graph = Graph()
+
+        # Create a minimal process
+        start = URIRef("http://example.org/bpmn/StartEvent_1")
+        graph.add((start, RDF.type, BPMN.StartEvent))
+
+        # Convert without DI (default)
+        result = converter.convert_graph(graph)
+
+        # Verify DI is NOT present
+        assert "<bpmndi:BPMNDiagram" not in result
+        assert "<bpmndi:BPMNShape" not in result
+        assert "<dc:Bounds" not in result
+
+        # Verify basic BPMN is still present
+        assert "<startEvent" in result
+
+    def test_diagram_interchange_without_layout_data(self):
+        """Test that DI section is not added when no layout data exists"""
+        converter = RDFToBPMNConverter()
+        graph = Graph()
+
+        # Create a process without DI data
+        start = URIRef("http://example.org/bpmn/StartEvent_1")
+        task = URIRef("http://example.org/bpmn/Task_1")
+
+        graph.add((start, RDF.type, BPMN.StartEvent))
+        graph.add((task, RDF.type, BPMN.ServiceTask))
+        graph.add((task, BPMN.topic, Literal("do_something")))
+
+        # Convert with DI requested but no data available
+        result = converter.convert_graph(graph, include_diagram=True)
+
+        # DI namespaces should be present (they're added)
+        assert "xmlns:bpmndi=" in result
+        # But no shapes/edges since there's no data
+        assert "<bpmndi:BPMNShape" not in result
+        assert "<bpmndi:BPMNEdge" not in result
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
