@@ -225,6 +225,60 @@ GET /statistics
 GET /export/processes
 ```
 
+#### 5.7 BPMN Layout Export
+
+SPEAR supports preserving visual layout information from BPMN files using the BPMN Diagram Interchange (DI) standard.
+
+```http
+# Export BPMN without layout (default)
+GET /api/v1/processes/{process_id}/bpmn
+
+# Export BPMN WITH visual layout information
+GET /api/v1/processes/{process_id}/bpmn?include_diagram=true
+```
+
+**Python API:**
+```python
+from src.conversion import RDFToBPMNConverter
+from src.api.storage import RDFStorageService
+
+storage = RDFStorageService()
+converter = RDFToBPMNConverter()
+
+# Export without layout (default)
+bpmn_xml = converter.convert("process-id", storage)
+
+# Export with layout preserved
+bpmn_xml = converter.convert("process-id", storage, include_diagram=True)
+```
+
+**What Gets Preserved:**
+
+| Element | Properties |
+|---------|------------|
+| **BPMNShape** | Position (x, y), Size (width, height) for all elements |
+| **BPMNEdge** | Waypoints (x, y coordinates) for all sequence flows |
+
+**Example Output with Layout:**
+```xml
+<bpmndi:BPMNDiagram>
+  <bpmndi:BPMNPlane bpmnElement="OrderProcess">
+    <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+      <dc:Bounds x="179" y="99" width="36" height="36" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_1_di" bpmnElement="Task_1">
+      <dc:Bounds x="250" y="80" width="100" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+      <di:waypoint x="215" y="117" />
+      <di:waypoint x="270" y="117" />
+    </bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane>
+</bpmndi:BPMNDiagram>
+```
+
+**Note:** Layout information is extracted when BPMN files are deployed and stored as RDF triples. When exporting with `include_diagram=true`, the layout is reconstructed using the BPMN DI namespace standards.
+
 ---
 
 ### 6. Topic Handlers & Service Tasks
