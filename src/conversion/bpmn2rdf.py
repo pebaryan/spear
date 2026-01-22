@@ -266,6 +266,28 @@ class BPMNToRDFConverter:
                             self.triples.append(
                                 f'{element_uri} camunda:message "{self._escape_string(camunda_message)}" .'
                             )
+                    elif nested_tag == "errorEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/ErrorEndEvent> ."
+                        )
+                        error_ref = nested.get("errorRef", "")
+                        if error_ref:
+                            self.triples.append(
+                                f'{element_uri} bpmn:errorRef "{error_ref}" .'
+                            )
+                    elif nested_tag == "cancelEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/CancelEndEvent> ."
+                        )
+                    elif nested_tag == "compensationEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/CompensationEndEvent> ."
+                        )
+                        compensate_ref = nested.get("compensateRef", "")
+                        if compensate_ref:
+                            self.triples.append(
+                                f"{element_uri} bpmn:compensateRef <{compensate_ref}> ."
+                            )
             elif child_tag == "outgoing":
                 ref = child.text.strip() if child.text else ""
                 if ref:
@@ -376,6 +398,86 @@ class BPMNToRDFConverter:
                         self.triples.append(
                             f"{element_uri} rdf:type <http://example.org/bpmn/ErrorBoundaryEvent> ."
                         )
+                        error_ref = child.get("errorRef", "")
+                        if error_ref:
+                            self.triples.append(
+                                f'{element_uri} bpmn:errorRef "{error_ref}" .'
+                            )
+                    elif child_tag == "compensationEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/CompensationBoundaryEvent> ."
+                        )
+                        compensate_ref = child.get("compensateRef", "")
+                        if compensate_ref:
+                            self.triples.append(
+                                f'{element_uri} bpmn:compensateRef "{compensate_ref}" .'
+                            )
+                    elif child_tag == "signalEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/SignalBoundaryEvent> ."
+                        )
+
+            elif tag_name == "boundaryEvent":
+                attached_to_ref = element.get("attachedToRef", "")
+                if attached_to_ref:
+                    self.triples.append(
+                        f"{element_uri} rdf:type <http://example.org/bpmn/BoundaryEvent> ."
+                    )
+                    self.triples.append(
+                        f"{element_uri} bpmn:attachedToRef <{attached_to_ref}> ."
+                    )
+                    attached_uri = self._get_uri(attached_to_ref)
+                    self.triples.append(
+                        f"{attached_uri} bpmn:hasBoundaryEvent {element_uri} ."
+                    )
+
+                is_interrupting = (
+                    element.get("cancelActivity", "true").lower() == "true"
+                )
+                self.triples.append(
+                    f'{element_uri} bpmn:interrupting "{str(is_interrupting).lower()}" .'
+                )
+
+                for child in element:
+                    child_tag = self._get_tag_name(child.tag)
+                    if child_tag == "messageEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/MessageBoundaryEvent> ."
+                        )
+                        message_ref = child.get("messageRef", "")
+                        if message_ref:
+                            self.triples.append(
+                                f"{element_uri} bpmn:messageRef <{message_ref}> ."
+                            )
+                        camunda_message = child.get(
+                            "{http://camunda.org/schema/1.0/bpmn}message", ""
+                        )
+                        if camunda_message:
+                            self.triples.append(
+                                f'{element_uri} camunda:message "{self._escape_string(camunda_message)}" .'
+                            )
+                    elif child_tag == "timerEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/TimerBoundaryEvent> ."
+                        )
+                    elif child_tag == "errorEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/ErrorBoundaryEvent> ."
+                        )
+                        error_ref = child.get("errorRef", "")
+                        if error_ref:
+                            self.triples.append(
+                                f'{element_uri} bpmn:errorRef "{error_ref}" .'
+                            )
+                    elif child_tag == "compensationEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/CompensationBoundaryEvent> ."
+                        )
+                        compensate_ref = child.get("compensateRef", "")
+                        if compensate_ref:
+                            self.triples.append(
+                                f'{element_uri} bpmn:compensateRef "{compensate_ref}" .'
+                            )
                     elif child_tag == "signalEventDefinition":
                         self.triples.append(
                             f"{element_uri} rdf:type <http://example.org/bpmn/SignalBoundaryEvent> ."
@@ -419,6 +521,48 @@ class BPMNToRDFConverter:
                 # Process child elements if any
                 for child in element:
                     self._process_element(child, element_uri)
+
+            elif tag_name == "intermediateThrowEvent":
+                # Check for event definitions to determine specific type
+                for child in element:
+                    child_tag = self._get_tag_name(child.tag)
+                    if child_tag == "messageEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/MessageIntermediateThrowEvent> ."
+                        )
+                        message_ref = child.get("messageRef", "")
+                        if message_ref:
+                            self.triples.append(
+                                f"{element_uri} bpmn:messageRef <{message_ref}> ."
+                            )
+                    elif child_tag == "compensationEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/CompensationIntermediateThrowEvent> ."
+                        )
+                        compensate_ref = child.get("compensateRef", "")
+                        if compensate_ref:
+                            self.triples.append(
+                                f"{element_uri} bpmn:compensateRef <{compensate_ref}> ."
+                            )
+                    elif child_tag == "errorEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/ErrorIntermediateThrowEvent> ."
+                        )
+                        error_ref = child.get("errorRef", "")
+                        if error_ref:
+                            self.triples.append(
+                                f'{element_uri} bpmn:errorRef "{error_ref}" .'
+                            )
+
+            elif tag_name == "intermediateCatchEvent":
+                # Check for event definitions to determine specific type
+                for child in element:
+                    child_tag = self._get_tag_name(child.tag)
+                    if child_tag == "compensationEventDefinition":
+                        self.triples.append(
+                            f"{element_uri} rdf:type <http://example.org/bpmn/CompensationIntermediateCatchEvent> ."
+                        )
+
             else:
                 self._process_element(child, element_uri)
 

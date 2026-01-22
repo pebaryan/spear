@@ -9,6 +9,7 @@ from enum import Enum
 
 class ProcessStatus(str, Enum):
     """Process definition status"""
+
     DRAFT = "draft"
     ACTIVE = "active"
     DEPRECATED = "deprecated"
@@ -17,6 +18,7 @@ class ProcessStatus(str, Enum):
 
 class InstanceStatus(str, Enum):
     """Process instance status"""
+
     CREATED = "CREATED"
     RUNNING = "RUNNING"
     SUSPENDED = "SUSPENDED"
@@ -27,8 +29,10 @@ class InstanceStatus(str, Enum):
 
 # ==================== Process Definition Models ====================
 
+
 class ProcessDefinitionCreate(BaseModel):
     """Request model for creating a process definition"""
+
     name: str = Field(..., description="Human-readable process name")
     description: Optional[str] = Field(None, description="Process description")
     version: Optional[str] = Field("1.0.0", description="Process version")
@@ -37,6 +41,7 @@ class ProcessDefinitionCreate(BaseModel):
 
 class ProcessDefinitionUpdate(BaseModel):
     """Request model for updating a process definition"""
+
     name: Optional[str] = Field(None, description="Human-readable process name")
     description: Optional[str] = Field(None, description="Process description")
     status: Optional[ProcessStatus] = Field(None, description="Process status")
@@ -44,6 +49,7 @@ class ProcessDefinitionUpdate(BaseModel):
 
 class ProcessDefinitionResponse(BaseModel):
     """Response model for process definition"""
+
     id: str
     name: str
     description: Optional[str]
@@ -59,6 +65,7 @@ class ProcessDefinitionResponse(BaseModel):
 
 class ProcessDefinitionListResponse(BaseModel):
     """Response for list of process definitions"""
+
     processes: List[ProcessDefinitionResponse]
     total: int
     page: int
@@ -67,22 +74,30 @@ class ProcessDefinitionListResponse(BaseModel):
 
 # ==================== Process Instance Models ====================
 
+
 class VariableCreate(BaseModel):
     """Request model for creating/updating a variable"""
+
     name: str = Field(..., description="Variable name")
     value: Any = Field(..., description="Variable value")
-    datatype: Optional[str] = Field(None, description="Data type (string, integer, float, etc.)")
+    datatype: Optional[str] = Field(
+        None, description="Data type (string, integer, float, etc.)"
+    )
 
 
 class InstanceCreate(BaseModel):
     """Request model for starting a process instance"""
+
     process_id: str = Field(..., description="Process definition ID")
     variables: Optional[Dict[str, Any]] = Field(None, description="Initial variables")
-    start_event_id: Optional[str] = Field(None, description="Specific start event to use")
+    start_event_id: Optional[str] = Field(
+        None, description="Specific start event to use"
+    )
 
 
 class InstanceResponse(BaseModel):
     """Response model for process instance"""
+
     id: str
     process_id: str
     process_version: str
@@ -99,6 +114,7 @@ class InstanceResponse(BaseModel):
 
 class InstanceListResponse(BaseModel):
     """Response for list of process instances"""
+
     instances: List[InstanceResponse]
     total: int
     page: int
@@ -107,6 +123,7 @@ class InstanceListResponse(BaseModel):
 
 class InstanceActionResponse(BaseModel):
     """Response for instance actions (start/stop/suspend/resume)"""
+
     success: bool
     message: str
     instance: Optional[InstanceResponse] = None
@@ -114,8 +131,10 @@ class InstanceActionResponse(BaseModel):
 
 # ==================== Variable Models ====================
 
+
 class VariableResponse(BaseModel):
     """Response model for a variable"""
+
     name: str
     value: Any
     datatype: Optional[str]
@@ -124,13 +143,16 @@ class VariableResponse(BaseModel):
 
 class VariableListResponse(BaseModel):
     """Response for list of variables"""
+
     variables: Dict[str, VariableResponse]
 
 
 # ==================== Task Models ====================
 
+
 class TaskStatus(str, Enum):
     """Task status"""
+
     CREATED = "CREATED"
     ASSIGNED = "ASSIGNED"
     CLAIMED = "CLAIMED"
@@ -140,6 +162,7 @@ class TaskStatus(str, Enum):
 
 class TaskResponse(BaseModel):
     """Response model for a user task"""
+
     id: str
     instance_id: str
     process_id: str
@@ -158,18 +181,24 @@ class TaskResponse(BaseModel):
 
 class TaskClaimRequest(BaseModel):
     """Request model for claiming a task"""
+
     user_id: str = Field(..., description="User ID claiming the task")
 
 
 class TaskCompleteRequest(BaseModel):
     """Request model for completing a task"""
-    variables: Optional[Dict[str, Any]] = Field(None, description="Variables to set on completion")
+
+    variables: Optional[Dict[str, Any]] = Field(
+        None, description="Variables to set on completion"
+    )
 
 
 # ==================== Health & Info Models ====================
 
+
 class HealthResponse(BaseModel):
     """Response model for health check"""
+
     status: str
     version: str
     uptime_seconds: float
@@ -178,6 +207,7 @@ class HealthResponse(BaseModel):
 
 class ApiInfoResponse(BaseModel):
     """Response model for API information"""
+
     name: str
     version: str
     description: str
@@ -187,8 +217,10 @@ class ApiInfoResponse(BaseModel):
 
 # ==================== Error Models ====================
 
+
 class ErrorResponse(BaseModel):
     """Standard error response"""
+
     error: str
     detail: Optional[str]
     code: str
@@ -197,7 +229,28 @@ class ErrorResponse(BaseModel):
 
 class ValidationErrorResponse(BaseModel):
     """Validation error response"""
+
     error: str = "Validation Error"
     details: List[Dict[str, Any]]
     code: str = "VALIDATION_ERROR"
     timestamp: datetime
+
+
+class ErrorThrowRequest(BaseModel):
+    """Request model for throwing an error in a process instance"""
+
+    instance_id: str = Field(..., description="Process instance ID")
+    error_code: str = Field(..., description="Error code to throw")
+    error_message: Optional[str] = Field(None, description="Optional error message")
+
+
+class ErrorThrowResponse(BaseModel):
+    """Response model for error throw operation"""
+
+    instance_id: str
+    error_code: str
+    status: str = Field(..., description="Status: 'caught' or 'uncaught'")
+    caught_by_boundary_event: bool = Field(
+        ..., description="Whether the error was caught by a boundary event"
+    )
+    message: Optional[str] = None

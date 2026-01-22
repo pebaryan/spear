@@ -6,15 +6,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from src.api.models import (
-    HealthResponse,
-    ApiInfoResponse,
-    ErrorResponse
-)
+from src.api.models import HealthResponse, ApiInfoResponse, ErrorResponse
 from src.api.processes import router as processes_router
 from src.api.instances import router as instances_router
 from src.api.tasks import router as tasks_router
 from src.api.topics import router as topics_router
+from src.api.errors import router as errors_router
 from src.api.storage import RDFStorageService
 
 # Initialize shared storage service
@@ -63,12 +60,22 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_tags=[
-        {"name": "Process Definitions", "description": "Manage BPMN process definitions"},
-        {"name": "Process Instances", "description": "Manage running process instances"},
+        {
+            "name": "Process Definitions",
+            "description": "Manage BPMN process definitions",
+        },
+        {
+            "name": "Process Instances",
+            "description": "Manage running process instances",
+        },
         {"name": "Variables", "description": "Process instance variables"},
         {"name": "Audit", "description": "Execution audit logs"},
-        {"name": "System", "description": "Health and system information"}
-    ]
+        {
+            "name": "Error Handling",
+            "description": "Error throwing and instance cancellation",
+        },
+        {"name": "System", "description": "Health and system information"},
+    ],
 )
 
 # Add CORS middleware
@@ -85,24 +92,26 @@ app.include_router(processes_router, prefix="/api/v1")
 app.include_router(instances_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
 app.include_router(topics_router, prefix="/api/v1")
+app.include_router(errors_router, prefix="/api/v1")
 
 
 # ==================== Health & Info Endpoints ====================
+
 
 @app.get("/health", response_model=HealthResponse, tags=["System"])
 async def health_check():
     """
     Health check endpoint.
-    
+
     Returns the current status of the SPEAR API.
     """
     stats = storage.get_statistics()
-    
+
     return HealthResponse(
         status="healthy",
         version="1.0.0",
         uptime_seconds=time.time() - 1710000000,  # Would need proper startup tracking
-        triple_count=stats["total_triples"]
+        triple_count=stats["total_triples"],
     )
 
 
@@ -110,7 +119,7 @@ async def health_check():
 async def api_info():
     """
     Get API information.
-    
+
     Returns basic information about the SPEAR API.
     """
     return ApiInfoResponse(
@@ -118,7 +127,7 @@ async def api_info():
         version="1.0.0",
         description="Semantic Process Engine as RDF - REST API",
         endpoints_count=15,
-        documentation_url="/docs"
+        documentation_url="/docs",
     )
 
 
@@ -126,7 +135,7 @@ async def api_info():
 async def root():
     """
     Root endpoint with API overview.
-    
+
     Returns basic information and links to documentation.
     """
     return {
@@ -138,12 +147,13 @@ async def root():
         "info": "/info",
         "endpoints": {
             "processes": "/api/v1/processes",
-            "instances": "/api/v1/instances"
-        }
+            "instances": "/api/v1/instances",
+        },
     }
 
 
 # ==================== Global Error Handler ====================
+
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
@@ -153,8 +163,8 @@ async def http_exception_handler(request, exc):
         content={
             "error": exc.detail,
             "code": f"HTTP_{exc.status_code}",
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        }
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        },
     )
 
 
@@ -167,69 +177,60 @@ async def general_exception_handler(request, exc):
             "error": "Internal Server Error",
             "detail": str(exc) if app.debug else "An unexpected error occurred",
             "code": "INTERNAL_ERROR",
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        }
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        },
     )
 
 
 # ==================== Statistics Endpoint ====================
 
+
 @app.get("/statistics", tags=["System"])
 async def get_statistics():
     """
     Get system statistics.
-    
+
     Returns overall statistics about the SPEAR system.
     """
     stats = storage.get_statistics()
-    
+
     # Get instance counts by status
     all_instances = storage.list_instances()
     status_counts = {}
     for inst in all_instances["instances"]:
         status = inst.get("status", "UNKNOWN")
         status_counts[status] = status_counts.get(status, 0) + 1
-    
+
     return {
-        "processes": {
-            "total": stats["process_count"]
-        },
-        "instances": {
-            "total": stats["instance_count"],
-            "by_status": status_counts
-        },
-        "rdf_storage": {
-            "total_triples": stats["total_triples"]
-        }
+        "processes": {"total": stats["process_count"]},
+        "instances": {"total": stats["instance_count"], "by_status": status_counts},
+        "rdf_storage": {"total_triples": stats["total_triples"]},
     }
 
 
 # ==================== Export Endpoints ====================
 
+
 @app.get("/export/processes", tags=["System"])
 async def export_all_processes():
     """
     Export all process definitions as RDF.
-    
+
     Returns all process definitions in Turtle format.
     """
     from src.api.storage import RDFStorageService
+
     storage = RDFStorageService()
-    
+
     return {
         "format": "turtle",
         "triples": len(storage.definitions_graph),
-        "rdf": storage.definitions_graph.serialize(format="turtle")
+        "rdf": storage.definitions_graph.serialize(format="turtle"),
     }
 
 
 # Main entry point
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
-    )
+
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")

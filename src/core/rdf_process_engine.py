@@ -16,6 +16,24 @@ VAR = Namespace("http://example.org/variables/")
 LOG = Namespace("http://example.org/audit/")
 TOKEN = Namespace("http://example.org/token/")
 
+# Error Event Type URIs (for error handling support)
+BPMN_CANCEL_END_EVENT = URIRef(BPMN + "cancelEndEvent")
+BPMN_ERROR_THROW_EVENT = URIRef(BPMN + "intermediateThrowEvent")
+BPMN_COMPENSATION_END_EVENT = URIRef(BPMN + "compensationEndEvent")
+BPMN_COMPENSATION_THROW_EVENT = URIRef(BPMN + "compensationIntermediateThrowEvent")
+BPMN_COMPENSATION_CATCH_EVENT = URIRef(BPMN + "compensationIntermediateCatchEvent")
+
+# Compensation Relationships
+COMPENSATE_REF = URIRef(BPMN + "compensateRef")
+COMPENSATION_HANDLER = URIRef(BPMN + "compensationHandler")
+
+# Error References
+ERROR_REF = URIRef(BPMN + "errorRef")
+
+# Event Definitions
+CANCEL_EVENT_DEFINITION = URIRef(BPMN + "cancelEventDefinition")
+COMPENSATION_EVENT_DEFINITION = URIRef(BPMN + "compensationEventDefinition")
+
 # Import ProcessContext from existing rdfengine.py
 from .rdfengine import ProcessContext
 

@@ -41,6 +41,76 @@ SPEAR supports a comprehensive set of BPMN 2.0 elements:
 | **Intermediate Catch Event** | ✅ Full | Message receive tasks, timer events |
 | **Boundary Events** | ✅ Full | Attached to activities, supports message/timer/error/signal |
 
+##### 4.1.1 Error End Events
+
+| Element | Support | Description |
+|---------|---------|-------------|
+| **Error End Event** | ✅ Full | Throws an error and terminates the instance |
+| **Cancel End Event** | ✅ Full | Terminates transaction subprocess and instance |
+| **Compensation End Event** | ✅ Full | Triggers compensation handler for rollback |
+| **Terminate End Event** | ✅ Full | Immediately terminates all tokens and instance |
+
+**Error End Event Example:**
+```xml
+<serviceTask id="ValidateOrder" camunda:topic="validate_order"/>
+<endEvent id="ErrorEnd">
+  <errorEventDefinition errorRef="Error_ValidationFailed"/>
+</endEvent>
+<sequenceFlow sourceRef="ValidateOrder" targetRef="ErrorEnd"/>
+```
+
+**Cancel End Event (in Transaction Subprocess):**
+```xml
+<subProcess id="PaymentTransaction" triggeredByEvent="false">
+  <startEvent id="TxStart"/>
+  <serviceTask id="ProcessPayment" camunda:topic="process_payment"/>
+  <cancelEndEvent id="CancelPayment"/>
+  <sequenceFlow sourceRef="TxStart" targetRef="ProcessPayment"/>
+  <sequenceFlow sourceRef="ProcessPayment" targetRef="CancelPayment"/>
+</subProcess>
+```
+
+**Compensation End Event:**
+```xml
+<serviceTask id="CreateOrder" camunda:topic="create_order"/>
+<compensationEndEvent id="CompensateOrder">
+  <compensationEventDefinition compensateRef="UndoOrder"/>
+</compensationEndEvent>
+<sequenceFlow sourceRef="CreateOrder" targetRef="CompensateOrder"/>
+```
+
+##### 4.1.2 Error Boundary Events
+
+| Element | Support | Description |
+|---------|---------|-------------|
+| **Error Boundary Event** | ✅ Full | Interrupts or continues activity on error |
+| **Compensation Boundary Event** | ✅ Full | Triggers compensation when activity completes |
+
+**Error Boundary Event Example:**
+```xml
+<serviceTask id="ProcessPayment" camunda:topic="process_payment">
+  <boundaryEvent id="ErrorBoundary" attachedToRef="ProcessPayment" cancelActivity="true">
+    <errorEventDefinition errorRef="Error_PaymentFailed"/>
+  </boundaryEvent>
+</serviceTask>
+<serviceTask id="HandleError" camunda:topic="handle_payment_error"/>
+<endEvent id="ErrorEnd"/>
+<sequenceFlow sourceRef="ProcessPayment" targetRef="ErrorEnd"/>
+<sequenceFlow sourceRef="ErrorBoundary" targetRef="HandleError"/>
+<sequenceFlow sourceRef="HandleError" targetRef="ErrorEnd"/>
+```
+
+**Compensation Boundary Event Example:**
+```xml
+<serviceTask id="BookHotel" camunda:topic="book_hotel">
+  <boundaryEvent id="CompBoundary" attachedToRef="BookHotel" cancelActivity="false">
+    <compensationEventDefinition compensateRef="CancelHotelBooking"/>
+  </boundaryEvent>
+</serviceTask>
+<serviceTask id="CancelHotel" camunda:topic="cancel_hotel_booking"/>
+<sequenceFlow sourceRef="CompBoundary" targetRef="CancelHotel"/>
+```
+
 #### 4.2 Activities
 
 | Element | Support | Description |
@@ -278,6 +348,62 @@ bpmn_xml = converter.convert("process-id", storage, include_diagram=True)
 ```
 
 **Note:** Layout information is extracted when BPMN files are deployed and stored as RDF triples. When exporting with `include_diagram=true`, the layout is reconstructed using the BPMN DI namespace standards.
+
+#### 5.8 Error Handling
+
+SPEAR provides comprehensive error handling through error events and API-based error injection.
+
+```http
+# Throw an error in a running instance
+POST /api/v1/errors/throw
+{
+  "instance_id": "instance-uuid",
+  "error_code": "Error_ValidationFailed",
+  "error_message": "Order validation failed: missing customer ID"
+}
+
+# Response
+{
+  "instance_id": "instance-uuid",
+  "error_code": "Error_ValidationFailed",
+  "status": "caught",
+  "caught_by_boundary_event": true
+}
+
+# Cancel a running instance
+POST /api/v1/errors/cancel?instance_id=instance-uuid&reason=Customer%20request
+
+# Get error-related variables for an instance
+GET /api/v1/errors/{instance_id}/error-variables
+
+# Response
+{
+  "instance_id": "instance-uuid",
+  "error_variables": {
+    "errorCode": "Error_PaymentFailed",
+    "lastErrorCode": "Error_ValidationFailed",
+    "lastErrorMessage": "Payment gateway timeout"
+  },
+  "instance_status": "ERROR"
+}
+```
+
+**Error Handling Flow:**
+
+1. **Error End Event**: When reached, sets instance status to `ERROR` and stores error code in variables
+2. **Cancel End Event**: Terminates transaction subprocess and sets instance status to `CANCELLED`
+3. **Terminate End Event**: Immediately terminates all tokens and sets instance status to `TERMINATED`
+4. **Error Boundary Event**: Interrupts (default) or continues the activity when matching error code is thrown
+5. **API Error Injection**: External error throwing triggers boundary events if error codes match
+
+**Error Variables:**
+
+| Variable | Description |
+|----------|-------------|
+| `errorCode` | Error code from error end event |
+| `lastErrorCode` | Last error thrown via API |
+| `lastErrorMessage` | Error message from API |
+| `errorNode` | Node where error end event occurred |
 
 ---
 

@@ -159,6 +159,12 @@ class RDFToBPMNConverter:
             "intermediatecatchevent": [],
             "intermediatethrowevent": [],
             "boundaryevent": [],
+            "cancelendevent": [],
+            "compensationendevent": [],
+            "compensationintermediatethrow": [],
+            "compensationintermediatecatch": [],
+            "errorendevent": [],
+            "messageendevent": [],
             "othertasks": [],
             "otherevents": [],
         }
@@ -174,6 +180,15 @@ class RDFToBPMNConverter:
 
             if "startevent" in elem_type:
                 elements["startevent"].append(s)
+            # Check specific end event types BEFORE generic end event
+            elif "cancelendevent" in elem_type:
+                elements["cancelendevent"].append(s)
+            elif "compensationendevent" in elem_type:
+                elements["compensationendevent"].append(s)
+            elif "errorendevent" in elem_type:
+                elements["errorendevent"].append(s)
+            elif "messageendevent" in elem_type:
+                elements["messageendevent"].append(s)
             elif "endevent" in elem_type:
                 elements["endevent"].append(s)
             elif "servicetask" in elem_type:
@@ -198,13 +213,12 @@ class RDFToBPMNConverter:
                 elements["intermediatecatchevent"].append(s)
             elif "intermediatethrowevent" in elem_type:
                 elements["intermediatethrowevent"].append(s)
-            elif (
-                "messageboundaryevent" in elem_type
-                or "timerboundaryevent" in elem_type
-                or "errorboundaryevent" in elem_type
-                or "signalboundaryevent" in elem_type
-            ):
+            elif "boundaryevent" in elem_type:
                 elements["boundaryevent"].append(s)
+            elif "compensationintermediatethrow" in elem_type:
+                elements["compensationintermediatethrow"].append(s)
+            elif "compensationintermediatecatch" in elem_type:
+                elements["compensationintermediatecatch"].append(s)
             elif "task" in elem_type:
                 elements["othertasks"].append(s)
             elif "event" in elem_type:
@@ -269,7 +283,28 @@ class RDFToBPMNConverter:
         for elem in elements_by_type.get("callactivity", []):
             self._add_call_activity(process_elem, graph, elem)
 
-        # Add end events
+        # Add compensation throw events
+        for elem in elements_by_type.get("compensationintermediatethrow", []):
+            self._add_compensation_throw_event(process_elem, graph, elem)
+
+        # Add compensation catch events
+        for elem in elements_by_type.get("compensationintermediatecatch", []):
+            self._add_compensation_catch_event(process_elem, graph, elem)
+
+        # Add specific end event types BEFORE generic end events
+        for elem in elements_by_type.get("cancelendevent", []):
+            self._add_cancel_end_event(process_elem, graph, elem)
+
+        for elem in elements_by_type.get("compensationendevent", []):
+            self._add_compensation_end_event(process_elem, graph, elem)
+
+        for elem in elements_by_type.get("errorendevent", []):
+            self._add_error_end_event(process_elem, graph, elem)
+
+        for elem in elements_by_type.get("messageendevent", []):
+            self._add_message_end_event(process_elem, graph, elem)
+
+        # Add generic end events (only those not caught by specific type checks)
         for elem in elements_by_type.get("endevent", []):
             self._add_endevent(process_elem, graph, elem)
 
@@ -311,6 +346,178 @@ class RDFToBPMNConverter:
 
         # Add incoming flows
         self._add_incoming(elem, graph, elem_uri)
+
+        self._processed_elements.add(elem_str)
+        self._element_map[elem_str] = elem
+
+    def _add_cancel_end_event(self, process_elem: ET.Element, graph: Graph, elem_uri):
+        """Convert and add a cancel end event"""
+        elem_str = str(elem_uri)
+        if elem_str in self._processed_elements:
+            return
+
+        elem = ET.SubElement(process_elem, "cancelEndEvent")
+        elem.set("id", self._get_element_id(elem_uri))
+
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
+        # Add name if exists
+        self._add_name_attribute(elem, graph, elem_uri)
+
+        # Add incoming flows
+        self._add_incoming(elem, graph, elem_uri)
+
+        # Add cancel event definition
+        cancel_def = ET.SubElement(elem, "cancelEventDefinition")
+
+        self._processed_elements.add(elem_str)
+        self._element_map[elem_str] = elem
+
+    def _add_compensation_end_event(
+        self, process_elem: ET.Element, graph: Graph, elem_uri
+    ):
+        """Convert and add a compensation end event"""
+        elem_str = str(elem_uri)
+        if elem_str in self._processed_elements:
+            return
+
+        elem = ET.SubElement(process_elem, "compensationEndEvent")
+        elem.set("id", self._get_element_id(elem_uri))
+
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
+        # Add name if exists
+        self._add_name_attribute(elem, graph, elem_uri)
+
+        # Add incoming flows
+        self._add_incoming(elem, graph, elem_uri)
+
+        # Add compensation event definition
+        comp_def = ET.SubElement(elem, "compensationEventDefinition")
+
+        # Add compensateRef if exists
+        for s, p, o in graph.triples((elem_uri, BPMN.compensateRef, None)):
+            comp_def.set("compensateRef", str(o))
+            break
+
+        self._processed_elements.add(elem_str)
+        self._element_map[elem_str] = elem
+
+    def _add_error_end_event(self, process_elem: ET.Element, graph: Graph, elem_uri):
+        """Convert and add an error end event"""
+        elem_str = str(elem_uri)
+        if elem_str in self._processed_elements:
+            return
+
+        elem = ET.SubElement(process_elem, "endEvent")
+        elem.set("id", self._get_element_id(elem_uri))
+
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
+        # Add name if exists
+        self._add_name_attribute(elem, graph, elem_uri)
+
+        # Add incoming flows
+        self._add_incoming(elem, graph, elem_uri)
+
+        # Add error event definition
+        error_def = ET.SubElement(elem, "errorEventDefinition")
+
+        # Add errorRef if exists
+        for s, p, o in graph.triples((elem_uri, BPMN.errorRef, None)):
+            error_def.set("errorRef", str(o))
+            break
+
+        self._processed_elements.add(elem_str)
+        self._element_map[elem_str] = elem
+
+    def _add_message_end_event(self, process_elem: ET.Element, graph: Graph, elem_uri):
+        """Convert and add a message end event"""
+        elem_str = str(elem_uri)
+        if elem_str in self._processed_elements:
+            return
+
+        elem = ET.SubElement(process_elem, "endEvent")
+        elem.set("id", self._get_element_id(elem_uri))
+
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
+        # Add name if exists
+        self._add_name_attribute(elem, graph, elem_uri)
+
+        # Add incoming flows
+        self._add_incoming(elem, graph, elem_uri)
+
+        # Add message event definition
+        msg_def = ET.SubElement(elem, "messageEventDefinition")
+
+        # Add messageRef if exists
+        for s, p, o in graph.triples((elem_uri, BPMN.messageRef, None)):
+            msg_def.set("messageRef", str(o))
+            break
+
+        self._processed_elements.add(elem_str)
+        self._element_map[elem_str] = elem
+
+    def _add_compensation_throw_event(
+        self, process_elem: ET.Element, graph: Graph, elem_uri
+    ):
+        """Convert and add a compensation intermediate throw event"""
+        elem_str = str(elem_uri)
+        if elem_str in self._processed_elements:
+            return
+
+        elem = ET.SubElement(process_elem, "intermediateThrowEvent")
+        elem.set("id", self._get_element_id(elem_uri))
+
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
+        # Add name if exists
+        self._add_name_attribute(elem, graph, elem_uri)
+
+        # Add compensation event definition
+        comp_def = ET.SubElement(elem, "compensationEventDefinition")
+
+        # Add compensateRef if exists
+        for s, p, o in graph.triples((elem_uri, BPMN.compensateRef, None)):
+            comp_def.set("compensateRef", str(o))
+            break
+
+        # Add incoming/outgoing
+        self._add_incoming(elem, graph, elem_uri)
+        self._add_outgoing(elem, graph, elem_uri)
+
+        self._processed_elements.add(elem_str)
+        self._element_map[elem_str] = elem
+
+    def _add_compensation_catch_event(
+        self, process_elem: ET.Element, graph: Graph, elem_uri
+    ):
+        """Convert and add a compensation intermediate catch event"""
+        elem_str = str(elem_uri)
+        if elem_str in self._processed_elements:
+            return
+
+        elem = ET.SubElement(process_elem, "intermediateCatchEvent")
+        elem.set("id", self._get_element_id(elem_uri))
+
+        # Add documentation if exists
+        self._add_documentation(elem, graph, elem_uri)
+
+        # Add name if exists
+        self._add_name_attribute(elem, graph, elem_uri)
+
+        # Add compensation event definition
+        comp_def = ET.SubElement(elem, "compensationEventDefinition")
+
+        # Add incoming/outgoing
+        self._add_incoming(elem, graph, elem_uri)
+        self._add_outgoing(elem, graph, elem_uri)
 
         self._processed_elements.add(elem_str)
         self._element_map[elem_str] = elem
@@ -671,6 +878,9 @@ class RDFToBPMNConverter:
         # Add error event definition if applicable
         self._add_error_event_definition(elem, graph, elem_uri)
 
+        # Add compensation event definition if applicable
+        self._add_compensation_event_definition(elem, graph, elem_uri)
+
         # Add signal event definition if applicable
         self._add_signal_event_definition(elem, graph, elem_uri)
 
@@ -705,6 +915,15 @@ class RDFToBPMNConverter:
         for s, p, o in graph.triples((elem_uri, BPMN.errorRef, None)):
             error_def = ET.SubElement(elem, "errorEventDefinition")
             error_def.set("errorRef", str(o))
+            break
+
+    def _add_compensation_event_definition(
+        self, elem: ET.Element, graph: Graph, elem_uri
+    ):
+        """Add compensation event definition if applicable"""
+        for s, p, o in graph.triples((elem_uri, BPMN.compensateRef, None)):
+            comp_def = ET.SubElement(elem, "compensationEventDefinition")
+            comp_def.set("compensateRef", str(o))
             break
 
     def _add_signal_event_definition(self, elem: ET.Element, graph: Graph, elem_uri):
@@ -871,6 +1090,15 @@ class RDFToBPMNConverter:
             # Add child based on type
             if "startevent" in child_type:
                 self._add_startevent(subprocess_elem, graph, child_uri)
+            # Check specific end event types BEFORE generic end event
+            elif "cancelendevent" in child_type:
+                self._add_cancel_end_event(subprocess_elem, graph, child_uri)
+            elif "compensationendevent" in child_type:
+                self._add_compensation_end_event(subprocess_elem, graph, child_uri)
+            elif "errorendevent" in child_type:
+                self._add_error_end_event(subprocess_elem, graph, child_uri)
+            elif "messageendevent" in child_type:
+                self._add_message_end_event(subprocess_elem, graph, child_uri)
             elif "endevent" in child_type:
                 self._add_endevent(subprocess_elem, graph, child_uri)
             elif "servicetask" in child_type:
