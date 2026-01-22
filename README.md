@@ -1,6 +1,8 @@
 
 ## SPEAR: Semantic Process Engine as RDF
 
+![alt text](Gemini_Generated_Image_pj4gf0pj4gf0pj4g.png)
+
 ### 1. Overview
 
 The **Semantic Process Engine** is a lightweight, Python-based BPMN orchestrator that uses **RDF (Resource Description Framework)** and **SPARQL** as its core execution language. Unlike traditional engines that store state in relational tables, this engine treats business processes as a living Knowledge Graph.
