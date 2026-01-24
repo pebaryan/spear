@@ -1,6 +1,7 @@
 # SPEAR FastAPI Application
 # REST API for BPMN Process Engine with RDF Storage
 
+import os
 import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -12,15 +13,13 @@ from src.api.instances import router as instances_router
 from src.api.tasks import router as tasks_router
 from src.api.topics import router as topics_router
 from src.api.errors import router as errors_router
-from src.api.storage import RDFStorageService
 
-# Initialize shared storage service
-storage = RDFStorageService()
+# Use the unified get_storage function from storage package
+# This automatically uses StorageFacade when SPEAR_USE_FACADE=true
+from src.api.storage import get_storage
 
-
-def get_storage():
-    """Get the shared storage service instance"""
-    return storage
+# Initialize storage on module load
+storage = get_storage()
 
 
 @asynccontextmanager
@@ -218,10 +217,6 @@ async def export_all_processes():
 
     Returns all process definitions in Turtle format.
     """
-    from src.api.storage import RDFStorageService
-
-    storage = RDFStorageService()
-
     return {
         "format": "turtle",
         "triples": len(storage.definitions_graph),

@@ -47,7 +47,7 @@ def test_cancel_end_event_roundtrip():
     for s, p, o in graph.triples((None, RDF.type, None)):
         if "cancelendevent" in str(o).lower():
             cancel_found = True
-            print(f"  ✓ Cancel end event found in RDF: {s}")
+            print(f"  [OK] Cancel end event found in RDF: {s}")
             break
 
     assert cancel_found, "Cancel end event should be in RDF graph"
@@ -60,9 +60,9 @@ def test_cancel_end_event_roundtrip():
     assert "<cancelEndEvent" in exported_xml, (
         "Exported BPMN should contain cancelEndEvent"
     )
-    print("  ✓ Cancel end event found in exported BPMN")
+    print("  [OK] Cancel end event found in exported BPMN")
 
-    print("✅ Cancel End Event test passed!\n")
+    print("[PASS] Cancel End Event test passed!\n")
 
 
 def test_compensation_end_event_roundtrip():
@@ -105,7 +105,7 @@ def test_compensation_end_event_roundtrip():
     for s, p, o in graph.triples((None, RDF.type, None)):
         if "compensationendevent" in str(o).lower():
             comp_found = True
-            print(f"  ✓ Compensation end event found in RDF: {s}")
+            print(f"  [OK] Compensation end event found in RDF: {s}")
             break
 
     assert comp_found, "Compensation end event should be in RDF graph"
@@ -121,10 +121,10 @@ def test_compensation_end_event_roundtrip():
     assert "<compensationEventDefinition" in exported_xml, (
         "Should have compensationEventDefinition"
     )
-    print("  ✓ Compensation end event found in exported BPMN")
-    print("  ✓ Compensation event definition found in exported BPMN")
+    print("  [OK] Compensation end event found in exported BPMN")
+    print("  [OK] Compensation event definition found in exported BPMN")
 
-    print("✅ Compensation End Event test passed!\n")
+    print("[PASS] Compensation End Event test passed!\n")
 
 
 def test_error_end_event_roundtrip():
@@ -161,7 +161,7 @@ def test_error_end_event_roundtrip():
     for s, p, o in graph.triples((None, RDF.type, None)):
         if "errorendevent" in str(o).lower():
             error_found = True
-            print(f"  ✓ Error end event found in RDF: {s}")
+            print(f"  [OK] Error end event found in RDF: {s}")
             break
 
     assert error_found, "Error end event should be in RDF graph"
@@ -174,11 +174,11 @@ def test_error_end_event_roundtrip():
     assert "<endEvent" in exported_xml, "Exported BPMN should contain endEvent"
     assert "<errorEventDefinition" in exported_xml, "Should have errorEventDefinition"
     assert 'errorRef="Error_ValidationFailed"' in exported_xml, "Should have errorRef"
-    print("  ✓ Error end event found in exported BPMN")
-    print("  ✓ Error event definition found in exported BPMN")
-    print("  ✓ Error reference preserved")
+    print("  [OK] Error end event found in exported BPMN")
+    print("  [OK] Error event definition found in exported BPMN")
+    print("  [OK] Error reference preserved")
 
-    print("✅ Error End Event test passed!\n")
+    print("[PASS] Error End Event test passed!\n")
 
 
 def test_compensation_boundary_event_roundtrip():
@@ -219,7 +219,7 @@ def test_compensation_boundary_event_roundtrip():
     for s, p, o in graph.triples((None, RDF.type, None)):
         if "compensationboundaryevent" in str(o).lower():
             comp_boundary_found = True
-            print(f"  ✓ Compensation boundary event found in RDF: {s}")
+            print(f"  [OK] Compensation boundary event found in RDF: {s}")
             break
 
     assert comp_boundary_found, "Compensation boundary event should be in RDF graph"
@@ -237,11 +237,11 @@ def test_compensation_boundary_event_roundtrip():
     assert "<compensationEventDefinition" in exported_xml, (
         "Should have compensationEventDefinition"
     )
-    print("  ✓ Compensation boundary event found in exported BPMN")
-    print("  ✓ Attached to correct activity")
-    print("  ✓ Non-interrupting (cancelActivity=false)")
+    print("  [OK] Compensation boundary event found in exported BPMN")
+    print("  [OK] Attached to correct activity")
+    print("  [OK] Non-interrupting (cancelActivity=false)")
 
-    print("✅ Compensation Boundary Event test passed!\n")
+    print("[PASS] Compensation Boundary Event test passed!\n")
 
 
 def test_error_boundary_event_roundtrip():
@@ -282,7 +282,7 @@ def test_error_boundary_event_roundtrip():
     for s, p, o in graph.triples((None, RDF.type, None)):
         if "errorboundaryevent" in str(o).lower():
             error_boundary_found = True
-            print(f"  ✓ Error boundary event found in RDF: {s}")
+            print(f"  [OK] Error boundary event found in RDF: {s}")
             break
 
     assert error_boundary_found, "Error boundary event should be in RDF graph"
@@ -299,12 +299,12 @@ def test_error_boundary_event_roundtrip():
     assert 'cancelActivity="true"' in exported_xml, "Should have cancelActivity=true"
     assert "<errorEventDefinition" in exported_xml, "Should have errorEventDefinition"
     assert 'errorRef="Error_OrderFailed"' in exported_xml, "Should have errorRef"
-    print("  ✓ Error boundary event found in exported BPMN")
-    print("  ✓ Attached to correct activity")
-    print("  ✓ Interrupting (cancelActivity=true)")
-    print("  ✓ Error code preserved")
+    print("  [OK] Error boundary event found in exported BPMN")
+    print("  [OK] Attached to correct activity")
+    print("  [OK] Interrupting (cancelActivity=true)")
+    print("  [OK] Error code preserved")
 
-    print("✅ Error Boundary Event test passed!\n")
+    print("[PASS] Error Boundary Event test passed!\n")
 
 
 def main():
@@ -322,14 +322,14 @@ def main():
         test_error_boundary_event_roundtrip()
 
         print("=" * 60)
-        print("✅ ALL ERROR HANDLING TESTS PASSED!")
+        print("[PASS] ALL ERROR HANDLING TESTS PASSED!")
         print("=" * 60)
 
     except AssertionError as e:
-        print(f"\n❌ TEST FAILED: {e}")
+        print(f"\n[FAIL] TEST FAILED: {e}")
         return 1
     except Exception as e:
-        print(f"\n❌ UNEXPECTED ERROR: {e}")
+        print(f"\n[ERROR] UNEXPECTED ERROR: {e}")
         import traceback
 
         traceback.print_exc()
