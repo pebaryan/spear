@@ -407,9 +407,9 @@ class TestEventBasedGateway:
                 instance_uri, token_uri, gateway_uri, "test-inst"
             )
 
-            # Original token should be WAITING
+            # Original token should be consumed after spawning waiting tokens
             status = base.instances_graph.value(token_uri, INST.status)
-            assert str(status) == "WAITING"
+            assert str(status) == "CONSUMED"
 
             # Should have created 2 waiting tokens at the receive tasks
             waiting_tokens = []

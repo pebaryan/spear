@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional, Callable
 
 from rdflib import Graph, URIRef
 
-from src.api.storage.base import BaseStorageService, INST
+from src.api.storage.base import BaseStorageService, INST, BPMN
 from src.api.storage.process_repository import ProcessRepository
 from src.api.storage.instance_repository import InstanceRepository
 from src.api.storage.task_repository import TaskRepository
@@ -547,6 +547,15 @@ class StorageFacade(BaseStorageService):
             "user_task": self._handle_user_task,
             "exclusive_gateway": self._handle_exclusive_gateway,
             "parallel_gateway": self._handle_parallel_gateway,
+            "inclusive_gateway": self._handle_inclusive_gateway,
+            "event_based_gateway": self._handle_event_based_gateway,
+            "script_task": self._handle_script_task,
+            "receive_task": self._handle_receive_task,
+            "boundary_event": self._handle_boundary_event,
+            "error_end_event": self._handle_error_end_event,
+            "cancel_end_event": self._handle_cancel_end_event,
+            "compensation_end_event": self._handle_compensation_end_event,
+            "terminate_end_event": self._handle_terminate_end_event,
             # Add more handlers as needed
         }
 
@@ -600,7 +609,6 @@ class StorageFacade(BaseStorageService):
     ) -> None:
         """Handle service task - execute handler and move to next."""
         from rdflib import Literal
-        from src.api.storage.base import BPMN
 
         # Get topic from node definition
         topic = self._definitions_graph.value(node_uri, BPMN.topic)
@@ -787,15 +795,42 @@ class StorageFacade(BaseStorageService):
         incoming_count = self._execution_engine.count_incoming_flows(node_uri)
 
         if incoming_count > 1:
-            # This is a join - check if we should merge
+            if node_uri in merged_gateways:
+                self._execution_engine.consume_token(token_uri)
+                return
+
             waiting_count = self._execution_engine.count_waiting_tokens_at_gateway(
                 instance_uri, node_uri
             )
 
-            if waiting_count >= incoming_count:
-                # All tokens have arrived - merge and continue
-                # This is handled by the token handler
-                pass
+            if waiting_count < incoming_count:
+                self._execution_engine.set_token_waiting(token_uri)
+                return
+
+            merged_gateways.add(node_uri)
+            next_nodes = self._execution_engine.get_outgoing_targets(node_uri)
+            if not next_nodes:
+                for tok in self._instances_graph.objects(instance_uri, INST.hasToken):
+                    if self._instances_graph.value(tok, INST.currentNode) == node_uri:
+                        self._execution_engine.consume_token(tok)
+                return
+
+            merged_token = self._token_handler.merge_parallel_tokens(
+                instance_uri, node_uri, instance_id, next_nodes[0]
+            )
+            for additional_target in next_nodes[1:]:
+                self._execution_engine.create_token(
+                    instance_uri, additional_target, instance_id
+                )
+
+            if log_callback:
+                log_callback(
+                    instance_uri,
+                    "PARALLEL_GATEWAY_MERGE",
+                    "System",
+                    f"Parallel gateway {str(node_uri)} merged to {len(next_nodes)} paths",
+                )
+            return
 
         # Fork or single path
         self._execution_engine.handle_parallel_gateway(
@@ -804,6 +839,293 @@ class StorageFacade(BaseStorageService):
             node_uri,
             instance_id,
             log_callback,
+        )
+
+    def _handle_inclusive_gateway(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        """Handle inclusive gateway - evaluate conditions and merge when needed."""
+        outgoing_flows = []
+        for flow_uri in self._definitions_graph.objects(node_uri, BPMN.outgoing):
+            target = self._definitions_graph.value(flow_uri, BPMN.targetRef)
+            if target:
+                outgoing_flows.append((flow_uri, target))
+
+        if not outgoing_flows:
+            self._execution_engine.consume_token(token_uri)
+            return
+
+        incoming_count = self._execution_engine.count_incoming_flows(node_uri)
+        if incoming_count > 1:
+            if node_uri in merged_gateways:
+                self._execution_engine.consume_token(token_uri)
+                return
+
+            waiting_count = self._execution_engine.count_waiting_tokens_at_gateway(
+                instance_uri, node_uri
+            )
+            if waiting_count < incoming_count:
+                self._execution_engine.set_token_waiting(token_uri)
+                return
+
+            merged_gateways.add(node_uri)
+            matching_targets = self._gateway_evaluator.evaluate_inclusive_gateway(
+                instance_uri, node_uri
+            )
+            if not matching_targets:
+                for tok in self._instances_graph.objects(instance_uri, INST.hasToken):
+                    if self._instances_graph.value(tok, INST.currentNode) == node_uri:
+                        self._execution_engine.consume_token(tok)
+                return
+
+            self._token_handler.merge_inclusive_tokens(
+                instance_uri, node_uri, instance_id, matching_targets
+            )
+            return
+
+        matching_targets = self._gateway_evaluator.evaluate_inclusive_gateway(
+            instance_uri, node_uri
+        )
+        if not matching_targets:
+            self._execution_engine.consume_token(token_uri)
+            return
+
+        self._execution_engine.set_token_current_node(token_uri, matching_targets[0])
+        for additional_target in matching_targets[1:]:
+            self._execution_engine.create_token(
+                instance_uri, additional_target, instance_id
+            )
+
+    def _handle_event_based_gateway(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        """Handle event-based gateway - wait for the first event to occur."""
+
+        def log_callback(inst_uri, event, user, details):
+            self._audit_repo.log_event(inst_uri, event, user, details)
+
+        self._node_handlers.execute_event_based_gateway(
+            instance_uri, token_uri, node_uri, instance_id, log_callback=log_callback
+        )
+
+    def _handle_script_task(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        """Handle script task - execute in safe sandbox if enabled."""
+
+        def get_vars(inst_id):
+            return self._variables_service.get_variables(inst_id)
+
+        def set_var(inst_id, name, value):
+            return self._variables_service.set_variable(inst_id, name, value)
+
+        def move_token(inst_uri, tok_uri, inst_id):
+            self._execution_engine.move_token_to_next(inst_uri, tok_uri, inst_id)
+
+        def log_callback(inst_uri, event, user, details):
+            self._audit_repo.log_event(inst_uri, event, user, details)
+
+        def save_callback():
+            self._save_graph(self._instances_graph, "instances.ttl")
+
+        self._node_handlers.execute_script_task(
+            instance_uri,
+            token_uri,
+            node_uri,
+            instance_id,
+            get_variables_callback=get_vars,
+            set_variable_callback=set_var,
+            move_token_callback=move_token,
+            log_callback=log_callback,
+            save_callback=save_callback,
+        )
+
+    def _handle_receive_task(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        """Handle receive task - wait for a message."""
+        message_name = None
+        for _, _, o in self._definitions_graph.triples((node_uri, BPMN.message, None)):
+            message_name = str(o)
+            break
+        if not message_name:
+            camunda_msg = URIRef("http://camunda.org/schema/1.0/bpmn#message")
+            for _, _, o in self._definitions_graph.triples((node_uri, camunda_msg, None)):
+                message_name = str(o)
+                break
+
+        if message_name:
+            self._execution_engine.set_token_waiting(token_uri)
+            self._audit_repo.log_event(
+                instance_uri,
+                "WAITING_FOR_MESSAGE",
+                "System",
+                f"Waiting for message '{message_name}' at {node_uri}",
+            )
+        else:
+            self._audit_repo.log_event(
+                instance_uri,
+                "RECEIVE_TASK",
+                "System",
+                f"{str(node_uri)} (no message configured)",
+            )
+            self._execution_engine.consume_token(token_uri)
+
+    def _handle_boundary_event(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        """Handle boundary events via error handler."""
+
+        def move_token(inst_uri, tok_uri, inst_id):
+            self._execution_engine.move_token_to_next(inst_uri, tok_uri, inst_id)
+
+        def execute_token(inst_uri, tok_uri, inst_id):
+            self._execute_token(inst_uri, tok_uri, inst_id, merged_gateways)
+
+        def log_callback(inst_uri, event, user, details):
+            self._audit_repo.log_event(inst_uri, event, user, details)
+
+        def save_callback():
+            self._save_graph(self._instances_graph, "instances.ttl")
+
+        self._error_handler.execute_boundary_event(
+            instance_uri,
+            token_uri,
+            node_uri,
+            instance_id,
+            move_token_callback=move_token,
+            execute_token_callback=execute_token,
+            log_callback=log_callback,
+            save_callback=save_callback,
+        )
+
+    def _handle_error_end_event(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        """Handle error end event via error handler."""
+
+        def set_var(inst_id, name, value):
+            self._variables_service.set_variable(inst_id, name, value)
+
+        def log_callback(inst_uri, event, user, details):
+            self._audit_repo.log_event(inst_uri, event, user, details)
+
+        def save_callback():
+            self._save_graph(self._instances_graph, "instances.ttl")
+
+        self._error_handler.execute_error_end_event(
+            instance_uri,
+            token_uri,
+            node_uri,
+            instance_id,
+            set_variable_callback=set_var,
+            log_callback=log_callback,
+            save_callback=save_callback,
+        )
+
+    def _handle_cancel_end_event(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        """Handle cancel end event via error handler."""
+
+        def log_callback(inst_uri, event, user, details):
+            self._audit_repo.log_event(inst_uri, event, user, details)
+
+        def save_callback():
+            self._save_graph(self._instances_graph, "instances.ttl")
+
+        self._error_handler.execute_cancel_end_event(
+            instance_uri,
+            token_uri,
+            node_uri,
+            instance_id,
+            log_callback=log_callback,
+            save_callback=save_callback,
+        )
+
+    def _handle_compensation_end_event(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        """Handle compensation end event via error handler."""
+
+        def log_callback(inst_uri, event, user, details):
+            self._audit_repo.log_event(inst_uri, event, user, details)
+
+        def save_callback():
+            self._save_graph(self._instances_graph, "instances.ttl")
+
+        self._error_handler.execute_compensation_end_event(
+            instance_uri,
+            token_uri,
+            node_uri,
+            instance_id,
+            log_callback=log_callback,
+            save_callback=save_callback,
+        )
+
+    def _handle_terminate_end_event(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        """Handle terminate end event via error handler."""
+
+        def log_callback(inst_uri, event, user, details):
+            self._audit_repo.log_event(inst_uri, event, user, details)
+
+        def save_callback():
+            self._save_graph(self._instances_graph, "instances.ttl")
+
+        self._error_handler.execute_terminate_end_event(
+            instance_uri,
+            token_uri,
+            node_uri,
+            instance_id,
+            log_callback=log_callback,
+            save_callback=save_callback,
         )
 
     # ==================== Persistence ====================

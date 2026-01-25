@@ -49,6 +49,7 @@ class RDFToBPMNConverter:
             "bpmn": BPMN_XML_NS,
             "camunda": CAMUNDA_NS,
         }
+        self._register_namespaces()
 
         # Track elements to avoid duplicates
         self._processed_elements: Set[str] = set()
@@ -119,12 +120,22 @@ class RDFToBPMNConverter:
         root = ET.Element("definitions")
         root.set("xmlns", BPMN_XML_NS)
         root.set("xmlns:camunda", CAMUNDA_NS)
+        root.set("xmlns:xsi", XSI_NS)
         root.set("targetNamespace", "http://bpmn.io/schema/bpmn")
 
         # Store process_id for later use
         self._process_id = process_id
 
         return root
+
+    def _register_namespaces(self) -> None:
+        """Register XML namespaces to keep stable prefixes in output."""
+        ET.register_namespace("", BPMN_XML_NS)
+        ET.register_namespace("camunda", CAMUNDA_NS)
+        ET.register_namespace("xsi", XSI_NS)
+        ET.register_namespace("bpmndi", BPMN_DI_NS)
+        ET.register_namespace("dc", DC_NS)
+        ET.register_namespace("di", DI_NS)
 
     def _find_or_create_process_element(
         self, root: ET.Element, graph: Graph, process_id: str = None
@@ -1320,16 +1331,6 @@ class RDFToBPMNConverter:
 
         # Serialize with indentation and fix namespace prefixes
         xml_str = ET.tostring(root, encoding="unicode")
-
-        # Replace ns0: prefix with camunda: for camunda namespace attributes
-        # ElementTree uses ns0, ns1, etc. for additional namespaces
-        import re
-
-        # Fix camunda namespace attributes (ns0 -> camunda)
-        xml_str = re.sub(r"ns0:", "camunda:", xml_str)
-
-        # Remove namespace declarations we don't need
-        xml_str = re.sub(r'xmlns:ns0="[^"]*"', "", xml_str)
 
         # Simple formatting (BPMN doesn't require pretty-printing)
         return xml_declaration + xml_str

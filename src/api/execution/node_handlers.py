@@ -1,6 +1,7 @@
 # Node Handlers for SPEAR Engine
 # Handles execution of BPMN node types (service tasks, script tasks, gateways, etc.)
 
+import ast
 import uuid
 import logging
 from datetime import datetime
@@ -289,11 +290,32 @@ class NodeHandlers:
         set_variable_callback: Callable,
     ) -> None:
         """Execute a Python script with access to process variables."""
+        self._validate_script(script_code)
         variables = get_variables_callback(instance_id)
 
         local_vars = {"variables": dict(variables)}
 
-        exec(script_code, {"print": print, "datetime": datetime}, local_vars)
+        safe_builtins = {
+            "print": print,
+            "len": len,
+            "min": min,
+            "max": max,
+            "sum": sum,
+            "abs": abs,
+            "round": round,
+            "int": int,
+            "float": float,
+            "str": str,
+            "bool": bool,
+            "dict": dict,
+            "list": list,
+            "set": set,
+            "tuple": tuple,
+            "range": range,
+            "enumerate": enumerate,
+        }
+        safe_globals = {"__builtins__": safe_builtins, "datetime": datetime}
+        exec(script_code, safe_globals, local_vars)
 
         updated_vars = {
             k: v
@@ -303,6 +325,22 @@ class NodeHandlers:
 
         for name, value in updated_vars.items():
             set_variable_callback(instance_id, name, value)
+
+    def _validate_script(self, script_code: str) -> None:
+        """Reject unsafe syntax before executing a script."""
+        tree = ast.parse(script_code, mode="exec")
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                raise ValueError("Script imports are not allowed")
+            if isinstance(node, (ast.Global, ast.Nonlocal)):
+                raise ValueError("Global/nonlocal statements are not allowed")
+            if isinstance(node, ast.Attribute) and node.attr.startswith("__"):
+                raise ValueError("Dunder attribute access is not allowed")
+            if isinstance(node, ast.Name) and node.id.startswith("__"):
+                raise ValueError("Dunder names are not allowed")
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                if node.func.id in {"eval", "exec", "compile", "open", "input"}:
+                    raise ValueError(f"Call to {node.func.id} is not allowed")
 
     # ==================== Event-Based Gateway ====================
 
@@ -367,7 +405,7 @@ class NodeHandlers:
                     waiting_tasks.append({"type": "receive", "target": target})
 
         if waiting_tasks:
-            self._instances.set((token_uri, INST.status, Literal("WAITING")))
+            self._instances.set((token_uri, INST.status, Literal("CONSUMED")))
 
             # Create waiting tokens for each target
             for task_info in waiting_tasks:
@@ -422,7 +460,7 @@ class NodeHandlers:
         for tok in self._instances.objects(instance_uri, INST.hasToken):
             status = self._instances.value(tok, INST.status)
             current = self._instances.value(tok, INST.currentNode)
-            if status and str(status) == "ACTIVE" and current == node_uri:
+            if status and str(status) in ["ACTIVE", "WAITING"] and current == node_uri:
                 existing_tokens.append(tok)
         return existing_tokens
 

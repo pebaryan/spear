@@ -9,7 +9,8 @@ This module provides two main conversion methods:
 - parse_bpmn_to_graph(): Returns an rdflib.Graph instance for programmatic use
 """
 
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as StdET
+from defusedxml import ElementTree as ET
 from typing import Dict, Set
 import sys
 import argparse
@@ -48,7 +49,7 @@ class BPMNToRDFConverter:
         """Parse BPMN XML file and convert to RDF Turtle format"""
         # Register namespaces for parsing BEFORE parsing the file
         for prefix, uri in self.namespaces.items():
-            ET.register_namespace(prefix, uri)
+            StdET.register_namespace(prefix, uri)
 
         tree = ET.parse(file_path)
         root = tree.getroot()
@@ -857,7 +858,7 @@ class BPMNToRDFConverter:
         s = s.replace("\t", "\\t")
         return s
 
-    def _extract_diagram_interchange(self, root: ET.Element):
+    def _extract_diagram_interchange(self, root: StdET.Element):
         """Extract and store BPMN Diagram Interchange (layout) information.
 
         This method extracts visual layout information from the BPMN DI section

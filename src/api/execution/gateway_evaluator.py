@@ -279,7 +279,10 @@ class GatewayEvaluator:
             # Parse the condition
             parsed = self._parse_condition(condition_str)
             if not parsed:
-                return True
+                logger.warning(
+                    f"Unsupported condition expression on flow {flow_uri}: {condition_str}"
+                )
+                return False
 
             var_name, operator, expected_value = parsed
             actual_value = instance_vars.get(var_name)
@@ -348,6 +351,11 @@ class GatewayEvaluator:
         # Normalize operator
         op = self.OPERATOR_MAP.get(operator, operator)
 
+        actual_bool = self._to_bool(actual)
+        expected_bool = self._to_bool(expected)
+        if actual_bool is not None and expected_bool is not None and op in ("=", "!="):
+            return actual_bool == expected_bool if op == "=" else actual_bool != expected_bool
+
         # Try numeric comparison first
         try:
             actual_num = float(actual)
@@ -399,3 +407,11 @@ class GatewayEvaluator:
                     return actual <= expected
 
         return False
+
+    def _to_bool(self, value: str) -> Optional[bool]:
+        """Convert common boolean strings to bool."""
+        if isinstance(value, str):
+            lowered = value.strip().lower()
+            if lowered in ("true", "false"):
+                return lowered == "true"
+        return None
