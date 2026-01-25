@@ -270,6 +270,13 @@ class MessageHandler:
                 if instance_id_for_var:
                     for var_name, var_value in variables.items():
                         var_uri = VAR[f"{instance_id_for_var}_{var_name}"]
+                        self._instances.add(
+                            (
+                                URIRef(match["instance_uri"]),
+                                INST.hasVariable,
+                                var_uri,
+                            )
+                        )
                         self._instances.add((var_uri, VAR.name, Literal(var_name)))
                         self._instances.add(
                             (var_uri, VAR.value, Literal(str(var_value)))

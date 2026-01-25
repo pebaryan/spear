@@ -455,12 +455,14 @@ class NodeHandlers:
     def _find_existing_tokens_at_node(
         self, instance_uri: URIRef, node_uri: URIRef
     ) -> List[URIRef]:
-        """Find existing active tokens at a node."""
+        """Find existing active or waiting tokens at a node."""
         existing_tokens = []
         for tok in self._instances.objects(instance_uri, INST.hasToken):
-            status = self._instances.value(tok, INST.status)
             current = self._instances.value(tok, INST.currentNode)
-            if status and str(status) in ["ACTIVE", "WAITING"] and current == node_uri:
+            if current != node_uri:
+                continue
+            status = self._instances.value(tok, INST.status)
+            if status and str(status) in ["ACTIVE", "WAITING"]:
                 existing_tokens.append(tok)
         return existing_tokens
 

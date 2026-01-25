@@ -423,6 +423,45 @@ class TestEventBasedGateway:
             assert receive1_uri in waiting_tokens
             assert receive2_uri in waiting_tokens
 
+    def test_event_based_gateway_no_duplicate_waiting_tokens(self):
+        """Test that event-based gateway does not duplicate waiting tokens."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = BaseStorageService(tmpdir)
+            gateway_uri, receive1_uri, receive2_uri = self._create_event_based_gateway(
+                base
+            )
+            instance_uri = self._create_test_instance(base, "test-inst")
+            token_uri = self._create_test_token(base, instance_uri, gateway_uri)
+
+            handler = NodeHandlers(base.definitions_graph, base.instances_graph)
+
+            handler.execute_event_based_gateway(
+                instance_uri, token_uri, gateway_uri, "test-inst"
+            )
+
+            second_token_uri = INST["gateway_token_2"]
+            base.instances_graph.add((second_token_uri, RDF.type, INST.Token))
+            base.instances_graph.add((second_token_uri, INST.belongsTo, instance_uri))
+            base.instances_graph.add(
+                (second_token_uri, INST.status, Literal("ACTIVE"))
+            )
+            base.instances_graph.add((second_token_uri, INST.currentNode, gateway_uri))
+            base.instances_graph.add((instance_uri, INST.hasToken, second_token_uri))
+
+            handler.execute_event_based_gateway(
+                instance_uri, second_token_uri, gateway_uri, "test-inst"
+            )
+
+            waiting_tokens = []
+            for tok in base.instances_graph.objects(instance_uri, INST.hasToken):
+                tok_status = base.instances_graph.value(tok, INST.status)
+                tok_node = base.instances_graph.value(tok, INST.currentNode)
+                if tok_status and str(tok_status) == "WAITING":
+                    waiting_tokens.append(tok_node)
+
+            assert waiting_tokens.count(receive1_uri) == 1
+            assert waiting_tokens.count(receive2_uri) == 1
+
     def test_event_based_gateway_no_targets(self):
         """Test event-based gateway with no outgoing targets."""
         with tempfile.TemporaryDirectory() as tmpdir:

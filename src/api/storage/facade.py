@@ -484,12 +484,65 @@ class StorageFacade(BaseStorageService):
         variables: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Send a message to a process instance."""
-        # TODO: Implement with message_handler
-        return {
-            "status": "not_implemented",
-            "message_name": message_name,
-            "correlation_key": correlation_key,
-        }
+        def log_callback(inst_uri, event, user, details):
+            self._audit_repo.log_event(inst_uri, event, user, details)
+
+        def execute_callback(inst_uri, tok_uri, inst_id):
+            self._execute_token(inst_uri, tok_uri, inst_id, set())
+
+        def boundary_event_callback(
+            token_uri,
+            instance_uri,
+            boundary_event_uri,
+            instance_id,
+            is_interrupting,
+            vars_payload,
+        ):
+            self._message_handler.trigger_boundary_event(
+                token_uri,
+                instance_uri,
+                boundary_event_uri,
+                instance_id,
+                is_interrupting,
+                vars_payload,
+                log_callback=log_callback,
+                execute_callback=execute_callback,
+            )
+
+        result = self._message_handler.send_message(
+            message_name=message_name,
+            instance_id=correlation_key,
+            variables=variables,
+            correlation_id=correlation_key,
+            log_callback=log_callback,
+            boundary_event_callback=boundary_event_callback,
+        )
+
+        if variables:
+            for match in result.get("tasks", []):
+                instance_uri = match.get("instance_uri")
+                if instance_uri:
+                    instance_id = str(instance_uri).split("/")[-1]
+                    for name, value in variables.items():
+                        self._variables_service.set_variable(
+                            instance_id, name, value, save=False
+                        )
+            self._save_graph(self._instances_graph, "instances.ttl")
+
+        instance_ids = set()
+        for match in result.get("tasks", []):
+            instance_uri = match.get("instance_uri")
+            if instance_uri:
+                instance_ids.add(str(instance_uri).split("/")[-1])
+        for match in result.get("boundary_events", []):
+            instance_uri = match.get("instance_uri")
+            if instance_uri:
+                instance_ids.add(str(instance_uri).split("/")[-1])
+
+        for instance_id in instance_ids:
+            self._execute_instance(INST[instance_id], instance_id)
+
+        return result
 
     # ==================== Internal Execution ====================
 

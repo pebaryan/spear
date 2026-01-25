@@ -5,7 +5,7 @@ import tempfile
 import pytest
 from rdflib import URIRef, RDF, Literal
 
-from src.api.storage.base import BaseStorageService, INST, BPMN
+from src.api.storage.base import BaseStorageService, INST, BPMN, VAR
 from src.api.messaging.message_handler import MessageHandler
 
 
@@ -159,12 +159,22 @@ class TestSendMessage:
 
             handler = MessageHandler(base.definitions_graph, base.instances_graph)
 
-            result = handler.send_message(
-                "DataMessage", variables={"orderId": "123", "amount": "100.00"}
-            )
+            variables = {"orderId": "123", "amount": "100.00"}
+            result = handler.send_message("DataMessage", variables=variables)
 
             assert result["status"] == "delivered"
             assert result["matched_count"] == 1
+
+            var_names = []
+            for var_uri in base.instances_graph.objects(
+                instance_uri, INST.hasVariable
+            ):
+                name = base.instances_graph.value(var_uri, VAR.name)
+                if name:
+                    var_names.append(str(name))
+
+            assert "orderId" in var_names
+            assert "amount" in var_names
 
     def test_send_message_to_specific_instance(self):
         """Test sending a message to a specific instance."""
