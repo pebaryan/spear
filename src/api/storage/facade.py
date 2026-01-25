@@ -543,6 +543,7 @@ class StorageFacade(BaseStorageService):
         handlers = {
             "start_event": self._handle_start_event,
             "end_event": self._handle_end_event,
+            "message_end_event": self._handle_message_end_event,
             "service_task": self._handle_service_task,
             "user_task": self._handle_user_task,
             "exclusive_gateway": self._handle_exclusive_gateway,
@@ -597,6 +598,36 @@ class StorageFacade(BaseStorageService):
         merged_gateways: set,
     ) -> None:
         """Handle end event - consume token."""
+        self._execution_engine.consume_token(token_uri)
+
+    def _handle_message_end_event(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        """Handle message end event - trigger message and consume token."""
+        message_name = self._definitions_graph.value(node_uri, BPMN.messageRef)
+        if not message_name:
+            camunda_msg = URIRef("http://camunda.org/schema/1.0/bpmn#message")
+            message_name = self._definitions_graph.value(node_uri, camunda_msg)
+
+        if message_name:
+            self._audit_repo.log_event(
+                instance_uri,
+                "MESSAGE_END_EVENT",
+                "System",
+                f"Message end event triggered: {message_name}",
+            )
+            self._message_handler.trigger_message_end_event(
+                instance_uri,
+                str(message_name),
+                log_callback=self._audit_repo.log_event,
+            )
+
+        self._audit_repo.log_event(instance_uri, "END", "System", str(node_uri))
         self._execution_engine.consume_token(token_uri)
 
     def _handle_service_task(
