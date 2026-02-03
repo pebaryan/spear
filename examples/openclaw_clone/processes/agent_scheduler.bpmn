@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+             id="Definitions_openclaw_agent_scheduler"
+             targetNamespace="http://example.org/openclaw">
+  <process id="AgentSchedulerProcess" isExecutable="true" name="OpenClaw Agent Scheduler">
+
+    <startEvent id="StartEvent_Scheduler" name="Scheduler Tick">
+      <outgoing>Flow_StartToCheckDue</outgoing>
+    </startEvent>
+
+    <serviceTask id="ServiceTask_CheckDue" name="Check Due Agents"
+                 camunda:topic="scheduler_check_due"
+                 camunda:async="false">
+      <incoming>Flow_StartToCheckDue</incoming>
+      <outgoing>Flow_CheckDueToSpawn</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_SpawnCycle" name="Spawn Agent Cycle"
+                 camunda:topic="scheduler_spawn_cycle"
+                 camunda:async="false">
+      <incoming>Flow_CheckDueToSpawn</incoming>
+      <outgoing>Flow_SpawnToEnd</outgoing>
+    </serviceTask>
+
+    <endEvent id="EndEvent_Scheduler" name="Tick Complete">
+      <incoming>Flow_SpawnToEnd</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_StartToCheckDue" sourceRef="StartEvent_Scheduler" targetRef="ServiceTask_CheckDue" />
+    <sequenceFlow id="Flow_CheckDueToSpawn" sourceRef="ServiceTask_CheckDue" targetRef="ServiceTask_SpawnCycle" />
+    <sequenceFlow id="Flow_SpawnToEnd" sourceRef="ServiceTask_SpawnCycle" targetRef="EndEvent_Scheduler" />
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_AgentScheduler">
+    <bpmndi:BPMNPlane id="BPMNPlane_AgentScheduler" bpmnElement="AgentSchedulerProcess">
+      <bpmndi:BPMNShape id="StartEvent_Scheduler_di" bpmnElement="StartEvent_Scheduler">
+        <dc:Bounds x="140" y="120" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_CheckDue_di" bpmnElement="ServiceTask_CheckDue">
+        <dc:Bounds x="220" y="98" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_SpawnCycle_di" bpmnElement="ServiceTask_SpawnCycle">
+        <dc:Bounds x="420" y="98" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Scheduler_di" bpmnElement="EndEvent_Scheduler">
+        <dc:Bounds x="620" y="120" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_StartToCheckDue_di" bpmnElement="Flow_StartToCheckDue">
+        <di:waypoint x="176" y="138" />
+        <di:waypoint x="220" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CheckDueToSpawn_di" bpmnElement="Flow_CheckDueToSpawn">
+        <di:waypoint x="360" y="138" />
+        <di:waypoint x="420" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SpawnToEnd_di" bpmnElement="Flow_SpawnToEnd">
+        <di:waypoint x="560" y="138" />
+        <di:waypoint x="620" y="138" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

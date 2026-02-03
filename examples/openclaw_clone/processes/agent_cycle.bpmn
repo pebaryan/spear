@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_openclaw_agent_cycle"
+             targetNamespace="http://example.org/openclaw">
+  <process id="AgentCycleProcess" isExecutable="true" name="OpenClaw Agent Cycle">
+
+    <startEvent id="StartEvent_Cycle" name="Start Cycle">
+      <outgoing>Flow_StartToObserve</outgoing>
+    </startEvent>
+
+    <serviceTask id="ServiceTask_Observe" name="Observe State"
+                 camunda:topic="observe_state"
+                 camunda:async="false">
+      <incoming>Flow_StartToObserve</incoming>
+      <outgoing>Flow_ObserveToInfoGateway</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="Gateway_UserInfo" name="User Info?" default="Flow_InfoGatewayToQuestionGateway">
+      <incoming>Flow_ObserveToInfoGateway</incoming>
+      <outgoing>Flow_InfoGatewayToIngest</outgoing>
+      <outgoing>Flow_InfoGatewayToQuestionGateway</outgoing>
+    </exclusiveGateway>
+
+    <exclusiveGateway id="Gateway_UserQuestion" name="User Question?" default="Flow_GatewayToPlanQuery">
+      <incoming>Flow_InfoGatewayToQuestionGateway</incoming>
+      <outgoing>Flow_GatewayToAnswer</outgoing>
+      <outgoing>Flow_GatewayToPlanQuery</outgoing>
+    </exclusiveGateway>
+
+    <serviceTask id="ServiceTask_PlanQuery" name="Plan Search Query"
+                 camunda:topic="plan_query"
+                 camunda:async="false">
+      <incoming>Flow_GatewayToPlanQuery</incoming>
+      <outgoing>Flow_PlanQueryToSearch</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_IngestInfo" name="Ingest User Info"
+                 camunda:topic="ingest_info"
+                 camunda:async="false">
+      <incoming>Flow_InfoGatewayToIngest</incoming>
+      <outgoing>Flow_IngestToDecide</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_AnswerMemory" name="Answer From Memory"
+                 camunda:topic="answer_memory"
+                 camunda:async="false">
+      <incoming>Flow_GatewayToAnswer</incoming>
+      <outgoing>Flow_AnswerToDecide</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_Search" name="Web Search"
+                 camunda:topic="web_search"
+                 camunda:async="false">
+      <incoming>Flow_PlanQueryToSearch</incoming>
+      <outgoing>Flow_SearchToSummarize</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_Summarize" name="Summarize Findings"
+                 camunda:topic="summarize"
+                 camunda:async="false">
+      <incoming>Flow_SearchToSummarize</incoming>
+      <outgoing>Flow_SummarizeToDecide</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_Decide" name="Decide Next Action"
+                 camunda:topic="decide_next"
+                 camunda:async="false">
+      <incoming>Flow_SummarizeToDecide</incoming>
+      <outgoing>Flow_DecideToWrite</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_Write" name="Write Memory"
+                 camunda:topic="write_memory"
+                 camunda:async="false">
+      <incoming>Flow_DecideToWrite</incoming>
+      <outgoing>Flow_WriteToReflect</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_Reflect" name="Reflect"
+                 camunda:topic="reflect"
+                 camunda:async="false">
+      <incoming>Flow_WriteToReflect</incoming>
+      <outgoing>Flow_ReflectToSchedule</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_Schedule" name="Schedule Next"
+                 camunda:topic="schedule_next"
+                 camunda:async="false">
+      <incoming>Flow_ReflectToSchedule</incoming>
+      <outgoing>Flow_ScheduleToEnd</outgoing>
+    </serviceTask>
+
+    <endEvent id="EndEvent_Cycle" name="End Cycle">
+      <incoming>Flow_ScheduleToEnd</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_StartToObserve" sourceRef="StartEvent_Cycle" targetRef="ServiceTask_Observe" />
+    <sequenceFlow id="Flow_ObserveToInfoGateway" sourceRef="ServiceTask_Observe" targetRef="Gateway_UserInfo" />
+    <sequenceFlow id="Flow_InfoGatewayToIngest" sourceRef="Gateway_UserInfo" targetRef="ServiceTask_IngestInfo">
+      <conditionExpression xsi:type="tFormalExpression" camunda:expression="${user_info != ''}">${user_info != ''}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_InfoGatewayToQuestionGateway" sourceRef="Gateway_UserInfo" targetRef="Gateway_UserQuestion" />
+    <sequenceFlow id="Flow_GatewayToAnswer" sourceRef="Gateway_UserQuestion" targetRef="ServiceTask_AnswerMemory">
+      <conditionExpression xsi:type="tFormalExpression" camunda:expression="${user_question != ''}">${user_question != ''}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_GatewayToPlanQuery" sourceRef="Gateway_UserQuestion" targetRef="ServiceTask_PlanQuery" />
+    <sequenceFlow id="Flow_PlanQueryToSearch" sourceRef="ServiceTask_PlanQuery" targetRef="ServiceTask_Search" />
+    <sequenceFlow id="Flow_SearchToSummarize" sourceRef="ServiceTask_Search" targetRef="ServiceTask_Summarize" />
+    <sequenceFlow id="Flow_SummarizeToDecide" sourceRef="ServiceTask_Summarize" targetRef="ServiceTask_Decide" />
+    <sequenceFlow id="Flow_AnswerToDecide" sourceRef="ServiceTask_AnswerMemory" targetRef="ServiceTask_Decide" />
+    <sequenceFlow id="Flow_IngestToDecide" sourceRef="ServiceTask_IngestInfo" targetRef="ServiceTask_Decide" />
+    <sequenceFlow id="Flow_DecideToWrite" sourceRef="ServiceTask_Decide" targetRef="ServiceTask_Write" />
+    <sequenceFlow id="Flow_WriteToReflect" sourceRef="ServiceTask_Write" targetRef="ServiceTask_Reflect" />
+    <sequenceFlow id="Flow_ReflectToSchedule" sourceRef="ServiceTask_Reflect" targetRef="ServiceTask_Schedule" />
+    <sequenceFlow id="Flow_ScheduleToEnd" sourceRef="ServiceTask_Schedule" targetRef="EndEvent_Cycle" />
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_AgentCycle">
+    <bpmndi:BPMNPlane id="BPMNPlane_AgentCycle" bpmnElement="AgentCycleProcess">
+      <bpmndi:BPMNShape id="StartEvent_Cycle_di" bpmnElement="StartEvent_Cycle">
+        <dc:Bounds x="120" y="120" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_Observe_di" bpmnElement="ServiceTask_Observe">
+        <dc:Bounds x="200" y="98" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_UserInfo_di" bpmnElement="Gateway_UserInfo">
+        <dc:Bounds x="350" y="118" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_UserQuestion_di" bpmnElement="Gateway_UserQuestion">
+        <dc:Bounds x="430" y="118" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_PlanQuery_di" bpmnElement="ServiceTask_PlanQuery">
+        <dc:Bounds x="520" y="98" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_AnswerMemory_di" bpmnElement="ServiceTask_AnswerMemory">
+        <dc:Bounds x="520" y="220" width="160" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_IngestInfo_di" bpmnElement="ServiceTask_IngestInfo">
+        <dc:Bounds x="520" y="330" width="160" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_Search_di" bpmnElement="ServiceTask_Search">
+        <dc:Bounds x="700" y="98" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_Summarize_di" bpmnElement="ServiceTask_Summarize">
+        <dc:Bounds x="860" y="98" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_Decide_di" bpmnElement="ServiceTask_Decide">
+        <dc:Bounds x="1020" y="98" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_Write_di" bpmnElement="ServiceTask_Write">
+        <dc:Bounds x="1180" y="98" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_Reflect_di" bpmnElement="ServiceTask_Reflect">
+        <dc:Bounds x="1340" y="98" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_Schedule_di" bpmnElement="ServiceTask_Schedule">
+        <dc:Bounds x="1500" y="98" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Cycle_di" bpmnElement="EndEvent_Cycle">
+        <dc:Bounds x="1660" y="120" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_StartToObserve_di" bpmnElement="Flow_StartToObserve">
+        <di:waypoint x="156" y="138" />
+        <di:waypoint x="200" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ObserveToInfoGateway_di" bpmnElement="Flow_ObserveToInfoGateway">
+        <di:waypoint x="320" y="138" />
+        <di:waypoint x="350" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_InfoGatewayToQuestionGateway_di" bpmnElement="Flow_InfoGatewayToQuestionGateway">
+        <di:waypoint x="400" y="138" />
+        <di:waypoint x="430" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_InfoGatewayToIngest_di" bpmnElement="Flow_InfoGatewayToIngest">
+        <di:waypoint x="375" y="168" />
+        <di:waypoint x="375" y="370" />
+        <di:waypoint x="520" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GatewayToPlanQuery_di" bpmnElement="Flow_GatewayToPlanQuery">
+        <di:waypoint x="480" y="138" />
+        <di:waypoint x="520" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GatewayToAnswer_di" bpmnElement="Flow_GatewayToAnswer">
+        <di:waypoint x="455" y="168" />
+        <di:waypoint x="455" y="260" />
+        <di:waypoint x="520" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PlanQueryToSearch_di" bpmnElement="Flow_PlanQueryToSearch">
+        <di:waypoint x="660" y="138" />
+        <di:waypoint x="700" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SearchToSummarize_di" bpmnElement="Flow_SearchToSummarize">
+        <di:waypoint x="820" y="138" />
+        <di:waypoint x="860" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SummarizeToDecide_di" bpmnElement="Flow_SummarizeToDecide">
+        <di:waypoint x="980" y="138" />
+        <di:waypoint x="1020" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AnswerToDecide_di" bpmnElement="Flow_AnswerToDecide">
+        <di:waypoint x="680" y="260" />
+        <di:waypoint x="1020" y="260" />
+        <di:waypoint x="1020" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IngestToDecide_di" bpmnElement="Flow_IngestToDecide">
+        <di:waypoint x="680" y="370" />
+        <di:waypoint x="1020" y="370" />
+        <di:waypoint x="1020" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DecideToWrite_di" bpmnElement="Flow_DecideToWrite">
+        <di:waypoint x="1140" y="138" />
+        <di:waypoint x="1180" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_WriteToReflect_di" bpmnElement="Flow_WriteToReflect">
+        <di:waypoint x="1300" y="138" />
+        <di:waypoint x="1340" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ReflectToSchedule_di" bpmnElement="Flow_ReflectToSchedule">
+        <di:waypoint x="1460" y="138" />
+        <di:waypoint x="1500" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ScheduleToEnd_di" bpmnElement="Flow_ScheduleToEnd">
+        <di:waypoint x="1620" y="138" />
+        <di:waypoint x="1660" y="138" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>
