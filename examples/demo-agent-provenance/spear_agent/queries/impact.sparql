@@ -1,0 +1,19 @@
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX ag: <http://example.org/agent#>
+
+SELECT ?artifact ?downstreamAction ?tool ?status ?t
+WHERE {
+  BIND(IRI($actionUri) AS ?seedAction)
+  ?seedAction prov:used ?artifact ;
+              prov:startedAtTime ?seedT .
+
+  ?downstreamAction a ag:Action ;
+                    prov:used ?artifact ;
+                    prov:startedAtTime ?t ;
+                    ag:status ?status .
+  OPTIONAL { ?downstreamAction ag:tool ?tool }
+
+  FILTER (?downstreamAction != ?seedAction)
+  FILTER (?t >= ?seedT)
+}
+ORDER BY ?t

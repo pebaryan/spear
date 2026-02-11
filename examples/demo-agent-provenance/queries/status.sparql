@@ -1,0 +1,10 @@
+PREFIX ag: <http://example.org/agent#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?action ?label ?status
+WHERE {
+  ?action a ag:Action ;
+          rdfs:label ?label ;
+          ag:status ?status .
+}
+ORDER BY ?action

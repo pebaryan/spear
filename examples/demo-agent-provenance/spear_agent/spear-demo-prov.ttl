@@ -1,0 +1,403 @@
+@prefix ag: <http://example.org/agent#> .
+@prefix bpmn: <http://dkm.fbk.eu/index.php/BPMN2_Ontology#> .
+@prefix camunda: <http://camunda.org/schema/1.0/bpmn#> .
+@prefix ns1: <http://example.org/audit/> .
+@prefix ns2: <http://example.org/instance/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/agent/action/230463fd-79f8-44d3-98c8-9a7195a427e0> a ag:Action ;
+    rdfs:label "blocked shell command" ;
+    ag:command "curl http://example.com" ;
+    ag:reason "policy: blocked curl" ;
+    ag:status "blocked" ;
+    ag:tool "shell" ;
+    prov:startedAtTime "2026-02-11T10:10:05.555500+00:00"^^xsd:dateTime ;
+    prov:wasAssociatedWith ns2:c4b81e88-d7c8-4d10-a55f-b2e08019eb84 .
+
+<http://example.org/agent/action/41a071e8-d8f0-489a-b9c2-cf6ecb3c918f> a ag:Action ;
+    rdfs:label "apply local fix" ;
+    ag:status "completed" ;
+    ag:tool "edit" ;
+    prov:startedAtTime "2026-02-11T10:10:05.559031+00:00"^^xsd:dateTime ;
+    prov:used <file:///mnt/vmware/home/peb/works/hacks/phd/demo-agent-provenance/target_app/app.py>,
+        <file:///mnt/vmware/home/peb/works/hacks/phd/demo-agent-provenance/target_app/tests.py> ;
+    prov:wasAssociatedWith ns2:c4b81e88-d7c8-4d10-a55f-b2e08019eb84 .
+
+<http://example.org/agent/action/8b362995-bfed-48af-b146-b4e4fc98205c> a ag:Action ;
+    rdfs:label "run pytest (baseline)" ;
+    ag:status "failed" ;
+    ag:tool "pytest" ;
+    prov:startedAtTime "2026-02-11T10:10:05.552120+00:00"^^xsd:dateTime ;
+    prov:used <file:///mnt/vmware/home/peb/works/hacks/phd/demo-agent-provenance/target_app/app.py>,
+        <file:///mnt/vmware/home/peb/works/hacks/phd/demo-agent-provenance/target_app/tests.py> ;
+    prov:wasAssociatedWith ns2:c4b81e88-d7c8-4d10-a55f-b2e08019eb84 .
+
+<http://example.org/agent/action/b097e573-bebd-4d52-a4da-628098b9a4b5> a ag:Action ;
+    rdfs:label "run pytest (post-fix)" ;
+    ag:status "passed" ;
+    ag:tool "pytest" ;
+    prov:startedAtTime "2026-02-11T10:10:05.832518+00:00"^^xsd:dateTime ;
+    prov:used <file:///mnt/vmware/home/peb/works/hacks/phd/demo-agent-provenance/target_app/app.py>,
+        <file:///mnt/vmware/home/peb/works/hacks/phd/demo-agent-provenance/target_app/tests.py> ;
+    prov:wasAssociatedWith ns2:c4b81e88-d7c8-4d10-a55f-b2e08019eb84 .
+
+ns1:event_0c73d573-892a-44a5-b47f-5b8b3d6c43c3 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:75fa5dcf-9e11-4b26-a158-6f78a9e9fbaa ;
+    ns1:node <http://example.org/bpmn/RunTestsPost> ;
+    ns1:timestamp "2026-02-09T14:30:59.333035"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_17482a17-2268-4ffe-b1b7-05d5e8d5e291 a ns1:Event ;
+    ns1:eventType "START" ;
+    ns1:instance ns2:c4b81e88-d7c8-4d10-a55f-b2e08019eb84 ;
+    ns1:node <http://example.org/bpmn/StartEvent> ;
+    ns1:timestamp "2026-02-11T11:10:04.467987"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_1b877c52-1278-4c99-93d2-3ba16bdba1c5 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:75fa5dcf-9e11-4b26-a158-6f78a9e9fbaa ;
+    ns1:node <http://example.org/bpmn/BlockedCommand> ;
+    ns1:timestamp "2026-02-09T14:30:58.967779"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_293b78d1-9813-49ca-b5a1-c6b7dd45e3fe a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:26ee523f-f762-41d2-966f-3317a2d49234 ;
+    ns1:node <http://example.org/bpmn/ApplyFix> ;
+    ns1:timestamp "2026-02-11T11:01:02.507516"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_301dc7a1-159b-4e67-8f59-851fb2c51626 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:c4b81e88-d7c8-4d10-a55f-b2e08019eb84 ;
+    ns1:node <http://example.org/bpmn/RunTestsPost> ;
+    ns1:timestamp "2026-02-11T11:10:05.832887"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_407f285c-eb69-4b9d-814b-df480374a00c a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:c4b81e88-d7c8-4d10-a55f-b2e08019eb84 ;
+    ns1:node <http://example.org/bpmn/BlockedCommand> ;
+    ns1:timestamp "2026-02-11T11:10:05.555714"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_44077a15-6f80-4fa5-a1c4-daf9eefa11ac a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:95f3007e-f2cb-425d-9f55-3da201706d2f ;
+    ns1:node <http://example.org/bpmn/BlockedCommand> ;
+    ns1:timestamp "2026-02-11T11:05:49.577480"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_4bd49753-9839-43fa-8bc2-76716dc74367 a ns1:Event ;
+    ns1:eventType "END" ;
+    ns1:instance ns2:75fa5dcf-9e11-4b26-a158-6f78a9e9fbaa ;
+    ns1:node <http://example.org/bpmn/EndEvent> ;
+    ns1:timestamp "2026-02-09T14:30:59.336362"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_52d1b28d-2b53-4adf-b579-6ec7f0db2f7a a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:4a6ce3d6-23d4-4e2c-a982-0fa5fc585b7f ;
+    ns1:node <http://example.org/bpmn/RunTestsBaseline> ;
+    ns1:timestamp "2026-02-11T11:04:16.646187"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_70d72d59-ef99-4e31-b448-57273f5cede8 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:85b07b30-2493-462d-924b-ce6a34a647af ;
+    ns1:node <http://example.org/bpmn/BlockedCommand> ;
+    ns1:timestamp "2026-02-11T11:08:04.713712"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_75891362-3b02-4f50-971f-e73714f40228 a ns1:Event ;
+    ns1:eventType "START" ;
+    ns1:instance ns2:85b07b30-2493-462d-924b-ce6a34a647af ;
+    ns1:node <http://example.org/bpmn/StartEvent> ;
+    ns1:timestamp "2026-02-11T11:08:02.787256"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_7874a9e2-ce44-4ca9-8fe7-abdc70491301 a ns1:Event ;
+    ns1:eventType "END" ;
+    ns1:instance ns2:85b07b30-2493-462d-924b-ce6a34a647af ;
+    ns1:node <http://example.org/bpmn/EndEvent> ;
+    ns1:timestamp "2026-02-11T11:08:05.132278"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_7a35e1e1-60a1-4815-a735-1920a5b4efa2 a ns1:Event ;
+    ns1:eventType "START" ;
+    ns1:instance ns2:26ee523f-f762-41d2-966f-3317a2d49234 ;
+    ns1:node <http://example.org/bpmn/StartEvent> ;
+    ns1:timestamp "2026-02-11T11:01:00.768455"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_7c1b3363-1fc0-40d4-a025-2100c7d2b8bb a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:85b07b30-2493-462d-924b-ce6a34a647af ;
+    ns1:node <http://example.org/bpmn/RunTestsPost> ;
+    ns1:timestamp "2026-02-11T11:08:05.128366"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_7cb76f62-d76b-437c-970b-68a9db2c89ba a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:26ee523f-f762-41d2-966f-3317a2d49234 ;
+    ns1:node <http://example.org/bpmn/RunTestsBaseline> ;
+    ns1:timestamp "2026-02-11T11:01:02.501029"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_81dcb173-e046-4446-aa2d-08042a566f62 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:75fa5dcf-9e11-4b26-a158-6f78a9e9fbaa ;
+    ns1:node <http://example.org/bpmn/ApplyFix> ;
+    ns1:timestamp "2026-02-09T14:30:58.974414"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_840df381-2b76-439d-9d40-46fab4d82ead a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:26ee523f-f762-41d2-966f-3317a2d49234 ;
+    ns1:node <http://example.org/bpmn/RunTestsPost> ;
+    ns1:timestamp "2026-02-11T11:01:02.895867"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_8773675c-d21e-4066-bc3f-4bf7c8f89f80 a ns1:Event ;
+    ns1:eventType "END" ;
+    ns1:instance ns2:c4b81e88-d7c8-4d10-a55f-b2e08019eb84 ;
+    ns1:node <http://example.org/bpmn/EndEvent> ;
+    ns1:timestamp "2026-02-11T11:10:05.836239"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_8d125862-45c4-4fdb-a6dd-e4322aece153 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:4a6ce3d6-23d4-4e2c-a982-0fa5fc585b7f ;
+    ns1:node <http://example.org/bpmn/ApplyFix> ;
+    ns1:timestamp "2026-02-11T11:04:16.652473"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_920faa74-25c9-46fd-a55a-a391bb1bf930 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:95f3007e-f2cb-425d-9f55-3da201706d2f ;
+    ns1:node <http://example.org/bpmn/ApplyFix> ;
+    ns1:timestamp "2026-02-11T11:05:49.581186"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_93e83cf7-dbcc-4fcf-a14b-5e1e6fade897 a ns1:Event ;
+    ns1:eventType "END" ;
+    ns1:instance ns2:95f3007e-f2cb-425d-9f55-3da201706d2f ;
+    ns1:node <http://example.org/bpmn/EndEvent> ;
+    ns1:timestamp "2026-02-11T11:05:50.009111"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_99edf886-9cd1-48dd-9b7e-f85a23ea6a11 a ns1:Event ;
+    ns1:eventType "START" ;
+    ns1:instance ns2:4a6ce3d6-23d4-4e2c-a982-0fa5fc585b7f ;
+    ns1:node <http://example.org/bpmn/StartEvent> ;
+    ns1:timestamp "2026-02-11T11:04:15.467805"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_9a0fc5b7-4965-4f3b-9176-58c5ccb67bf0 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:75fa5dcf-9e11-4b26-a158-6f78a9e9fbaa ;
+    ns1:node <http://example.org/bpmn/RunTestsBaseline> ;
+    ns1:timestamp "2026-02-09T14:30:58.963699"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_9cd2b119-79e7-468e-a35d-2bfffd4193c7 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:85b07b30-2493-462d-924b-ce6a34a647af ;
+    ns1:node <http://example.org/bpmn/RunTestsBaseline> ;
+    ns1:timestamp "2026-02-11T11:08:04.708485"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_a1e99294-c42e-49e6-a212-47706f151959 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:4a6ce3d6-23d4-4e2c-a982-0fa5fc585b7f ;
+    ns1:node <http://example.org/bpmn/BlockedCommand> ;
+    ns1:timestamp "2026-02-11T11:04:16.649609"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_a687dc3b-3d8f-45bc-84e1-91d46bf17ad0 a ns1:Event ;
+    ns1:eventType "START" ;
+    ns1:instance ns2:75fa5dcf-9e11-4b26-a158-6f78a9e9fbaa ;
+    ns1:node <http://example.org/bpmn/StartEvent> ;
+    ns1:timestamp "2026-02-09T14:30:57.607341"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_b3c65396-70a5-4cec-8ab9-808566864222 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:95f3007e-f2cb-425d-9f55-3da201706d2f ;
+    ns1:node <http://example.org/bpmn/RunTestsPost> ;
+    ns1:timestamp "2026-02-11T11:05:50.004901"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_b9c4555a-4e61-4f86-9bfc-7fecca1b1538 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:85b07b30-2493-462d-924b-ce6a34a647af ;
+    ns1:node <http://example.org/bpmn/ApplyFix> ;
+    ns1:timestamp "2026-02-11T11:08:04.717376"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_d5a213db-a806-48ee-996c-ae3d41a1fb03 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:c4b81e88-d7c8-4d10-a55f-b2e08019eb84 ;
+    ns1:node <http://example.org/bpmn/ApplyFix> ;
+    ns1:timestamp "2026-02-11T11:10:05.559279"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_de70739a-1749-40a2-b0d4-f426d8777a82 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:c4b81e88-d7c8-4d10-a55f-b2e08019eb84 ;
+    ns1:node <http://example.org/bpmn/RunTestsBaseline> ;
+    ns1:timestamp "2026-02-11T11:10:05.552413"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_eb451d75-d33d-4c99-9d4c-ccd6f8eae4d3 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:4a6ce3d6-23d4-4e2c-a982-0fa5fc585b7f ;
+    ns1:node <http://example.org/bpmn/RunTestsPost> ;
+    ns1:timestamp "2026-02-11T11:04:16.920421"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_ebacea03-c4a4-4527-a47b-751ee0a33871 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:95f3007e-f2cb-425d-9f55-3da201706d2f ;
+    ns1:node <http://example.org/bpmn/RunTestsBaseline> ;
+    ns1:timestamp "2026-02-11T11:05:49.573795"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_f09d3207-68dc-429f-9fc4-aa487bf3040d a ns1:Event ;
+    ns1:eventType "START" ;
+    ns1:instance ns2:95f3007e-f2cb-425d-9f55-3da201706d2f ;
+    ns1:node <http://example.org/bpmn/StartEvent> ;
+    ns1:timestamp "2026-02-11T11:05:48.121479"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_f71d7628-a055-42a1-9bb4-29c333e7c3e3 a ns1:Event ;
+    ns1:eventType "COMPLETE" ;
+    ns1:instance ns2:26ee523f-f762-41d2-966f-3317a2d49234 ;
+    ns1:node <http://example.org/bpmn/BlockedCommand> ;
+    ns1:timestamp "2026-02-11T11:01:02.504356"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_f91a1cc9-7f81-4228-8460-d379436203a7 a ns1:Event ;
+    ns1:eventType "END" ;
+    ns1:instance ns2:26ee523f-f762-41d2-966f-3317a2d49234 ;
+    ns1:node <http://example.org/bpmn/EndEvent> ;
+    ns1:timestamp "2026-02-11T11:01:02.899206"^^xsd:dateTime ;
+    ns1:user "System" .
+
+ns1:event_fd87602d-86ce-4991-8c24-e0c404ab82d4 a ns1:Event ;
+    ns1:eventType "END" ;
+    ns1:instance ns2:4a6ce3d6-23d4-4e2c-a982-0fa5fc585b7f ;
+    ns1:node <http://example.org/bpmn/EndEvent> ;
+    ns1:timestamp "2026-02-11T11:04:16.923813"^^xsd:dateTime ;
+    ns1:user "System" .
+
+<http://example.org/bpmn/Flow1> a bpmn:sequenceFlow ;
+    bpmn:hasParent <http://example.org/bpmn/AgentDemoProcess> ;
+    bpmn:sourceRef <http://example.org/bpmn/StartEvent> ;
+    bpmn:targetRef <http://example.org/bpmn/RunTestsBaseline> .
+
+<http://example.org/bpmn/Flow2> a bpmn:sequenceFlow ;
+    bpmn:hasParent <http://example.org/bpmn/AgentDemoProcess> ;
+    bpmn:sourceRef <http://example.org/bpmn/RunTestsBaseline> ;
+    bpmn:targetRef <http://example.org/bpmn/BlockedCommand> .
+
+<http://example.org/bpmn/Flow3> a bpmn:sequenceFlow ;
+    bpmn:hasParent <http://example.org/bpmn/AgentDemoProcess> ;
+    bpmn:sourceRef <http://example.org/bpmn/BlockedCommand> ;
+    bpmn:targetRef <http://example.org/bpmn/ApplyFix> .
+
+<http://example.org/bpmn/Flow4> a bpmn:sequenceFlow ;
+    bpmn:hasParent <http://example.org/bpmn/AgentDemoProcess> ;
+    bpmn:sourceRef <http://example.org/bpmn/ApplyFix> ;
+    bpmn:targetRef <http://example.org/bpmn/RunTestsPost> .
+
+<http://example.org/bpmn/Flow5> a bpmn:sequenceFlow ;
+    bpmn:hasParent <http://example.org/bpmn/AgentDemoProcess> ;
+    bpmn:sourceRef <http://example.org/bpmn/RunTestsPost> ;
+    bpmn:targetRef <http://example.org/bpmn/EndEvent> .
+
+ns2:26ee523f-f762-41d2-966f-3317a2d49234 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-02-11T11:01:00.768357"^^xsd:dateTime ;
+    ns2:processDefinition <http://example.org/bpmn/AgentDemoProcess> ;
+    ns2:status "COMPLETED" ;
+    ns2:updatedAt "2026-02-11T11:01:02.899304"^^xsd:dateTime .
+
+ns2:4a6ce3d6-23d4-4e2c-a982-0fa5fc585b7f a ns2:ProcessInstance ;
+    ns2:createdAt "2026-02-11T11:04:15.467711"^^xsd:dateTime ;
+    ns2:processDefinition <http://example.org/bpmn/AgentDemoProcess> ;
+    ns2:status "COMPLETED" ;
+    ns2:updatedAt "2026-02-11T11:04:16.923953"^^xsd:dateTime .
+
+ns2:75fa5dcf-9e11-4b26-a158-6f78a9e9fbaa a ns2:ProcessInstance ;
+    ns2:createdAt "2026-02-09T14:30:57.607255"^^xsd:dateTime ;
+    ns2:processDefinition <http://example.org/bpmn/AgentDemoProcess> ;
+    ns2:status "COMPLETED" ;
+    ns2:updatedAt "2026-02-09T14:30:59.336462"^^xsd:dateTime .
+
+ns2:85b07b30-2493-462d-924b-ce6a34a647af a ns2:ProcessInstance ;
+    ns2:createdAt "2026-02-11T11:08:02.787083"^^xsd:dateTime ;
+    ns2:processDefinition <http://example.org/bpmn/AgentDemoProcess> ;
+    ns2:status "COMPLETED" ;
+    ns2:updatedAt "2026-02-11T11:08:05.132401"^^xsd:dateTime .
+
+ns2:95f3007e-f2cb-425d-9f55-3da201706d2f a ns2:ProcessInstance ;
+    ns2:createdAt "2026-02-11T11:05:48.121353"^^xsd:dateTime ;
+    ns2:processDefinition <http://example.org/bpmn/AgentDemoProcess> ;
+    ns2:status "COMPLETED" ;
+    ns2:updatedAt "2026-02-11T11:05:50.009243"^^xsd:dateTime .
+
+<http://example.org/bpmn/EndEvent> a bpmn:EndEvent ;
+    bpmn:hasParent <http://example.org/bpmn/AgentDemoProcess> ;
+    bpmn:incoming <http://example.org/bpmn/Flow5> ;
+    bpmn:name "End" .
+
+<http://example.org/bpmn/StartEvent> a bpmn:StartEvent ;
+    bpmn:hasParent <http://example.org/bpmn/AgentDemoProcess> ;
+    bpmn:name "Start" ;
+    bpmn:outgoing <http://example.org/bpmn/Flow1> .
+
+<http://example.org/bpmn/ApplyFix> a bpmn:ServiceTask ;
+    camunda:topic "apply_fix" ;
+    bpmn:hasParent <http://example.org/bpmn/AgentDemoProcess> ;
+    bpmn:incoming <http://example.org/bpmn/Flow3> ;
+    bpmn:name "Apply fix" ;
+    bpmn:outgoing <http://example.org/bpmn/Flow4> ;
+    bpmn:topic "apply_fix" .
+
+<http://example.org/bpmn/BlockedCommand> a bpmn:ServiceTask ;
+    camunda:topic "blocked_cmd" ;
+    bpmn:hasParent <http://example.org/bpmn/AgentDemoProcess> ;
+    bpmn:incoming <http://example.org/bpmn/Flow2> ;
+    bpmn:name "Blocked command" ;
+    bpmn:outgoing <http://example.org/bpmn/Flow3> ;
+    bpmn:topic "blocked_cmd" .
+
+<http://example.org/bpmn/RunTestsBaseline> a bpmn:ServiceTask ;
+    camunda:topic "run_tests" ;
+    bpmn:hasParent <http://example.org/bpmn/AgentDemoProcess> ;
+    bpmn:incoming <http://example.org/bpmn/Flow1> ;
+    bpmn:name "Run tests (baseline)" ;
+    bpmn:outgoing <http://example.org/bpmn/Flow2> ;
+    bpmn:topic "run_tests" .
+
+<http://example.org/bpmn/RunTestsPost> a bpmn:ServiceTask ;
+    camunda:topic "run_tests" ;
+    bpmn:hasParent <http://example.org/bpmn/AgentDemoProcess> ;
+    bpmn:incoming <http://example.org/bpmn/Flow4> ;
+    bpmn:name "Run tests (post-fix)" ;
+    bpmn:outgoing <http://example.org/bpmn/Flow5> ;
+    bpmn:topic "run_tests" .
+
+ns2:c4b81e88-d7c8-4d10-a55f-b2e08019eb84 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-02-11T11:10:04.467772"^^xsd:dateTime ;
+    ns2:processDefinition <http://example.org/bpmn/AgentDemoProcess> ;
+    ns2:status "COMPLETED" ;
+    ns2:updatedAt "2026-02-11T11:10:05.836336"^^xsd:dateTime .
+
+<http://example.org/bpmn/AgentDemoProcess> a bpmn:process ;
+    bpmn:isExecutable "true" .
+

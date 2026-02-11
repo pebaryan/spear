@@ -1,0 +1,11 @@
+PREFIX ag: <http://example.org/agent#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?action ?label ?reason
+WHERE {
+  ?action a ag:Action ;
+          ag:status "blocked" ;
+          rdfs:label ?label .
+  OPTIONAL { ?action ag:reason ?reason }
+}

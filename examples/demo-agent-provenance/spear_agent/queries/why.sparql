@@ -1,0 +1,16 @@
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX ag: <http://example.org/agent#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?action ?label ?tool ?status ?target ?t
+WHERE {
+  BIND(IRI($runUri) AS ?run)
+  ?action a ag:Action ;
+          prov:wasAssociatedWith ?run ;
+          prov:startedAtTime ?t ;
+          ag:status ?status .
+  OPTIONAL { ?action rdfs:label ?label }
+  OPTIONAL { ?action ag:tool ?tool }
+  OPTIONAL { ?action prov:used ?target }
+}
+ORDER BY ?t

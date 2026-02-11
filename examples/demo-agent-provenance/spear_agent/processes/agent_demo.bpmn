@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+             id="Definitions_AgentDemo"
+             targetNamespace="http://example.org/agentdemo">
+  <process id="AgentDemoProcess" isExecutable="true">
+    <startEvent id="StartEvent" name="Start" />
+    <serviceTask id="RunTestsBaseline" name="Run tests (baseline)" camunda:topic="run_tests" />
+    <serviceTask id="BlockedCommand" name="Blocked command" camunda:topic="blocked_cmd" />
+    <serviceTask id="ApplyFix" name="Apply fix" camunda:topic="apply_fix" />
+    <serviceTask id="RunTestsPost" name="Run tests (post-fix)" camunda:topic="run_tests" />
+    <endEvent id="EndEvent" name="End" />
+
+    <sequenceFlow id="Flow1" sourceRef="StartEvent" targetRef="RunTestsBaseline" />
+    <sequenceFlow id="Flow2" sourceRef="RunTestsBaseline" targetRef="BlockedCommand" />
+    <sequenceFlow id="Flow3" sourceRef="BlockedCommand" targetRef="ApplyFix" />
+    <sequenceFlow id="Flow4" sourceRef="ApplyFix" targetRef="RunTestsPost" />
+    <sequenceFlow id="Flow5" sourceRef="RunTestsPost" targetRef="EndEvent" />
+  </process>
+</definitions>
