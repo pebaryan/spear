@@ -1,19 +1,19 @@
 # Process Definition API Endpoints
 # REST API for managing BPMN process definitions
 
-from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Response
+import logging
+from fastapi import APIRouter, HTTPException, Query, Response
 from typing import Optional
-from datetime import datetime
 from src.api.models import (
     ProcessDefinitionCreate,
     ProcessDefinitionUpdate,
     ProcessDefinitionResponse,
     ProcessDefinitionListResponse,
-    ErrorResponse,
 )
-from src.api.storage import RDFStorageService, get_storage
+from src.api.storage import get_storage
 
 router = APIRouter(prefix="/processes", tags=["Process Definitions"])
+logger = logging.getLogger(__name__)
 
 # Use shared storage service
 storage = get_storage()
@@ -69,8 +69,13 @@ async def create_process(process: ProcessDefinitionCreate):
 
         return ProcessDefinitionResponse(**created)
 
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to deploy process")
+        raise HTTPException(
+            status_code=400, detail="Invalid process deployment request"
+        )
 
 
 @router.put("/{process_id}", response_model=ProcessDefinitionResponse)

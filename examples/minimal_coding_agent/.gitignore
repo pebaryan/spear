@@ -1,0 +1,6 @@
+latest_run_report.json
+engine_graph.ttl
+memory_graph.ttl
+target_project/.pytest_cache/
+target_project/__pycache__/
+__pycache__/

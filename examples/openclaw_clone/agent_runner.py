@@ -2,6 +2,7 @@ import os
 import sys
 import argparse
 from datetime import datetime, timezone
+from typing import Dict, List, Optional
 from rdflib import Graph, Literal, Namespace, RDF, URIRef
 
 BASE_DIR = os.path.dirname(__file__)
@@ -92,7 +93,9 @@ def _split_memory_engine_if_needed(memory_graph: Graph, engine_graph: Graph) -> 
         engine_graph.add((s, p, o))
 
 
-def _merge_bpmn_definitions(graph: Graph, include_files: list[str] | None = None) -> None:
+def _merge_bpmn_definitions(
+    graph: Graph, include_files: Optional[List[str]] = None
+) -> None:
     graph.bind("bpmn", BPMN_NS, replace=True)
     graph.bind("camunda", CAMUNDA_NS, replace=True)
     # Remove prior BPMN element triples to avoid duplicated flows across runs.
@@ -155,7 +158,9 @@ def run_scheduler_tick() -> None:
     memory_graph.serialize(MEMORY_PATH, format="turtle")
     engine_graph.serialize(ENGINE_PATH, format="turtle")
 
-def run_agent_cycle(agent_uri: str | None = None, variables: dict | None = None) -> None:
+def run_agent_cycle(
+    agent_uri: Optional[str] = None, variables: Optional[Dict] = None
+) -> None:
     _load_env(ENV_PATH)
     if os.getenv("AGENT_VERBOSE", "").strip().lower() in {"1", "true", "yes", "on"}:
         print(f"[runner] AGENT_VERBOSE={os.getenv('AGENT_VERBOSE')}")

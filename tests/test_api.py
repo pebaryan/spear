@@ -6,6 +6,7 @@ Test script for SPEAR REST API
 import pytest
 from fastapi.testclient import TestClient
 from src.api.main import app
+from src.api.security import _reset_rate_limiter_state_for_tests
 
 
 @pytest.fixture
@@ -22,6 +23,17 @@ def test_health_check(client):
     assert data["status"] == "healthy"
     assert "version" in data
     assert "triple_count" in data
+
+
+def test_response_includes_observability_and_security_headers(client):
+    """Responses should include tracing/perf and baseline security headers."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.headers.get("X-Request-ID")
+    assert response.headers.get("X-Process-Time-Ms")
+    assert response.headers.get("X-Content-Type-Options") == "nosniff"
+    assert response.headers.get("X-Frame-Options") == "DENY"
+    assert response.headers.get("Referrer-Policy") == "no-referrer"
 
 
 def test_api_info(client):
@@ -149,6 +161,40 @@ def test_deploy_and_manage_process(client, sample_bpmn):
     # 8. Delete process (cleanup)
     response = client.delete(f"/api/v1/processes/{process_id}")
     assert response.status_code == 204
+
+
+def test_builtin_calculate_tax_registration_and_execution(client):
+    """Test built-in calculate_tax handler can be registered and executed."""
+    response = client.post("/api/v1/topics/builtin/calculate_tax")
+    assert response.status_code == 200
+
+    response = client.post(
+        "/api/v1/topics/calculate_tax/test",
+        json={"variables": {"orderTotal": 100}},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["output_variables"]["taxAmount"] == 10.0
+    assert data["output_variables"]["taxRate"] == 0.10
+
+
+def test_api_rate_limit_blocks_excess_requests(client, monkeypatch):
+    """Rate limiter should return 429 when request budget is exceeded."""
+    monkeypatch.setenv("RATE_LIMIT_ENABLED", "true")
+    monkeypatch.setenv("RATE_LIMIT_REQUESTS", "2")
+    monkeypatch.setenv("RATE_LIMIT_WINDOW_SECONDS", "60")
+    _reset_rate_limiter_state_for_tests()
+
+    try:
+        assert client.get("/api/v1/processes").status_code == 200
+        assert client.get("/api/v1/processes").status_code == 200
+
+        response = client.get("/api/v1/processes")
+        assert response.status_code == 429
+        assert response.headers.get("Retry-After")
+    finally:
+        _reset_rate_limiter_state_for_tests()
 
 
 # Sample BPMN for testing

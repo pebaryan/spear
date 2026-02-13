@@ -44,20 +44,15 @@ class RDFStorageService:
         self.storage_path = storage_path
         os.makedirs(storage_path, exist_ok=True)
 
-        # Main graph for process definitions
+        # Initialize all graphs first, then load persisted data.
         self.definitions_graph = Graph()
-        self._load_graph("definitions.ttl")
-
-        # Graph for process instances
         self.instances_graph = Graph()
-        self._load_graph("instances.ttl")
-
-        # Graph for audit logs
         self.audit_graph = Graph()
-        self._load_graph("audit.ttl")
-
-        # Graph for tasks
         self.tasks_graph = Graph()
+
+        self._load_graph("definitions.ttl")
+        self._load_graph("instances.ttl")
+        self._load_graph("audit.ttl")
         self._load_graph("tasks.ttl")
 
         # Topic registry for service task handlers
@@ -78,11 +73,22 @@ class RDFStorageService:
         logger.info(f"Initialized RDF storage at {storage_path}")
 
     def _load_graph(self, filename: str):
-        """Load a graph from file if it exists"""
+        """Load a graph from file if it exists."""
+        graph_map = {
+            "definitions.ttl": self.definitions_graph,
+            "instances.ttl": self.instances_graph,
+            "audit.ttl": self.audit_graph,
+            "tasks.ttl": self.tasks_graph,
+        }
+        target_graph = graph_map.get(filename)
+        if target_graph is None:
+            logger.warning(f"Unknown graph file: {filename}")
+            return
+
         filepath = os.path.join(self.storage_path, filename)
         if os.path.exists(filepath):
             try:
-                self.definitions_graph.parse(filepath, format="turtle")
+                target_graph.parse(filepath, format="turtle")
                 logger.info(f"Loaded graph from {filepath}")
             except Exception as e:
                 logger.warning(f"Failed to load {filepath}: {e}")

@@ -53,7 +53,7 @@ class StorageFacade(BaseStorageService):
     - EventBus: Event-driven architecture support
     """
 
-    def __init__(self, data_dir: str = "data"):
+    def __init__(self, data_dir: str = "data/spear_rdf"):
         """
         Initialize the storage facade and all components.
 
@@ -474,6 +474,53 @@ class StorageFacade(BaseStorageService):
             # Note: This is an internal access, consider adding a proper method
             return self._topic_registry._handlers[topic].get("function")
         return None
+
+    # Backward-compatible aliases used by API layer and legacy tests
+
+    def register_topic_handler(
+        self,
+        topic: str,
+        handler_function: Callable,
+        description: str = "",
+        async_execution: bool = False,
+        handler_type: str = "function",
+        http_config: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """Backward-compatible topic registration method."""
+        return self._topic_registry.register(
+            topic=topic,
+            handler_function=handler_function,
+            description=description,
+            async_execution=async_execution,
+            handler_type=handler_type,
+            http_config=http_config,
+        )
+
+    def update_topic_description(self, topic: str, description: str) -> bool:
+        """Backward-compatible topic description update method."""
+        return self._topic_registry.update_description(topic, description)
+
+    def update_topic_async(self, topic: str, async_execution: bool) -> bool:
+        """Backward-compatible topic async update method."""
+        return self._topic_registry.update_async(topic, async_execution)
+
+    def unregister_topic_handler(self, topic: str) -> bool:
+        """Backward-compatible topic unregister method."""
+        return self._topic_registry.unregister(topic)
+
+    def get_registered_topics(self) -> Dict[str, Any]:
+        """Backward-compatible topic listing method."""
+        return self._topic_registry.get_all()
+
+    def execute_service_task(
+        self,
+        instance_id: str,
+        topic: str,
+        variables: Dict[str, Any],
+        loop_idx: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Backward-compatible service task execution method."""
+        return self._topic_registry.execute(instance_id, topic, variables, loop_idx)
 
     # ==================== Message Operations ====================
 
@@ -1260,7 +1307,7 @@ class StorageFacade(BaseStorageService):
 _shared_facade: Optional[StorageFacade] = None
 
 
-def get_facade(data_dir: str = "data") -> StorageFacade:
+def get_facade(data_dir: str = "data/spear_rdf") -> StorageFacade:
     """Get or create the shared storage facade instance."""
     global _shared_facade
     if _shared_facade is None:

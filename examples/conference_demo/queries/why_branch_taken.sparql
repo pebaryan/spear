@@ -1,0 +1,24 @@
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX bpmn: <http://dkm.fbk.eu/index.php/BPMN2_Ontology#>
+PREFIX inst: <http://example.org/instance/>
+PREFIX var: <http://example.org/variables/>
+
+SELECT ?instance ?risk ?currentNode ?condition
+WHERE {
+  ?instance rdf:type inst:ProcessInstance ;
+            inst:hasVariable ?v ;
+            inst:hasToken ?token .
+
+  ?v var:name "risk" ;
+     var:value ?risk .
+  FILTER (?risk = "high")
+
+  ?token inst:status ?tokenStatus ;
+         inst:currentNode ?currentNode .
+  FILTER (?tokenStatus = "ACTIVE" || ?tokenStatus = "WAITING")
+
+  ?flow rdf:type bpmn:sequenceFlow ;
+        bpmn:targetRef ?currentNode ;
+        bpmn:conditionBody ?condition .
+}
+ORDER BY ?instance

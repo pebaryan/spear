@@ -1,17 +1,31 @@
 # Service Task Topics API Endpoints
 # REST API for managing service task topic handlers
 
+import logging
 from fastapi import APIRouter, HTTPException
 from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
-from datetime import datetime
-from src.api.storage import RDFStorageService, get_storage
+from src.api.storage import get_storage
 from src.api.handlers.http_handlers import HTTPHandlers
 
 router = APIRouter(prefix="/topics", tags=["Service Tasks"])
+logger = logging.getLogger(__name__)
 
 storage = get_storage()
 http_handlers = HTTPHandlers()
+
+
+# ==================== Built-in Script Handlers ====================
+
+
+def _calculate_tax_handler(instance_id: str, variables: Dict[str, Any]) -> Dict[str, Any]:
+    """Built-in tax calculation handler."""
+    updated = dict(variables)
+    order_total = float(updated.get("orderTotal", 0))
+    tax = order_total * 0.10
+    updated["taxAmount"] = round(tax, 2)
+    updated["taxRate"] = 0.10
+    return updated
 
 
 # ==================== Request/Response Models ====================
@@ -244,6 +258,20 @@ async def register_builtin_handler(handler_name: str):
             handler_type=handler_type,
             http_config=config
         )
+    elif handler_type == "script":
+        if handler_name == "calculate_tax":
+            storage.register_topic_handler(
+                topic=handler_name,
+                handler_function=_calculate_tax_handler,
+                description=builtin["description"],
+                handler_type="function",
+                http_config=None,
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Built-in script handler '{handler_name}' is not supported",
+            )
     
     return {
         "message": f"Built-in handler '{handler_name}' registered successfully",
@@ -476,8 +504,9 @@ async def test_topic_handler(topic: str, request: TestHandlerRequest = None):
             status="success"
         )
         
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        logger.exception("Topic handler test failed for topic '%s'", topic)
+        raise HTTPException(status_code=400, detail="Topic handler test failed")
 
 
 @router.get("/{topic}/docs")

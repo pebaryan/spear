@@ -1,6 +1,7 @@
 # Error Event API Endpoints
 # REST API for error handling operations
 
+import logging
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from src.api.models import (
@@ -9,9 +10,10 @@ from src.api.models import (
     ErrorThrowResponse,
     InstanceResponse,
 )
-from src.api.storage import RDFStorageService, get_storage
+from src.api.storage import get_storage
 
 router = APIRouter(prefix="/errors", tags=["Error Handling"])
+logger = logging.getLogger(__name__)
 
 # Use shared storage service
 storage = get_storage()
@@ -56,10 +58,13 @@ async def throw_error(request: ErrorThrowRequest):
 
     except ValueError as e:
         if "not found" in str(e).lower():
-            raise HTTPException(status_code=404, detail=str(e))
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(
+                status_code=404, detail=f"Instance {request.instance_id} not found"
+            )
+        raise HTTPException(status_code=400, detail="Unable to throw error")
+    except Exception:
+        logger.exception("Failed to throw error for instance %s", request.instance_id)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.post(
@@ -112,10 +117,11 @@ async def cancel_instance(
 
     except ValueError as e:
         if "not found" in str(e).lower():
-            raise HTTPException(status_code=404, detail=str(e))
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=404, detail=f"Instance {instance_id} not found")
+        raise HTTPException(status_code=400, detail="Unable to cancel instance")
+    except Exception:
+        logger.exception("Failed to cancel instance %s", instance_id)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.get(

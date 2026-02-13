@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+             id="Definitions_minimal_coding_agent"
+             targetNamespace="http://example.org/minimal_coding_agent">
+  <process id="MinimalCodingAgentProcess" isExecutable="true" name="SPEAR Minimal Coding Agent">
+    <startEvent id="StartEvent_AgentFix" name="Start Agent Fix">
+      <outgoing>Flow_StartToReset</outgoing>
+    </startEvent>
+
+    <serviceTask id="ServiceTask_ResetTarget" name="Maybe Reset Target"
+                 camunda:topic="maybe_reset_target"
+                 camunda:async="false">
+      <incoming>Flow_StartToReset</incoming>
+      <outgoing>Flow_ResetToRunBefore</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_RunTestsBefore" name="Run Tests Before"
+                 camunda:topic="run_tests_before"
+                 camunda:async="false">
+      <incoming>Flow_ResetToRunBefore</incoming>
+      <outgoing>Flow_RunBeforeToSummarize</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_SummarizeFailure" name="Summarize Failure"
+                 camunda:topic="summarize_failure"
+                 camunda:async="false">
+      <incoming>Flow_RunBeforeToSummarize</incoming>
+      <outgoing>Flow_SummarizeToSearch</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_WebSearch" name="Web Search"
+                 camunda:topic="web_search"
+                 camunda:async="false">
+      <incoming>Flow_SummarizeToSearch</incoming>
+      <outgoing>Flow_SearchToApplyFix</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_ApplyFix" name="Apply Fix"
+                 camunda:topic="apply_fix"
+                 camunda:async="false">
+      <incoming>Flow_SearchToApplyFix</incoming>
+      <outgoing>Flow_ApplyFixToRunAfter</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_RunTestsAfter" name="Run Tests After"
+                 camunda:topic="run_tests_after"
+                 camunda:async="false">
+      <incoming>Flow_ApplyFixToRunAfter</incoming>
+      <outgoing>Flow_RunAfterToWriteReport</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_WriteReport" name="Write Report"
+                 camunda:topic="write_report"
+                 camunda:async="false">
+      <incoming>Flow_RunAfterToWriteReport</incoming>
+      <outgoing>Flow_WriteReportToEnd</outgoing>
+    </serviceTask>
+
+    <endEvent id="EndEvent_AgentFix" name="End Agent Fix">
+      <incoming>Flow_WriteReportToEnd</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_StartToReset" sourceRef="StartEvent_AgentFix" targetRef="ServiceTask_ResetTarget" />
+    <sequenceFlow id="Flow_ResetToRunBefore" sourceRef="ServiceTask_ResetTarget" targetRef="ServiceTask_RunTestsBefore" />
+    <sequenceFlow id="Flow_RunBeforeToSummarize" sourceRef="ServiceTask_RunTestsBefore" targetRef="ServiceTask_SummarizeFailure" />
+    <sequenceFlow id="Flow_SummarizeToSearch" sourceRef="ServiceTask_SummarizeFailure" targetRef="ServiceTask_WebSearch" />
+    <sequenceFlow id="Flow_SearchToApplyFix" sourceRef="ServiceTask_WebSearch" targetRef="ServiceTask_ApplyFix" />
+    <sequenceFlow id="Flow_ApplyFixToRunAfter" sourceRef="ServiceTask_ApplyFix" targetRef="ServiceTask_RunTestsAfter" />
+    <sequenceFlow id="Flow_RunAfterToWriteReport" sourceRef="ServiceTask_RunTestsAfter" targetRef="ServiceTask_WriteReport" />
+    <sequenceFlow id="Flow_WriteReportToEnd" sourceRef="ServiceTask_WriteReport" targetRef="EndEvent_AgentFix" />
+  </process>
+</definitions>

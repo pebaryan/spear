@@ -1,0 +1,1936 @@
+@prefix ns1: <http://dkm.fbk.eu/index.php/BPMN2_Ontology#> .
+@prefix ns11: <http://example.org/audit/> .
+@prefix ns13: <http://example.org/variables/> .
+@prefix ns2: <http://example.org/instance/> .
+@prefix ns3: <http://example.org/meta/> .
+@prefix ns4: <http://example.org/process/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ns11:event_00fcf68f-790a-46d1-b28e-1f95e11ed3e3 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:5202ad9e-865b-4903-b74c-b11eaf418cd5 ;
+    ns11:timestamp "2026-01-22T16:23:03.767166" ;
+    ns11:user "System" .
+
+ns11:event_013da4f4-c4b8-4b2d-b019-97ace6b9e5c0 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:3268db2f-e448-4116-ae84-4930cfc54d84 ;
+    ns11:timestamp "2026-01-22T16:30:26.419012" ;
+    ns11:user "System" .
+
+ns11:event_03f505b0-e2c5-4790-aebe-cce1c4ff3897 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:befe8c0b-b193-4a02-8076-fdef4bc2d5e5 ;
+    ns11:timestamp "2026-01-23T12:02:53.911831" ;
+    ns11:user "System" .
+
+ns11:event_056f392e-9cf0-439e-9500-a974288dfd7e a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:27f3e714-3a43-4dfb-8259-33b1c726ea2c ;
+    ns11:timestamp "2026-01-22T11:53:53.068324" ;
+    ns11:user "System" .
+
+ns11:event_05931373-cd4f-45df-b31d-1c14a3aa2fd7 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:db64f1cd-0407-4529-a1cd-fcfe9f1da32b ;
+    ns11:timestamp "2026-01-22T15:47:13.158210" ;
+    ns11:user "System" .
+
+ns11:event_0d719904-b496-4b1e-b27c-a2c456349d56 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:6c816d58-dde6-49cd-bc5d-d5f70bf30cf2 ;
+    ns11:timestamp "2026-01-22T13:36:06.931833" ;
+    ns11:user "System" .
+
+ns11:event_0faaef58-f663-4577-bb34-f4fb46105aaf a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:7d76329a-90c2-4bae-b8a0-4abfb892f4ed ;
+    ns11:timestamp "2026-01-22T16:16:33.247319" ;
+    ns11:user "System" .
+
+ns11:event_0ff1a455-3401-4086-8b0a-9b1213563568 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:c8d1d7fa-fd75-4233-88fa-1295a1f63bb7 ;
+    ns11:timestamp "2026-01-22T11:31:48.700324" ;
+    ns11:user "System" .
+
+ns11:event_105a877f-7850-43b8-b1ca-f8900951cfcc a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:69813d75-5be8-4dea-ba39-f2616bf20b8b ;
+    ns11:timestamp "2026-01-22T11:31:59.677736" ;
+    ns11:user "System" .
+
+ns11:event_115e6d73-81dd-4f74-a319-c85739a92370 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/start1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:2bae009a-bc37-4e9a-a71b-648241247150 ;
+    ns11:timestamp "2026-01-22T15:49:16.054144" ;
+    ns11:user "System" .
+
+ns11:event_123abcca-6953-4ee3-be0d-a4a473e4c69c a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:af0aae96-9854-4b2e-a19e-a7f614034592 ;
+    ns11:timestamp "2026-02-13T19:30:36.371098" ;
+    ns11:user "System" .
+
+ns11:event_1540ac3c-0d63-44e6-9070-88e1a64fbf5c a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:b4f83a7b-45fb-41df-94dc-9aba777d24d2 ;
+    ns11:timestamp "2026-01-22T10:49:56.175385" ;
+    ns11:user "System" .
+
+ns11:event_16d4b108-bcfb-4056-a601-86d9487045aa a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:bbddae37-7073-4f17-9b5c-6419e782f1ea ;
+    ns11:timestamp "2026-01-22T10:55:30.422259" ;
+    ns11:user "System" .
+
+ns11:event_170d636a-e4db-4b60-bdea-b36d8987f7b3 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:ac1af414-4a64-4ab9-a114-0f368c3c3d72 ;
+    ns11:timestamp "2026-01-22T15:26:41.273704" ;
+    ns11:user "System" .
+
+ns11:event_18b38f64-7584-4b4a-8a38-e3f5cc4b4c59 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:f4848249-1db3-4c4a-8cfe-5967e5f2aeb8 ;
+    ns11:timestamp "2026-01-22T13:13:34.907229" ;
+    ns11:user "System" .
+
+ns11:event_1bb42953-7d88-4123-8d85-ad88e810dd8a a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:2bae009a-bc37-4e9a-a71b-648241247150 ;
+    ns11:timestamp "2026-01-22T15:49:16.076573" ;
+    ns11:user "System" .
+
+ns11:event_1cb0235c-bbb6-474e-a20e-811f02183255 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:54ac20a1-3ea7-4868-a379-650415acef8f ;
+    ns11:timestamp "2026-01-22T13:26:23.050445" ;
+    ns11:user "System" .
+
+ns11:event_1ed0f8ff-5e72-4c34-8a77-3c9f53647395 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:d19262b1-6995-4d17-92fa-11b92b59ab32 ;
+    ns11:timestamp "2026-01-22T10:57:47.504176" ;
+    ns11:user "System" .
+
+ns11:event_1f4c9ca4-8804-4fab-b659-abf2fb7f78c7 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:6c816d58-dde6-49cd-bc5d-d5f70bf30cf2 ;
+    ns11:timestamp "2026-01-22T13:36:06.922309" ;
+    ns11:user "System" .
+
+ns11:event_20512195-91b2-471a-baac-dbc3cfc70479 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/mySubProcess - parallel (3 instances)" ;
+    ns11:eventType "MULTI_INSTANCE_STARTED" ;
+    ns11:instance ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns11:timestamp "2026-01-22T15:50:03.681642" ;
+    ns11:user "System" .
+
+ns11:event_2116b49a-f0f5-490e-bfb8-a6d0ea6536be a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:c8d1d7fa-fd75-4233-88fa-1295a1f63bb7 ;
+    ns11:timestamp "2026-01-22T11:31:48.712857" ;
+    ns11:user "System" .
+
+ns11:event_21e384ec-8a31-42f8-b510-a7d23bbf53c0 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:54ac20a1-3ea7-4868-a379-650415acef8f ;
+    ns11:timestamp "2026-01-22T13:26:23.075499" ;
+    ns11:user "System" .
+
+ns11:event_226e0671-dd1a-4078-94f7-ed90f594cb58 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:c46baa5f-f557-4491-b87a-d389e49ec996 ;
+    ns11:timestamp "2026-01-22T11:00:00.448811" ;
+    ns11:user "System" .
+
+ns11:event_23e6612a-95be-4587-b68d-4ae15f58fa3f a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:db64f1cd-0407-4529-a1cd-fcfe9f1da32b ;
+    ns11:timestamp "2026-01-22T15:47:13.144894" ;
+    ns11:user "System" .
+
+ns11:event_247383c2-cc98-4426-982b-1515e3b1573c a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:ffc0d574-99f4-4938-af8a-fb69645a1951 ;
+    ns11:timestamp "2026-01-22T11:54:22.621833" ;
+    ns11:user "System" .
+
+ns11:event_249b8481-e26d-4a3e-86b9-9c8fb04e5358 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:6c902811-4465-4128-bf73-26b4ad59631e ;
+    ns11:timestamp "2026-01-22T11:17:20.572765" ;
+    ns11:user "System" .
+
+ns11:event_26d82888-163f-4b8a-9abb-72f3216c9626 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:3268db2f-e448-4116-ae84-4930cfc54d84 ;
+    ns11:timestamp "2026-01-22T16:30:26.429661" ;
+    ns11:user "System" .
+
+ns11:event_2be02377-620a-422f-a923-e3903debc226 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:49a81daa-f13c-4f90-a729-e681ef0a797b ;
+    ns11:timestamp "2026-01-22T15:53:47.203930" ;
+    ns11:user "System" .
+
+ns11:event_2c3a168f-a36b-42b5-bdb2-041322cb9ff4 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:69813d75-5be8-4dea-ba39-f2616bf20b8b ;
+    ns11:timestamp "2026-01-22T11:31:59.700217" ;
+    ns11:user "System" .
+
+ns11:event_2fdd5711-ae5d-4eb4-84ca-ccdb2a4cbc3e a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:b6a5f93f-4aa2-4398-b590-caa124b3aaa7 ;
+    ns11:timestamp "2026-01-22T15:21:23.066112" ;
+    ns11:user "System" .
+
+ns11:event_2fefcdc5-3f94-4c55-8592-0044a89dfc0c a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:e2618379-870b-4fb5-99f1-90d7c1e6411f ;
+    ns11:timestamp "2026-01-22T10:51:10.413620" ;
+    ns11:user "System" .
+
+ns11:event_31458a49-8213-4d1f-8284-2967459d2223 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:befe8c0b-b193-4a02-8076-fdef4bc2d5e5 ;
+    ns11:timestamp "2026-01-23T12:02:53.914244" ;
+    ns11:user "System" .
+
+ns11:event_3157644b-8676-41f9-a83f-f8daae48d070 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:db64f1cd-0407-4529-a1cd-fcfe9f1da32b ;
+    ns11:timestamp "2026-01-22T15:47:13.153397" ;
+    ns11:user "System" .
+
+ns11:event_3262a669-32f4-4d42-b153-4177b7c369ef a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:69813d75-5be8-4dea-ba39-f2616bf20b8b ;
+    ns11:timestamp "2026-01-22T11:31:59.684838" ;
+    ns11:user "System" .
+
+ns11:event_33b08a1f-7d42-43e2-968b-c8b34947b7f8 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:bd79c4dd-6cfe-4c19-975e-ba397421c417 ;
+    ns11:timestamp "2026-01-22T12:15:34.390536" ;
+    ns11:user "System" .
+
+ns11:event_349b6205-ec57-47dd-8bbb-eb417ebe9490 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:db64f1cd-0407-4529-a1cd-fcfe9f1da32b ;
+    ns11:timestamp "2026-01-22T15:47:13.148348" ;
+    ns11:user "System" .
+
+ns11:event_37c3ac02-91b5-47f8-b7a3-874fc44b3563 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:e2618379-870b-4fb5-99f1-90d7c1e6411f ;
+    ns11:timestamp "2026-01-22T10:51:10.418895" ;
+    ns11:user "System" .
+
+ns11:event_380ce4d4-a3d4-4af5-b594-3568c49b8bd7 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:db64f1cd-0407-4529-a1cd-fcfe9f1da32b ;
+    ns11:timestamp "2026-01-22T15:47:13.170517" ;
+    ns11:user "System" .
+
+ns11:event_381b21b0-bef5-4d48-975e-18a4325d87ea a ns11:Event ;
+    ns11:details "Entered expanded subprocess http://example.org/bpmn/mySubProcess_loop2" ;
+    ns11:eventType "SUBPROCESS_STARTED" ;
+    ns11:instance ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns11:timestamp "2026-01-22T15:50:03.679702" ;
+    ns11:user "System" .
+
+ns11:event_382534f1-d545-4c07-af83-f5d9f22a4b8e a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:517180f2-ff61-47ab-a29d-5ac92cea7a11 ;
+    ns11:timestamp "2026-01-22T15:52:51.708549" ;
+    ns11:user "System" .
+
+ns11:event_39bce664-fd36-44cb-a253-724d734261b3 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:befe8c0b-b193-4a02-8076-fdef4bc2d5e5 ;
+    ns11:timestamp "2026-01-23T12:02:53.926021" ;
+    ns11:user "System" .
+
+ns11:event_3f2da503-9968-4ed8-8695-6df8a1490951 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:674e2445-9fa3-40b2-9a42-86a2cfdb74a5 ;
+    ns11:timestamp "2026-01-22T15:01:29.862952" ;
+    ns11:user "System" .
+
+ns11:event_400ea654-7de4-41d4-bb8f-752d426838d9 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:ac1af414-4a64-4ab9-a114-0f368c3c3d72 ;
+    ns11:timestamp "2026-01-22T15:26:41.277236" ;
+    ns11:user "System" .
+
+ns11:event_4330ed0e-acf7-481c-882b-8d136556177c a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:bd79c4dd-6cfe-4c19-975e-ba397421c417 ;
+    ns11:timestamp "2026-01-22T12:15:34.404103" ;
+    ns11:user "System" .
+
+ns11:event_4636dce9-16bb-4059-97be-0dbec8c93934 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:f799f6d0-92b0-435f-ad49-4a880e8d0eb6 ;
+    ns11:timestamp "2026-01-22T10:51:37.176623" ;
+    ns11:user "System" .
+
+ns11:event_4676995a-ef61-4c14-a833-0e0702903e76 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:517180f2-ff61-47ab-a29d-5ac92cea7a11 ;
+    ns11:timestamp "2026-01-22T15:52:51.705275" ;
+    ns11:user "System" .
+
+ns11:event_4710ce8a-99f9-4cf5-a96e-86823ee219d0 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:f799f6d0-92b0-435f-ad49-4a880e8d0eb6 ;
+    ns11:timestamp "2026-01-22T10:51:37.197502" ;
+    ns11:user "System" .
+
+ns11:event_49cb4cd1-5a83-48d9-83bd-78253c440bc5 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:ffc0d574-99f4-4938-af8a-fb69645a1951 ;
+    ns11:timestamp "2026-01-22T11:54:22.605456" ;
+    ns11:user "System" .
+
+ns11:event_4a2f0343-177c-44c7-b8db-04f2d94abf2b a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:5202ad9e-865b-4903-b74c-b11eaf418cd5 ;
+    ns11:timestamp "2026-01-22T16:23:03.774954" ;
+    ns11:user "System" .
+
+ns11:event_4a45ea95-fab7-4e2b-9cb2-18b63624f2f3 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:af0aae96-9854-4b2e-a19e-a7f614034592 ;
+    ns11:timestamp "2026-02-13T19:30:36.391855" ;
+    ns11:user "System" .
+
+ns11:event_4a51a3d8-01f6-4f6f-810f-b051e11a7de0 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:517180f2-ff61-47ab-a29d-5ac92cea7a11 ;
+    ns11:timestamp "2026-01-22T15:52:51.712119" ;
+    ns11:user "System" .
+
+ns11:event_4a635831-c8bd-4d59-8897-7d77b247d9fc a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:640263a1-b05b-45ea-aec3-84c950bbca6c ;
+    ns11:timestamp "2026-01-22T10:47:15.263651" ;
+    ns11:user "System" .
+
+ns11:event_4b1d44fc-1081-422a-9e03-aaa807aaa286 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:6048d57b-4ff7-4cd2-96f3-8f35193cee57 ;
+    ns11:timestamp "2026-01-22T10:49:17.145830" ;
+    ns11:user "System" .
+
+ns11:event_4c9cf91e-03d9-4b1f-bcd2-0fc708f82690 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:9bdaea40-06a9-41ba-b4b6-ff593fa2f8f3 ;
+    ns11:timestamp "2026-01-22T17:05:05.611820" ;
+    ns11:user "System" .
+
+ns11:event_4ce3aa0c-dde3-4516-a09d-18a5da56804d a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:b93c83ad-ad7f-4c58-9d58-cf296ae8ac15 ;
+    ns11:timestamp "2026-01-22T13:10:44.611642" ;
+    ns11:user "System" .
+
+ns11:event_4db3de0f-f0c3-433e-ab6d-edbcca344d47 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:49a81daa-f13c-4f90-a729-e681ef0a797b ;
+    ns11:timestamp "2026-01-22T15:53:47.208483" ;
+    ns11:user "System" .
+
+ns11:event_4ebbc229-3372-4d62-8060-b2500de0b2b2 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:d5a1af09-f83a-4911-90af-d675163188db ;
+    ns11:timestamp "2026-01-22T16:15:49.917655" ;
+    ns11:user "System" .
+
+ns11:event_50bef6de-9a08-4c5e-87d7-c0b8a014eea4 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:9f2443c9-6fce-4cae-8702-6b58690dfaec ;
+    ns11:timestamp "2026-01-22T10:54:54.460327" ;
+    ns11:user "System" .
+
+ns11:event_512bf1b5-1fc7-48d0-b5c6-9e03570ffd77 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:bbddae37-7073-4f17-9b5c-6419e782f1ea ;
+    ns11:timestamp "2026-01-22T10:55:30.409436" ;
+    ns11:user "System" .
+
+ns11:event_5358deb0-eddb-47d8-b76d-63b3fe28e8cc a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:49a81daa-f13c-4f90-a729-e681ef0a797b ;
+    ns11:timestamp "2026-01-22T15:53:47.228452" ;
+    ns11:user "System" .
+
+ns11:event_53b13e92-2d94-4c67-8396-ef5bacc7cc04 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:9bdaea40-06a9-41ba-b4b6-ff593fa2f8f3 ;
+    ns11:timestamp "2026-01-22T17:05:05.607739" ;
+    ns11:user "System" .
+
+ns11:event_568b639d-aa39-4b24-8e9b-0a76988b7093 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:b6a5f93f-4aa2-4398-b590-caa124b3aaa7 ;
+    ns11:timestamp "2026-01-22T15:21:23.063284" ;
+    ns11:user "System" .
+
+ns11:event_5a421c75-f7d1-467d-8bc6-ae38b0427e16 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:c46baa5f-f557-4491-b87a-d389e49ec996 ;
+    ns11:timestamp "2026-01-22T11:00:00.460185" ;
+    ns11:user "System" .
+
+ns11:event_5af32eb8-8495-4faa-94b8-371a15df59ed a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:5847bd4b-bfb2-4379-9dae-f245c3631460 ;
+    ns11:timestamp "2026-01-22T14:17:20.806257" ;
+    ns11:user "System" .
+
+ns11:event_5b16eda2-47b5-4f99-aea6-cb68ca8bdb94 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:3268db2f-e448-4116-ae84-4930cfc54d84 ;
+    ns11:timestamp "2026-01-22T16:30:26.426027" ;
+    ns11:user "System" .
+
+ns11:event_5b2dafc9-f4e7-49a4-b3ac-06ddb84d41e9 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:d19262b1-6995-4d17-92fa-11b92b59ab32 ;
+    ns11:timestamp "2026-01-22T10:57:47.528295" ;
+    ns11:user "System" .
+
+ns11:event_5c086151-29d7-429c-853d-02ea082dd9e5 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:674e2445-9fa3-40b2-9a42-86a2cfdb74a5 ;
+    ns11:timestamp "2026-01-22T15:01:29.873475" ;
+    ns11:user "System" .
+
+ns11:event_5c83613e-b25d-4c38-8ada-d254afc62b45 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:b6a5f93f-4aa2-4398-b590-caa124b3aaa7 ;
+    ns11:timestamp "2026-01-22T15:21:23.080250" ;
+    ns11:user "System" .
+
+ns11:event_5ddccdaa-e695-4a6b-a215-e086dae47526 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:ac1af414-4a64-4ab9-a114-0f368c3c3d72 ;
+    ns11:timestamp "2026-01-22T15:26:41.270370" ;
+    ns11:user "System" .
+
+ns11:event_5f18ca5e-79c5-41f7-b163-01474beb762b a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:54ac20a1-3ea7-4868-a379-650415acef8f ;
+    ns11:timestamp "2026-01-22T13:26:23.062534" ;
+    ns11:user "System" .
+
+ns11:event_6172387b-a12c-4abe-ae75-88456feeb2af a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:d5a1af09-f83a-4911-90af-d675163188db ;
+    ns11:timestamp "2026-01-22T16:15:49.921128" ;
+    ns11:user "System" .
+
+ns11:event_64d4c87d-c54a-4f23-9dbf-3988f63cddc9 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:6048d57b-4ff7-4cd2-96f3-8f35193cee57 ;
+    ns11:timestamp "2026-01-22T10:49:17.129256" ;
+    ns11:user "System" .
+
+ns11:event_66ce53fc-7831-48c6-b7a6-b1b62219fc2b a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:7d76329a-90c2-4bae-b8a0-4abfb892f4ed ;
+    ns11:timestamp "2026-01-22T16:16:33.250828" ;
+    ns11:user "System" .
+
+ns11:event_693a6c5f-2c40-4b00-9644-76486f2b134d a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:af0aae96-9854-4b2e-a19e-a7f614034592 ;
+    ns11:timestamp "2026-02-13T19:30:36.375484" ;
+    ns11:user "System" .
+
+ns11:event_69729486-dca5-45c3-bba4-cfbc86b81ead a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:d93d8529-bbcc-4200-b445-f702be4240b1 ;
+    ns11:timestamp "2026-01-22T15:04:59.192331" ;
+    ns11:user "System" .
+
+ns11:event_6aea3585-b6d9-4132-899a-43d2b3b378e2 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:6c902811-4465-4128-bf73-26b4ad59631e ;
+    ns11:timestamp "2026-01-22T11:17:20.579129" ;
+    ns11:user "System" .
+
+ns11:event_713f4924-2d6e-4960-971a-870235b91f26 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:640263a1-b05b-45ea-aec3-84c950bbca6c ;
+    ns11:timestamp "2026-01-22T10:47:15.257281" ;
+    ns11:user "System" .
+
+ns11:event_715f209a-d36d-461f-a0be-3717fced9215 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:2bae009a-bc37-4e9a-a71b-648241247150 ;
+    ns11:timestamp "2026-01-22T15:49:16.050785" ;
+    ns11:user "System" .
+
+ns11:event_717c7d0a-d56f-4c87-9703-44afd199cb74 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:c523bc37-c1dc-4fdd-b58e-6daef467ac6f ;
+    ns11:timestamp "2026-01-22T16:18:09.868582" ;
+    ns11:user "System" .
+
+ns11:event_74b96cdf-5adf-4e50-9fd3-7bc7e8b18809 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:d93d8529-bbcc-4200-b445-f702be4240b1 ;
+    ns11:timestamp "2026-01-22T15:04:59.169754" ;
+    ns11:user "System" .
+
+ns11:event_78ed28ed-de7b-40f9-a657-be35a7a7c02d a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:3268db2f-e448-4116-ae84-4930cfc54d84 ;
+    ns11:timestamp "2026-01-22T16:30:26.440066" ;
+    ns11:user "System" .
+
+ns11:event_7a943ea0-5eab-4ec0-adeb-b1af3d5c9afa a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:674e2445-9fa3-40b2-9a42-86a2cfdb74a5 ;
+    ns11:timestamp "2026-01-22T15:01:29.885105" ;
+    ns11:user "System" .
+
+ns11:event_7e100e8c-9577-43de-81b3-f154e694cb80 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:3268db2f-e448-4116-ae84-4930cfc54d84 ;
+    ns11:timestamp "2026-01-22T16:30:26.422417" ;
+    ns11:user "System" .
+
+ns11:event_7e74acbc-96af-4b6e-9ae1-de0786d28601 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:c8d1d7fa-fd75-4233-88fa-1295a1f63bb7 ;
+    ns11:timestamp "2026-01-22T11:31:48.694071" ;
+    ns11:user "System" .
+
+ns11:event_7ea5913e-720f-4cd5-99d4-40268fb2e9c3 a ns11:Event ;
+    ns11:details "Completed expanded subprocess http://example.org/bpmn/mySubProcess" ;
+    ns11:eventType "SUBPROCESS_COMPLETED" ;
+    ns11:instance ns2:2bae009a-bc37-4e9a-a71b-648241247150 ;
+    ns11:timestamp "2026-01-22T15:49:16.067875" ;
+    ns11:user "System" .
+
+ns11:event_7fc08caa-175c-4db5-810c-387f2adf76ff a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:bbddae37-7073-4f17-9b5c-6419e782f1ea ;
+    ns11:timestamp "2026-01-22T10:55:30.402577" ;
+    ns11:user "System" .
+
+ns11:event_80de1de9-05eb-4792-ad2a-b03dd51e2d36 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:b6a5f93f-4aa2-4398-b590-caa124b3aaa7 ;
+    ns11:timestamp "2026-01-22T15:21:23.060851" ;
+    ns11:user "System" .
+
+ns11:event_82885d73-836c-471c-a51f-fad0aa98e130 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:f799f6d0-92b0-435f-ad49-4a880e8d0eb6 ;
+    ns11:timestamp "2026-01-22T10:51:37.183077" ;
+    ns11:user "System" .
+
+ns11:event_82a6c328-066a-4b69-95a1-8ca05a7c3ccc a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:6c902811-4465-4128-bf73-26b4ad59631e ;
+    ns11:timestamp "2026-01-22T11:17:20.592046" ;
+    ns11:user "System" .
+
+ns11:event_84c00d72-a1ae-489a-bf9c-823aca7eb796 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:5202ad9e-865b-4903-b74c-b11eaf418cd5 ;
+    ns11:timestamp "2026-01-22T16:23:03.770752" ;
+    ns11:user "System" .
+
+ns11:event_8582357b-5d39-40ca-a2a7-4aec6f877cda a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:49a81daa-f13c-4f90-a729-e681ef0a797b ;
+    ns11:timestamp "2026-01-22T15:53:47.213635" ;
+    ns11:user "System" .
+
+ns11:event_8590183f-ab2b-4a14-b8a6-2c7dc4847a8d a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:b4f83a7b-45fb-41df-94dc-9aba777d24d2 ;
+    ns11:timestamp "2026-01-22T10:49:56.180392" ;
+    ns11:user "System" .
+
+ns11:event_86d2a60f-c7bb-4c7d-a411-e6cdd710e286 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:b93c83ad-ad7f-4c58-9d58-cf296ae8ac15 ;
+    ns11:timestamp "2026-01-22T13:10:44.601462" ;
+    ns11:user "System" .
+
+ns11:event_8d1ade92-2927-4ccb-9750-2384ba480590 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:5847bd4b-bfb2-4379-9dae-f245c3631460 ;
+    ns11:timestamp "2026-01-22T14:17:20.797886" ;
+    ns11:user "System" .
+
+ns11:event_8eb8fe5c-23e7-4e27-a3ac-6d3d48d3fb45 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:b6a5f93f-4aa2-4398-b590-caa124b3aaa7 ;
+    ns11:timestamp "2026-01-22T15:21:23.069337" ;
+    ns11:user "System" .
+
+ns11:event_924a06c9-c922-4cd9-93dc-cc1b5a6856f3 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:ba13d6d4-84d3-4399-92fa-dfd6f915c3c1 ;
+    ns11:timestamp "2026-01-22T12:40:22.708170" ;
+    ns11:user "System" .
+
+ns11:event_94cdfe95-5570-4287-a3d5-39f57d33fb58 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:9bdaea40-06a9-41ba-b4b6-ff593fa2f8f3 ;
+    ns11:timestamp "2026-01-22T17:05:05.640050" ;
+    ns11:user "System" .
+
+ns11:event_9826ea9d-8db2-4a93-b93c-dc2430b6b549 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:dbd1ce92-5f45-4cc2-bbed-210f487e1df2 ;
+    ns11:timestamp "2026-01-22T13:22:24.841619" ;
+    ns11:user "System" .
+
+ns11:event_98cec617-dbee-457a-9a9a-ba5c7375c2cc a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:7d76329a-90c2-4bae-b8a0-4abfb892f4ed ;
+    ns11:timestamp "2026-01-22T16:16:33.265849" ;
+    ns11:user "System" .
+
+ns11:event_9be26e90-47ee-4126-b667-5a94b870399d a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:49a81daa-f13c-4f90-a729-e681ef0a797b ;
+    ns11:timestamp "2026-01-22T15:53:47.200481" ;
+    ns11:user "System" .
+
+ns11:event_9df590b0-398d-46c2-b654-5c9fb6bb63ac a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:5dfc6402-5773-431e-a7e8-7d2e3f3caec0 ;
+    ns11:timestamp "2026-01-22T10:59:23.406204" ;
+    ns11:user "System" .
+
+ns11:event_9dfd099a-10d2-4b09-ac77-bb7dd5f06776 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:517180f2-ff61-47ab-a29d-5ac92cea7a11 ;
+    ns11:timestamp "2026-01-22T15:52:51.729424" ;
+    ns11:user "System" .
+
+ns11:event_9e704a03-83b6-40de-97d6-6fc079973aa9 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:d5a1af09-f83a-4911-90af-d675163188db ;
+    ns11:timestamp "2026-01-22T16:15:49.925020" ;
+    ns11:user "System" .
+
+ns11:event_a08836a6-37d3-439a-bdce-8c29f0c437db a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:befe8c0b-b193-4a02-8076-fdef4bc2d5e5 ;
+    ns11:timestamp "2026-01-23T12:02:53.916658" ;
+    ns11:user "System" .
+
+ns11:event_a19fb27a-925c-4729-964f-d7d613303151 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns11:timestamp "2026-01-22T15:50:03.696294" ;
+    ns11:user "System" .
+
+ns11:event_a2143bde-8a43-47ca-914f-9a879efe2715 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:9f2443c9-6fce-4cae-8702-6b58690dfaec ;
+    ns11:timestamp "2026-01-22T10:54:54.473080" ;
+    ns11:user "System" .
+
+ns11:event_a4d08c58-f093-4146-b18a-148880f75ca8 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:c523bc37-c1dc-4fdd-b58e-6daef467ac6f ;
+    ns11:timestamp "2026-01-22T16:18:09.889776" ;
+    ns11:user "System" .
+
+ns11:event_a64af70c-02b0-45b7-a84a-975616fd5581 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:9bdaea40-06a9-41ba-b4b6-ff593fa2f8f3 ;
+    ns11:timestamp "2026-01-22T17:05:05.623428" ;
+    ns11:user "System" .
+
+ns11:event_aacd8f27-b3ce-46cd-915f-17ec7fbb98d2 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:b4f83a7b-45fb-41df-94dc-9aba777d24d2 ;
+    ns11:timestamp "2026-01-22T10:49:56.191814" ;
+    ns11:user "System" .
+
+ns11:event_abe221bb-24a4-452c-8a7e-c84d96a58a0a a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:d5a1af09-f83a-4911-90af-d675163188db ;
+    ns11:timestamp "2026-01-22T16:15:49.934746" ;
+    ns11:user "System" .
+
+ns11:event_ac82b13c-dc31-403b-a638-f8f87806e742 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:27f3e714-3a43-4dfb-8259-33b1c726ea2c ;
+    ns11:timestamp "2026-01-22T11:53:53.082460" ;
+    ns11:user "System" .
+
+ns11:event_ae9b3a66-7fc1-4ea9-94b4-c1ac1177fd72 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:ba13d6d4-84d3-4399-92fa-dfd6f915c3c1 ;
+    ns11:timestamp "2026-01-22T12:40:22.727522" ;
+    ns11:user "System" .
+
+ns11:event_af923c4f-bad9-4012-b9dd-91a10b6d1299 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:5dfc6402-5773-431e-a7e8-7d2e3f3caec0 ;
+    ns11:timestamp "2026-01-22T10:59:23.390872" ;
+    ns11:user "System" .
+
+ns11:event_afba0e89-0d71-43b7-a76f-56e46d529229 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:f128dce0-651e-48bc-9b6c-3a1a28bfac1f ;
+    ns11:timestamp "2026-01-22T13:45:41.505500" ;
+    ns11:user "System" .
+
+ns11:event_b34e076b-c167-4f3a-8d10-ee6180a58952 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:d19262b1-6995-4d17-92fa-11b92b59ab32 ;
+    ns11:timestamp "2026-01-22T10:57:47.514260" ;
+    ns11:user "System" .
+
+ns11:event_b4876bde-bd2e-411a-8e88-d669fe9a9519 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:6c816d58-dde6-49cd-bc5d-d5f70bf30cf2 ;
+    ns11:timestamp "2026-01-22T13:36:06.914984" ;
+    ns11:user "System" .
+
+ns11:event_b51b30a9-e34b-4daa-9608-235e7d8b9a6f a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:ba13d6d4-84d3-4399-92fa-dfd6f915c3c1 ;
+    ns11:timestamp "2026-01-22T12:40:22.714783" ;
+    ns11:user "System" .
+
+ns11:event_b53e3d15-f238-4041-89b2-4793967d380c a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:6048d57b-4ff7-4cd2-96f3-8f35193cee57 ;
+    ns11:timestamp "2026-01-22T10:49:17.135186" ;
+    ns11:user "System" .
+
+ns11:event_b69ab5d2-c7a9-4d87-8edf-1a11553b2df6 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:ac1af414-4a64-4ab9-a114-0f368c3c3d72 ;
+    ns11:timestamp "2026-01-22T15:26:41.288001" ;
+    ns11:user "System" .
+
+ns11:event_b6d8e8fd-a649-405b-b5a6-113759d9edde a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:ffc0d574-99f4-4938-af8a-fb69645a1951 ;
+    ns11:timestamp "2026-01-22T11:54:22.610902" ;
+    ns11:user "System" .
+
+ns11:event_b87f9059-51b7-448b-9d9b-fe3bef8a4035 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/end1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns11:timestamp "2026-01-22T15:50:03.689129" ;
+    ns11:user "System" .
+
+ns11:event_b8afad1d-e899-40c2-9525-d7901483ada5 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:f4848249-1db3-4c4a-8cfe-5967e5f2aeb8 ;
+    ns11:timestamp "2026-01-22T13:13:34.927940" ;
+    ns11:user "System" .
+
+ns11:event_bbc8fab8-bbcd-4524-8493-f66b329ac559 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:dbd1ce92-5f45-4cc2-bbed-210f487e1df2 ;
+    ns11:timestamp "2026-01-22T13:22:24.852026" ;
+    ns11:user "System" .
+
+ns11:event_bc160238-48be-457b-a88b-029745473a09 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:7d76329a-90c2-4bae-b8a0-4abfb892f4ed ;
+    ns11:timestamp "2026-01-22T16:16:33.244434" ;
+    ns11:user "System" .
+
+ns11:event_bc6a4620-14fa-4a87-a06a-104e7b8571cd a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:9bdaea40-06a9-41ba-b4b6-ff593fa2f8f3 ;
+    ns11:timestamp "2026-01-22T17:05:05.616866" ;
+    ns11:user "System" .
+
+ns11:event_be32d909-79fc-4906-8d1c-fb7c752a4e04 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:f128dce0-651e-48bc-9b6c-3a1a28bfac1f ;
+    ns11:timestamp "2026-01-22T13:45:41.521637" ;
+    ns11:user "System" .
+
+ns11:event_be78e7ae-0851-41b2-9ea8-94c6537cdfd7 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:517180f2-ff61-47ab-a29d-5ac92cea7a11 ;
+    ns11:timestamp "2026-01-22T15:52:51.718183" ;
+    ns11:user "System" .
+
+ns11:event_c1512c4c-2253-4309-9864-821fa0de3e24 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:f4848249-1db3-4c4a-8cfe-5967e5f2aeb8 ;
+    ns11:timestamp "2026-01-22T13:13:34.916817" ;
+    ns11:user "System" .
+
+ns11:event_c3692ff2-d884-4cc4-ae24-4f08ba7fcdde a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:640263a1-b05b-45ea-aec3-84c950bbca6c ;
+    ns11:timestamp "2026-01-22T10:47:15.274382" ;
+    ns11:user "System" .
+
+ns11:event_c48e6ad7-0370-4bcd-ac74-f00e38665e9c a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:5dfc6402-5773-431e-a7e8-7d2e3f3caec0 ;
+    ns11:timestamp "2026-01-22T10:59:23.383486" ;
+    ns11:user "System" .
+
+ns11:event_c49a80ed-04a5-4f96-973b-7696981efade a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:59e35502-6637-472d-8ac4-a50529118d98 ;
+    ns11:timestamp "2026-01-22T11:31:21.080657" ;
+    ns11:user "System" .
+
+ns11:event_c4dcd9d3-7533-415e-a864-e30fead872ed a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:c523bc37-c1dc-4fdd-b58e-6daef467ac6f ;
+    ns11:timestamp "2026-01-22T16:18:09.871418" ;
+    ns11:user "System" .
+
+ns11:event_c5b70efd-36d0-4ad1-b0d3-444955c305b0 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/start1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns11:timestamp "2026-01-22T15:50:03.672073" ;
+    ns11:user "System" .
+
+ns11:event_cb200d1a-467b-444a-a75e-198c39d200c2 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:e2618379-870b-4fb5-99f1-90d7c1e6411f ;
+    ns11:timestamp "2026-01-22T10:51:10.428454" ;
+    ns11:user "System" .
+
+ns11:event_cc504d30-4fdb-43b1-8238-4c5c09a8048c a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:d93d8529-bbcc-4200-b445-f702be4240b1 ;
+    ns11:timestamp "2026-01-22T15:04:59.174638" ;
+    ns11:user "System" .
+
+ns11:event_d026295d-4434-4743-a66b-627fad1041ed a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:674e2445-9fa3-40b2-9a42-86a2cfdb74a5 ;
+    ns11:timestamp "2026-01-22T15:01:29.869559" ;
+    ns11:user "System" .
+
+ns11:event_d0d555df-3acb-41e2-85bd-223b06ddc0e1 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/EndEvent_1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:c523bc37-c1dc-4fdd-b58e-6daef467ac6f ;
+    ns11:timestamp "2026-01-22T16:18:09.874402" ;
+    ns11:user "System" .
+
+ns11:event_d130ea35-0c21-4108-9460-e4c5027e65bc a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:59e35502-6637-472d-8ac4-a50529118d98 ;
+    ns11:timestamp "2026-01-22T11:31:21.085260" ;
+    ns11:user "System" .
+
+ns11:event_d1e1d07f-a317-442c-a1a5-f23fb82b5d7a a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:59e35502-6637-472d-8ac4-a50529118d98 ;
+    ns11:timestamp "2026-01-22T11:31:21.094295" ;
+    ns11:user "System" .
+
+ns11:event_d236e9d3-e188-4399-9b07-9af84ead42d5 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns11:timestamp "2026-01-22T15:50:03.668993" ;
+    ns11:user "System" .
+
+ns11:event_d747eaaa-81aa-4df4-a468-a8c9a55cf726 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:5202ad9e-865b-4903-b74c-b11eaf418cd5 ;
+    ns11:timestamp "2026-01-22T16:23:03.790720" ;
+    ns11:user "System" .
+
+ns11:event_d93cc48e-3fe8-4724-bc5f-86c20314c8a8 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:ac1af414-4a64-4ab9-a114-0f368c3c3d72 ;
+    ns11:timestamp "2026-01-22T15:26:41.267434" ;
+    ns11:user "System" .
+
+ns11:event_dbe6cf89-6399-4ea8-b9c4-5ff84c9a0805 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:af0aae96-9854-4b2e-a19e-a7f614034592 ;
+    ns11:timestamp "2026-02-13T19:30:36.366969" ;
+    ns11:user "System" .
+
+ns11:event_dbfb0185-393d-43b6-94a6-56152c5a73ed a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:dbd1ce92-5f45-4cc2-bbed-210f487e1df2 ;
+    ns11:timestamp "2026-01-22T13:22:24.835085" ;
+    ns11:user "System" .
+
+ns11:event_e0e18896-1717-4a6a-a8d8-809aa7a5e201 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:7d76329a-90c2-4bae-b8a0-4abfb892f4ed ;
+    ns11:timestamp "2026-01-22T16:16:33.254476" ;
+    ns11:user "System" .
+
+ns11:event_e56421b2-8aa3-4dca-ab3c-1eff483129d3 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:bd79c4dd-6cfe-4c19-975e-ba397421c417 ;
+    ns11:timestamp "2026-01-22T12:15:34.394894" ;
+    ns11:user "System" .
+
+ns11:event_e7914617-20ee-4ae0-894e-538abe5edc4b a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:c523bc37-c1dc-4fdd-b58e-6daef467ac6f ;
+    ns11:timestamp "2026-01-22T16:18:09.877592" ;
+    ns11:user "System" .
+
+ns11:event_eb2393a3-b117-4ad0-a3e5-476325acfda7 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:27f3e714-3a43-4dfb-8259-33b1c726ea2c ;
+    ns11:timestamp "2026-01-22T11:53:53.073110" ;
+    ns11:user "System" .
+
+ns11:event_eb31f693-117b-4be9-9fb5-0546c04b8adc a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:d5a1af09-f83a-4911-90af-d675163188db ;
+    ns11:timestamp "2026-01-22T16:15:49.914915" ;
+    ns11:user "System" .
+
+ns11:event_ec486847-839a-4319-b23e-f19f110f3fd5 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:c46baa5f-f557-4491-b87a-d389e49ec996 ;
+    ns11:timestamp "2026-01-22T11:00:00.472712" ;
+    ns11:user "System" .
+
+ns11:event_ee2d7866-1d92-476a-8b2a-8628560b2cc1 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/end1" ;
+    ns11:eventType "END" ;
+    ns11:instance ns2:2bae009a-bc37-4e9a-a71b-648241247150 ;
+    ns11:timestamp "2026-01-22T15:49:16.070585" ;
+    ns11:user "System" .
+
+ns11:event_efb63a6f-2bef-4c18-b1bf-26597edd2823 a ns11:Event ;
+    ns11:details "Entered expanded subprocess http://example.org/bpmn/mySubProcess" ;
+    ns11:eventType "SUBPROCESS_STARTED" ;
+    ns11:instance ns2:2bae009a-bc37-4e9a-a71b-648241247150 ;
+    ns11:timestamp "2026-01-22T15:49:16.058599" ;
+    ns11:user "System" .
+
+ns11:event_efe2b6f7-2413-4117-806b-2dbed9763b9b a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:9f2443c9-6fce-4cae-8702-6b58690dfaec ;
+    ns11:timestamp "2026-01-22T10:54:54.454099" ;
+    ns11:user "System" .
+
+ns11:event_eff34271-c2c5-40aa-a824-25f96fc25c14 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/subStart" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:2bae009a-bc37-4e9a-a71b-648241247150 ;
+    ns11:timestamp "2026-01-22T15:49:16.062976" ;
+    ns11:user "System" .
+
+ns11:event_f1513fde-ab63-4202-bef7-e909f51fd52d a ns11:Event ;
+    ns11:details "Entered expanded subprocess http://example.org/bpmn/mySubProcess_loop0" ;
+    ns11:eventType "SUBPROCESS_STARTED" ;
+    ns11:instance ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns11:timestamp "2026-01-22T15:50:03.676009" ;
+    ns11:user "System" .
+
+ns11:event_f1e6db0d-9d4f-40ee-82e9-bf62d19c4dfa a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:5847bd4b-bfb2-4379-9dae-f245c3631460 ;
+    ns11:timestamp "2026-01-22T14:17:20.816389" ;
+    ns11:user "System" .
+
+ns11:event_f290ec68-600f-406c-acfd-98738503374d a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:5202ad9e-865b-4903-b74c-b11eaf418cd5 ;
+    ns11:timestamp "2026-01-22T16:23:03.779670" ;
+    ns11:user "System" .
+
+ns11:event_f2d9cc4b-b14e-4494-b217-30332ff3bda4 a ns11:Event ;
+    ns11:details "User request" ;
+    ns11:eventType "TERMINATED" ;
+    ns11:instance ns2:f128dce0-651e-48bc-9b6c-3a1a28bfac1f ;
+    ns11:timestamp "2026-01-22T13:45:41.532206" ;
+    ns11:user "System" .
+
+ns11:event_f34945a8-9189-48d5-ad34-820650bb513e a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:b93c83ad-ad7f-4c58-9d58-cf296ae8ac15 ;
+    ns11:timestamp "2026-01-22T13:10:44.594451" ;
+    ns11:user "System" .
+
+ns11:event_f634502e-5eef-406e-91f7-43e703de3b60 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:af0aae96-9854-4b2e-a19e-a7f614034592 ;
+    ns11:timestamp "2026-02-13T19:30:36.379675" ;
+    ns11:user "System" .
+
+ns11:event_f6506207-beff-4835-952a-10341fe548b1 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:befe8c0b-b193-4a02-8076-fdef4bc2d5e5 ;
+    ns11:timestamp "2026-01-23T12:02:53.909577" ;
+    ns11:user "System" .
+
+ns11:event_f8130c36-0a20-4899-b201-dfd0e14ce1e0 a ns11:Event ;
+    ns11:details "Entered expanded subprocess http://example.org/bpmn/mySubProcess_loop1" ;
+    ns11:eventType "SUBPROCESS_STARTED" ;
+    ns11:instance ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns11:timestamp "2026-01-22T15:50:03.677649" ;
+    ns11:user "System" .
+
+ns11:event_fcc98812-20b1-4255-9a1d-070369b02052 a ns11:Event ;
+    ns11:details "http://example.org/bpmn/StartEvent_1" ;
+    ns11:eventType "START" ;
+    ns11:instance ns2:674e2445-9fa3-40b2-9a42-86a2cfdb74a5 ;
+    ns11:timestamp "2026-01-22T15:01:29.865789" ;
+    ns11:user "System" .
+
+ns11:event_fde539e2-6593-487e-ab56-f69d264acee9 a ns11:Event ;
+    ns11:eventType "CREATED" ;
+    ns11:instance ns2:d93d8529-bbcc-4200-b445-f702be4240b1 ;
+    ns11:timestamp "2026-01-22T15:04:59.165420" ;
+    ns11:user "System" .
+
+ns11:event_ff8e2987-ba95-4ccc-b03d-c6addf499cb3 a ns11:Event ;
+    ns11:eventType "COMPLETED" ;
+    ns11:instance ns2:d93d8529-bbcc-4200-b445-f702be4240b1 ;
+    ns11:timestamp "2026-01-22T15:04:59.179591" ;
+    ns11:user "System" .
+
+<http://example.org/bpmn/loopCardinality_127520986123376> a ns1:loopCardinality ;
+    ns1:hasParent <http://example.org/bpmn/multiInstanceLoopCharacteristics_127520986122496> .
+
+<http://example.org/bpmn/loopCardinality_133172990026112> a ns1:loopCardinality ;
+    ns1:hasParent <http://example.org/bpmn/multiInstanceLoopCharacteristics_133172990430640> .
+
+<http://example.org/bpmn/loopCardinality_134548193360848> a ns1:loopCardinality ;
+    ns1:hasParent <http://example.org/bpmn/multiInstanceLoopCharacteristics_134548193359968> .
+
+<http://example.org/bpmn/loopCardinality_135220600548864> a ns1:loopCardinality ;
+    ns1:hasParent <http://example.org/bpmn/multiInstanceLoopCharacteristics_135220600547984> .
+
+ns4:537dc8ba-8802-4680-abca-0a3621f97ece a ns4:ProcessDefinition ;
+    ns3:deployedAt "2026-01-22T15:48:51.952457" ;
+    ns3:name "MI Subprocess Test" ;
+    ns3:status "active" ;
+    ns3:version "1.0.0" ;
+    ns4:hasElement <http://example.org/bpmn/MIProcess>,
+        <http://example.org/bpmn/mySubProcess>,
+        <http://example.org/bpmn/start1>,
+        <http://example.org/bpmn/subStart> ;
+    rdfs:comment "Test multi-instance expanded subprocess" .
+
+ns4:739e387b-ae63-47fa-92b5-c29f25a48e36 a ns4:ProcessDefinition ;
+    ns3:deployedAt "2026-01-22T15:48:58.983485" ;
+    ns3:name "MI Subprocess Test" ;
+    ns3:status "active" ;
+    ns3:version "1.0.0" ;
+    ns4:hasElement <http://example.org/bpmn/MIProcess>,
+        <http://example.org/bpmn/mySubProcess>,
+        <http://example.org/bpmn/start1>,
+        <http://example.org/bpmn/subStart> ;
+    rdfs:comment "Test multi-instance expanded subprocess" .
+
+<http://example.org/bpmn/StartEvent_1> a ns1:startEvent ;
+    ns1:hasParent <http://example.org/bpmn/TestProcess> ;
+    ns1:name "Start" ;
+    ns1:outgoing <http://example.org/bpmn/Flow_1> .
+
+<http://example.org/bpmn/multiInstanceLoopCharacteristics_127520986122496> a ns1:multiInstanceLoopCharacteristics ;
+    ns1:hasParent <http://example.org/bpmn/mySubProcess> ;
+    ns1:isParallel "true" .
+
+<http://example.org/bpmn/multiInstanceLoopCharacteristics_133172990430640> a ns1:multiInstanceLoopCharacteristics ;
+    ns1:hasParent <http://example.org/bpmn/mySubProcess> ;
+    ns1:isParallel "true" .
+
+<http://example.org/bpmn/multiInstanceLoopCharacteristics_134548193359968> a ns1:multiInstanceLoopCharacteristics ;
+    ns1:hasParent <http://example.org/bpmn/mySubProcess> ;
+    ns1:isParallel "true" .
+
+<http://example.org/bpmn/multiInstanceLoopCharacteristics_135220600547984> a ns1:multiInstanceLoopCharacteristics ;
+    ns1:hasParent <http://example.org/bpmn/mySubProcess> ;
+    ns1:isParallel "true" .
+
+<http://example.org/bpmn/mySubProcess_loop_3307fa99> a <http://example.org/bpmn/MultiInstanceLoopCharacteristics>,
+        <http://example.org/bpmn/ParallelMultiInstance> ;
+    ns1:loopCardinality "3" .
+
+<http://example.org/bpmn/mySubProcess_loop_566965ad> a <http://example.org/bpmn/MultiInstanceLoopCharacteristics>,
+        <http://example.org/bpmn/ParallelMultiInstance> ;
+    ns1:loopCardinality "3" .
+
+<http://example.org/bpmn/mySubProcess_loop_638ba639> a <http://example.org/bpmn/MultiInstanceLoopCharacteristics>,
+        <http://example.org/bpmn/ParallelMultiInstance> ;
+    ns1:loopCardinality "3" .
+
+<http://example.org/bpmn/mySubProcess_loop_b9819507> a <http://example.org/bpmn/MultiInstanceLoopCharacteristics>,
+        <http://example.org/bpmn/ParallelMultiInstance> ;
+    ns1:loopCardinality "3" .
+
+<http://example.org/bpmn/subEnd> a ns1:endEvent ;
+    ns1:hasParent <http://example.org/bpmn/mySubProcess> ;
+    ns1:incoming <http://example.org/bpmn/subFlow> .
+
+ns2:token_27f3e714-3a43-4dfb-8259-33b1c726ea2c a ns2:Token ;
+    ns2:belongsTo ns2:27f3e714-3a43-4dfb-8259-33b1c726ea2c ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_2bae009a-bc37-4e9a-a71b-648241247150 a ns2:Token ;
+    ns2:belongsTo ns2:2bae009a-bc37-4e9a-a71b-648241247150 ;
+    ns2:currentNode <http://example.org/bpmn/end1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_3268db2f-e448-4116-ae84-4930cfc54d84 a ns2:Token ;
+    ns2:belongsTo ns2:3268db2f-e448-4116-ae84-4930cfc54d84 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_4026d22d-6925-4e31-bbb9-d91601179897 a ns2:Token ;
+    ns2:belongsTo ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns2:currentNode <http://example.org/bpmn/mySubProcess> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_4026d22d-6925-4e31-bbb9-d91601179897_5c6efdfe a ns2:Token ;
+    ns2:belongsTo ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns2:currentNode <http://example.org/bpmn/subStart> ;
+    ns2:loopInstance "2" ;
+    ns2:status "CONSUMED" ;
+    ns2:subprocessId "4026d22d-6925-4e31-bbb9-d91601179897_sub_040eb231" ;
+    ns2:subprocessStatus "inside" .
+
+ns2:token_4026d22d-6925-4e31-bbb9-d91601179897_e1090d21 a ns2:Token ;
+    ns2:belongsTo ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns2:currentNode <http://example.org/bpmn/subStart> ;
+    ns2:loopInstance "1" ;
+    ns2:status "CONSUMED" ;
+    ns2:subprocessId "4026d22d-6925-4e31-bbb9-d91601179897_sub_a30f9187" ;
+    ns2:subprocessStatus "inside" .
+
+ns2:token_4026d22d-6925-4e31-bbb9-d91601179897_e196d515 a ns2:Token ;
+    ns2:belongsTo ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns2:currentNode <http://example.org/bpmn/subStart> ;
+    ns2:loopInstance "0" ;
+    ns2:status "CONSUMED" ;
+    ns2:subprocessId "4026d22d-6925-4e31-bbb9-d91601179897_sub_e41378d2" ;
+    ns2:subprocessStatus "inside" .
+
+ns2:token_4026d22d-6925-4e31-bbb9-d91601179897_fbbdeff2 a ns2:Token ;
+    ns2:belongsTo ns2:4026d22d-6925-4e31-bbb9-d91601179897 ;
+    ns2:currentNode <http://example.org/bpmn/end1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_49a81daa-f13c-4f90-a729-e681ef0a797b a ns2:Token ;
+    ns2:belongsTo ns2:49a81daa-f13c-4f90-a729-e681ef0a797b ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_517180f2-ff61-47ab-a29d-5ac92cea7a11 a ns2:Token ;
+    ns2:belongsTo ns2:517180f2-ff61-47ab-a29d-5ac92cea7a11 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_5202ad9e-865b-4903-b74c-b11eaf418cd5 a ns2:Token ;
+    ns2:belongsTo ns2:5202ad9e-865b-4903-b74c-b11eaf418cd5 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_54ac20a1-3ea7-4868-a379-650415acef8f a ns2:Token ;
+    ns2:belongsTo ns2:54ac20a1-3ea7-4868-a379-650415acef8f ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_5847bd4b-bfb2-4379-9dae-f245c3631460 a ns2:Token ;
+    ns2:belongsTo ns2:5847bd4b-bfb2-4379-9dae-f245c3631460 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_59e35502-6637-472d-8ac4-a50529118d98 a ns2:Token ;
+    ns2:belongsTo ns2:59e35502-6637-472d-8ac4-a50529118d98 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_5dfc6402-5773-431e-a7e8-7d2e3f3caec0 a ns2:Token ;
+    ns2:belongsTo ns2:5dfc6402-5773-431e-a7e8-7d2e3f3caec0 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_6048d57b-4ff7-4cd2-96f3-8f35193cee57 a ns2:Token ;
+    ns2:belongsTo ns2:6048d57b-4ff7-4cd2-96f3-8f35193cee57 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_640263a1-b05b-45ea-aec3-84c950bbca6c a ns2:Token ;
+    ns2:belongsTo ns2:640263a1-b05b-45ea-aec3-84c950bbca6c ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_674e2445-9fa3-40b2-9a42-86a2cfdb74a5 a ns2:Token ;
+    ns2:belongsTo ns2:674e2445-9fa3-40b2-9a42-86a2cfdb74a5 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_69813d75-5be8-4dea-ba39-f2616bf20b8b a ns2:Token ;
+    ns2:belongsTo ns2:69813d75-5be8-4dea-ba39-f2616bf20b8b ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_6c816d58-dde6-49cd-bc5d-d5f70bf30cf2 a ns2:Token ;
+    ns2:belongsTo ns2:6c816d58-dde6-49cd-bc5d-d5f70bf30cf2 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_6c902811-4465-4128-bf73-26b4ad59631e a ns2:Token ;
+    ns2:belongsTo ns2:6c902811-4465-4128-bf73-26b4ad59631e ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_7d76329a-90c2-4bae-b8a0-4abfb892f4ed a ns2:Token ;
+    ns2:belongsTo ns2:7d76329a-90c2-4bae-b8a0-4abfb892f4ed ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_9bdaea40-06a9-41ba-b4b6-ff593fa2f8f3 a ns2:Token ;
+    ns2:belongsTo ns2:9bdaea40-06a9-41ba-b4b6-ff593fa2f8f3 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_9f2443c9-6fce-4cae-8702-6b58690dfaec a ns2:Token ;
+    ns2:belongsTo ns2:9f2443c9-6fce-4cae-8702-6b58690dfaec ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_ac1af414-4a64-4ab9-a114-0f368c3c3d72 a ns2:Token ;
+    ns2:belongsTo ns2:ac1af414-4a64-4ab9-a114-0f368c3c3d72 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_af0aae96-9854-4b2e-a19e-a7f614034592 a ns2:Token ;
+    ns2:belongsTo ns2:af0aae96-9854-4b2e-a19e-a7f614034592 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_b4f83a7b-45fb-41df-94dc-9aba777d24d2 a ns2:Token ;
+    ns2:belongsTo ns2:b4f83a7b-45fb-41df-94dc-9aba777d24d2 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_b6a5f93f-4aa2-4398-b590-caa124b3aaa7 a ns2:Token ;
+    ns2:belongsTo ns2:b6a5f93f-4aa2-4398-b590-caa124b3aaa7 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_b93c83ad-ad7f-4c58-9d58-cf296ae8ac15 a ns2:Token ;
+    ns2:belongsTo ns2:b93c83ad-ad7f-4c58-9d58-cf296ae8ac15 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_ba13d6d4-84d3-4399-92fa-dfd6f915c3c1 a ns2:Token ;
+    ns2:belongsTo ns2:ba13d6d4-84d3-4399-92fa-dfd6f915c3c1 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_bbddae37-7073-4f17-9b5c-6419e782f1ea a ns2:Token ;
+    ns2:belongsTo ns2:bbddae37-7073-4f17-9b5c-6419e782f1ea ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_bd79c4dd-6cfe-4c19-975e-ba397421c417 a ns2:Token ;
+    ns2:belongsTo ns2:bd79c4dd-6cfe-4c19-975e-ba397421c417 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_befe8c0b-b193-4a02-8076-fdef4bc2d5e5 a ns2:Token ;
+    ns2:belongsTo ns2:befe8c0b-b193-4a02-8076-fdef4bc2d5e5 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_c46baa5f-f557-4491-b87a-d389e49ec996 a ns2:Token ;
+    ns2:belongsTo ns2:c46baa5f-f557-4491-b87a-d389e49ec996 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_c523bc37-c1dc-4fdd-b58e-6daef467ac6f a ns2:Token ;
+    ns2:belongsTo ns2:c523bc37-c1dc-4fdd-b58e-6daef467ac6f ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_c8d1d7fa-fd75-4233-88fa-1295a1f63bb7 a ns2:Token ;
+    ns2:belongsTo ns2:c8d1d7fa-fd75-4233-88fa-1295a1f63bb7 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_d19262b1-6995-4d17-92fa-11b92b59ab32 a ns2:Token ;
+    ns2:belongsTo ns2:d19262b1-6995-4d17-92fa-11b92b59ab32 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_d5a1af09-f83a-4911-90af-d675163188db a ns2:Token ;
+    ns2:belongsTo ns2:d5a1af09-f83a-4911-90af-d675163188db ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_d93d8529-bbcc-4200-b445-f702be4240b1 a ns2:Token ;
+    ns2:belongsTo ns2:d93d8529-bbcc-4200-b445-f702be4240b1 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_db64f1cd-0407-4529-a1cd-fcfe9f1da32b a ns2:Token ;
+    ns2:belongsTo ns2:db64f1cd-0407-4529-a1cd-fcfe9f1da32b ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_dbd1ce92-5f45-4cc2-bbed-210f487e1df2 a ns2:Token ;
+    ns2:belongsTo ns2:dbd1ce92-5f45-4cc2-bbed-210f487e1df2 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_e2618379-870b-4fb5-99f1-90d7c1e6411f a ns2:Token ;
+    ns2:belongsTo ns2:e2618379-870b-4fb5-99f1-90d7c1e6411f ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_f128dce0-651e-48bc-9b6c-3a1a28bfac1f a ns2:Token ;
+    ns2:belongsTo ns2:f128dce0-651e-48bc-9b6c-3a1a28bfac1f ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_f4848249-1db3-4c4a-8cfe-5967e5f2aeb8 a ns2:Token ;
+    ns2:belongsTo ns2:f4848249-1db3-4c4a-8cfe-5967e5f2aeb8 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_f799f6d0-92b0-435f-ad49-4a880e8d0eb6 a ns2:Token ;
+    ns2:belongsTo ns2:f799f6d0-92b0-435f-ad49-4a880e8d0eb6 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns2:token_ffc0d574-99f4-4938-af8a-fb69645a1951 a ns2:Token ;
+    ns2:belongsTo ns2:ffc0d574-99f4-4938-af8a-fb69645a1951 ;
+    ns2:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns2:status "CONSUMED" .
+
+ns4:e01cb812-73a4-44f6-9ea4-09bfe2000274 a ns4:ProcessDefinition ;
+    ns3:deployedAt "2026-01-22T15:50:03.617701" ;
+    ns3:name "MI Subprocess Test" ;
+    ns3:status "active" ;
+    ns3:version "1.0.0" ;
+    ns4:hasElement <http://example.org/bpmn/MIProcess>,
+        <http://example.org/bpmn/mySubProcess>,
+        <http://example.org/bpmn/start1>,
+        <http://example.org/bpmn/subStart> ;
+    rdfs:comment "Test multi-instance expanded subprocess" .
+
+ns4:e945d68f-62a3-46c7-ad2e-2f8c959f3d9d a ns4:ProcessDefinition ;
+    ns3:deployedAt "2026-01-22T15:49:16.001238" ;
+    ns3:name "MI Subprocess Test" ;
+    ns3:status "active" ;
+    ns3:version "1.0.0" ;
+    ns4:hasElement <http://example.org/bpmn/MIProcess>,
+        <http://example.org/bpmn/mySubProcess>,
+        <http://example.org/bpmn/start1>,
+        <http://example.org/bpmn/subStart> ;
+    rdfs:comment "Test multi-instance expanded subprocess" .
+
+ns13:27f3e714-3a43-4dfb-8259-33b1c726ea2c_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:2bae009a-bc37-4e9a-a71b-648241247150_test ns13:name "test" ;
+    ns13:value "value" .
+
+ns13:3268db2f-e448-4116-ae84-4930cfc54d84_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:4026d22d-6925-4e31-bbb9-d91601179897_test ns13:name "test" ;
+    ns13:value "value" .
+
+ns13:49a81daa-f13c-4f90-a729-e681ef0a797b_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:517180f2-ff61-47ab-a29d-5ac92cea7a11_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:5202ad9e-865b-4903-b74c-b11eaf418cd5_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:54ac20a1-3ea7-4868-a379-650415acef8f_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:5847bd4b-bfb2-4379-9dae-f245c3631460_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:59e35502-6637-472d-8ac4-a50529118d98_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:5dfc6402-5773-431e-a7e8-7d2e3f3caec0_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:6048d57b-4ff7-4cd2-96f3-8f35193cee57_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:640263a1-b05b-45ea-aec3-84c950bbca6c_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:674e2445-9fa3-40b2-9a42-86a2cfdb74a5_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:69813d75-5be8-4dea-ba39-f2616bf20b8b_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:6c816d58-dde6-49cd-bc5d-d5f70bf30cf2_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:6c902811-4465-4128-bf73-26b4ad59631e_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:7d76329a-90c2-4bae-b8a0-4abfb892f4ed_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:9bdaea40-06a9-41ba-b4b6-ff593fa2f8f3_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:9f2443c9-6fce-4cae-8702-6b58690dfaec_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:ac1af414-4a64-4ab9-a114-0f368c3c3d72_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:af0aae96-9854-4b2e-a19e-a7f614034592_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:b4f83a7b-45fb-41df-94dc-9aba777d24d2_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:b6a5f93f-4aa2-4398-b590-caa124b3aaa7_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:b93c83ad-ad7f-4c58-9d58-cf296ae8ac15_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:ba13d6d4-84d3-4399-92fa-dfd6f915c3c1_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:bbddae37-7073-4f17-9b5c-6419e782f1ea_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:bd79c4dd-6cfe-4c19-975e-ba397421c417_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:befe8c0b-b193-4a02-8076-fdef4bc2d5e5_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:c46baa5f-f557-4491-b87a-d389e49ec996_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:c523bc37-c1dc-4fdd-b58e-6daef467ac6f_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:c8d1d7fa-fd75-4233-88fa-1295a1f63bb7_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:d19262b1-6995-4d17-92fa-11b92b59ab32_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:d5a1af09-f83a-4911-90af-d675163188db_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:d93d8529-bbcc-4200-b445-f702be4240b1_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:db64f1cd-0407-4529-a1cd-fcfe9f1da32b_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:dbd1ce92-5f45-4cc2-bbed-210f487e1df2_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:e2618379-870b-4fb5-99f1-90d7c1e6411f_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:f128dce0-651e-48bc-9b6c-3a1a28bfac1f_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:f4848249-1db3-4c4a-8cfe-5967e5f2aeb8_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:f799f6d0-92b0-435f-ad49-4a880e8d0eb6_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+ns13:ffc0d574-99f4-4938-af8a-fb69645a1951_test_var ns13:name "test_var" ;
+    ns13:value "value" .
+
+<http://example.org/bpmn/Flow_1> a ns1:sequenceFlow ;
+    ns1:hasParent <http://example.org/bpmn/TestProcess> ;
+    ns1:sourceRef <http://example.org/bpmn/StartEvent_1> ;
+    ns1:targetRef <http://example.org/bpmn/EndEvent_1> .
+
+<http://example.org/bpmn/flow1> a ns1:sequenceFlow ;
+    ns1:hasParent <http://example.org/bpmn/MIProcess> ;
+    ns1:sourceRef <http://example.org/bpmn/start1> ;
+    ns1:targetRef <http://example.org/bpmn/mySubProcess> .
+
+<http://example.org/bpmn/flow2> a ns1:sequenceFlow ;
+    ns1:hasParent <http://example.org/bpmn/MIProcess> ;
+    ns1:sourceRef <http://example.org/bpmn/mySubProcess> ;
+    ns1:targetRef <http://example.org/bpmn/end1> .
+
+<http://example.org/bpmn/subFlow> a ns1:sequenceFlow ;
+    ns1:hasParent <http://example.org/bpmn/mySubProcess> ;
+    ns1:sourceRef <http://example.org/bpmn/subStart> ;
+    ns1:targetRef <http://example.org/bpmn/subEnd> .
+
+<http://example.org/bpmn/TestProcess> a ns1:process ;
+    ns1:isExecutable "true" .
+
+<http://example.org/bpmn/end1> a ns1:endEvent ;
+    ns1:hasParent <http://example.org/bpmn/MIProcess> ;
+    ns1:incoming <http://example.org/bpmn/flow2> .
+
+ns2:27f3e714-3a43-4dfb-8259-33b1c726ea2c a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T11:53:53.068112" ;
+    ns2:hasToken ns2:token_27f3e714-3a43-4dfb-8259-33b1c726ea2c ;
+    ns2:hasVariable ns13:27f3e714-3a43-4dfb-8259-33b1c726ea2c_test_var ;
+    ns2:processDefinition ns4:4597aa5b-8980-4ca0-8177-e85db0b6253a ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T11:53:53.082340" .
+
+ns2:54ac20a1-3ea7-4868-a379-650415acef8f a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T13:26:23.050062" ;
+    ns2:hasToken ns2:token_54ac20a1-3ea7-4868-a379-650415acef8f ;
+    ns2:hasVariable ns13:54ac20a1-3ea7-4868-a379-650415acef8f_test_var ;
+    ns2:processDefinition ns4:a0719846-d370-450e-a970-7886c9f1d283 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T13:26:23.075316" .
+
+ns2:5847bd4b-bfb2-4379-9dae-f245c3631460 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T14:17:20.797616" ;
+    ns2:hasToken ns2:token_5847bd4b-bfb2-4379-9dae-f245c3631460 ;
+    ns2:hasVariable ns13:5847bd4b-bfb2-4379-9dae-f245c3631460_test_var ;
+    ns2:processDefinition ns4:a9d81d29-3a9b-4f4f-893f-9ef6c492d46c ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T14:17:20.816263" .
+
+ns2:59e35502-6637-472d-8ac4-a50529118d98 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T11:31:21.080357" ;
+    ns2:hasToken ns2:token_59e35502-6637-472d-8ac4-a50529118d98 ;
+    ns2:hasVariable ns13:59e35502-6637-472d-8ac4-a50529118d98_test_var ;
+    ns2:processDefinition ns4:0f5f77ef-5310-48be-acc7-6bf28b961497 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T11:31:21.094117" .
+
+ns2:5dfc6402-5773-431e-a7e8-7d2e3f3caec0 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T10:59:23.382967" ;
+    ns2:hasToken ns2:token_5dfc6402-5773-431e-a7e8-7d2e3f3caec0 ;
+    ns2:hasVariable ns13:5dfc6402-5773-431e-a7e8-7d2e3f3caec0_test_var ;
+    ns2:processDefinition ns4:8835ceb7-49a3-4d83-bceb-1f2263010bd3 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T10:59:23.405834" .
+
+ns2:6048d57b-4ff7-4cd2-96f3-8f35193cee57 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T10:49:17.129024" ;
+    ns2:hasToken ns2:token_6048d57b-4ff7-4cd2-96f3-8f35193cee57 ;
+    ns2:hasVariable ns13:6048d57b-4ff7-4cd2-96f3-8f35193cee57_test_var ;
+    ns2:processDefinition ns4:2748ace5-36de-4e0c-bf87-669943d88e69 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T10:49:17.145650" .
+
+ns2:640263a1-b05b-45ea-aec3-84c950bbca6c a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T10:47:15.256983" ;
+    ns2:hasToken ns2:token_640263a1-b05b-45ea-aec3-84c950bbca6c ;
+    ns2:hasVariable ns13:640263a1-b05b-45ea-aec3-84c950bbca6c_test_var ;
+    ns2:processDefinition ns4:3d74c5fc-266a-40fd-bf79-f11180f1ba9a ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T10:47:15.274236" .
+
+ns2:69813d75-5be8-4dea-ba39-f2616bf20b8b a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T11:31:59.677391" ;
+    ns2:hasToken ns2:token_69813d75-5be8-4dea-ba39-f2616bf20b8b ;
+    ns2:hasVariable ns13:69813d75-5be8-4dea-ba39-f2616bf20b8b_test_var ;
+    ns2:processDefinition ns4:25b5efda-c5fe-44a3-a316-85194c90c23e ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T11:31:59.699868" .
+
+ns2:6c816d58-dde6-49cd-bc5d-d5f70bf30cf2 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T13:36:06.914681" ;
+    ns2:hasToken ns2:token_6c816d58-dde6-49cd-bc5d-d5f70bf30cf2 ;
+    ns2:hasVariable ns13:6c816d58-dde6-49cd-bc5d-d5f70bf30cf2_test_var ;
+    ns2:processDefinition ns4:c4307d07-487a-4310-9b79-a8a343205dd6 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T13:36:06.931671" .
+
+ns2:6c902811-4465-4128-bf73-26b4ad59631e a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T11:17:20.572324" ;
+    ns2:hasToken ns2:token_6c902811-4465-4128-bf73-26b4ad59631e ;
+    ns2:hasVariable ns13:6c902811-4465-4128-bf73-26b4ad59631e_test_var ;
+    ns2:processDefinition ns4:38ad5919-b481-440b-a25d-60390e229c89 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T11:17:20.591823" .
+
+ns2:9f2443c9-6fce-4cae-8702-6b58690dfaec a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T10:54:54.453720" ;
+    ns2:hasToken ns2:token_9f2443c9-6fce-4cae-8702-6b58690dfaec ;
+    ns2:hasVariable ns13:9f2443c9-6fce-4cae-8702-6b58690dfaec_test_var ;
+    ns2:processDefinition ns4:b847bfbb-7355-4ca4-8f61-75e876f8ccff ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T10:54:54.472866" .
+
+ns2:b4f83a7b-45fb-41df-94dc-9aba777d24d2 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T10:49:56.174805" ;
+    ns2:hasToken ns2:token_b4f83a7b-45fb-41df-94dc-9aba777d24d2 ;
+    ns2:hasVariable ns13:b4f83a7b-45fb-41df-94dc-9aba777d24d2_test_var ;
+    ns2:processDefinition ns4:ce6ab599-dadc-43cd-9696-2a7cb797ccbc ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T10:49:56.191659" .
+
+ns2:b93c83ad-ad7f-4c58-9d58-cf296ae8ac15 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T13:10:44.594016" ;
+    ns2:hasToken ns2:token_b93c83ad-ad7f-4c58-9d58-cf296ae8ac15 ;
+    ns2:hasVariable ns13:b93c83ad-ad7f-4c58-9d58-cf296ae8ac15_test_var ;
+    ns2:processDefinition ns4:37191187-95c6-4d80-ada0-0f224bf0b08c ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T13:10:44.611492" .
+
+ns2:ba13d6d4-84d3-4399-92fa-dfd6f915c3c1 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T12:40:22.707894" ;
+    ns2:hasToken ns2:token_ba13d6d4-84d3-4399-92fa-dfd6f915c3c1 ;
+    ns2:hasVariable ns13:ba13d6d4-84d3-4399-92fa-dfd6f915c3c1_test_var ;
+    ns2:processDefinition ns4:a160df9e-ad76-431a-a353-a9d0ec0a6abd ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T12:40:22.727288" .
+
+ns2:bbddae37-7073-4f17-9b5c-6419e782f1ea a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T10:55:30.402192" ;
+    ns2:hasToken ns2:token_bbddae37-7073-4f17-9b5c-6419e782f1ea ;
+    ns2:hasVariable ns13:bbddae37-7073-4f17-9b5c-6419e782f1ea_test_var ;
+    ns2:processDefinition ns4:2f7fc9a1-eb57-4119-8ce4-0ff500028fc4 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T10:55:30.421899" .
+
+ns2:bd79c4dd-6cfe-4c19-975e-ba397421c417 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T12:15:34.390293" ;
+    ns2:hasToken ns2:token_bd79c4dd-6cfe-4c19-975e-ba397421c417 ;
+    ns2:hasVariable ns13:bd79c4dd-6cfe-4c19-975e-ba397421c417_test_var ;
+    ns2:processDefinition ns4:a202ea93-1641-42b6-b386-418c38bf40d9 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T12:15:34.403973" .
+
+ns2:c46baa5f-f557-4491-b87a-d389e49ec996 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T11:00:00.448348" ;
+    ns2:hasToken ns2:token_c46baa5f-f557-4491-b87a-d389e49ec996 ;
+    ns2:hasVariable ns13:c46baa5f-f557-4491-b87a-d389e49ec996_test_var ;
+    ns2:processDefinition ns4:07882113-031e-42ad-b027-3e6384f566d5 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T11:00:00.472375" .
+
+ns2:c8d1d7fa-fd75-4233-88fa-1295a1f63bb7 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T11:31:48.693708" ;
+    ns2:hasToken ns2:token_c8d1d7fa-fd75-4233-88fa-1295a1f63bb7 ;
+    ns2:hasVariable ns13:c8d1d7fa-fd75-4233-88fa-1295a1f63bb7_test_var ;
+    ns2:processDefinition ns4:881abf8c-51ad-45bd-8f00-3a9ab0862438 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T11:31:48.712622" .
+
+ns2:d19262b1-6995-4d17-92fa-11b92b59ab32 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T10:57:47.503691" ;
+    ns2:hasToken ns2:token_d19262b1-6995-4d17-92fa-11b92b59ab32 ;
+    ns2:hasVariable ns13:d19262b1-6995-4d17-92fa-11b92b59ab32_test_var ;
+    ns2:processDefinition ns4:2b3752df-1f1e-469e-bba8-a933b3e074b5 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T10:57:47.528025" .
+
+ns2:dbd1ce92-5f45-4cc2-bbed-210f487e1df2 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T13:22:24.834883" ;
+    ns2:hasToken ns2:token_dbd1ce92-5f45-4cc2-bbed-210f487e1df2 ;
+    ns2:hasVariable ns13:dbd1ce92-5f45-4cc2-bbed-210f487e1df2_test_var ;
+    ns2:processDefinition ns4:b79e3e99-d620-40db-b3bc-938a4aa4c5c2 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T13:22:24.851791" .
+
+ns2:e2618379-870b-4fb5-99f1-90d7c1e6411f a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T10:51:10.412962" ;
+    ns2:hasToken ns2:token_e2618379-870b-4fb5-99f1-90d7c1e6411f ;
+    ns2:hasVariable ns13:e2618379-870b-4fb5-99f1-90d7c1e6411f_test_var ;
+    ns2:processDefinition ns4:3ff1a59a-2735-4384-a90f-d5a516878c32 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T10:51:10.428302" .
+
+ns2:f128dce0-651e-48bc-9b6c-3a1a28bfac1f a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T13:45:41.505193" ;
+    ns2:hasToken ns2:token_f128dce0-651e-48bc-9b6c-3a1a28bfac1f ;
+    ns2:hasVariable ns13:f128dce0-651e-48bc-9b6c-3a1a28bfac1f_test_var ;
+    ns2:processDefinition ns4:0d27f8c5-ebd2-444d-84ea-453118f1526a ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T13:45:41.532052" .
+
+ns2:f4848249-1db3-4c4a-8cfe-5967e5f2aeb8 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T13:13:34.906908" ;
+    ns2:hasToken ns2:token_f4848249-1db3-4c4a-8cfe-5967e5f2aeb8 ;
+    ns2:hasVariable ns13:f4848249-1db3-4c4a-8cfe-5967e5f2aeb8_test_var ;
+    ns2:processDefinition ns4:8128a594-5fb2-4ec5-9333-4cfbda0c13bf ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T13:13:34.927684" .
+
+ns2:f799f6d0-92b0-435f-ad49-4a880e8d0eb6 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T10:51:37.176027" ;
+    ns2:hasToken ns2:token_f799f6d0-92b0-435f-ad49-4a880e8d0eb6 ;
+    ns2:hasVariable ns13:f799f6d0-92b0-435f-ad49-4a880e8d0eb6_test_var ;
+    ns2:processDefinition ns4:128f7009-e60e-4fd5-9252-a162d5ffec48 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T10:51:37.197268" .
+
+ns2:ffc0d574-99f4-4938-af8a-fb69645a1951 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T11:54:22.605161" ;
+    ns2:hasToken ns2:token_ffc0d574-99f4-4938-af8a-fb69645a1951 ;
+    ns2:hasVariable ns13:ffc0d574-99f4-4938-af8a-fb69645a1951_test_var ;
+    ns2:processDefinition ns4:dbbe7a67-93af-4ecf-bbae-5e84c9024dca ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T11:54:22.621625" .
+
+<http://example.org/bpmn/start1> a ns1:startEvent ;
+    ns1:hasParent <http://example.org/bpmn/MIProcess> ;
+    ns1:outgoing <http://example.org/bpmn/flow1> .
+
+ns2:3268db2f-e448-4116-ae84-4930cfc54d84 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T16:30:26.418506" ;
+    ns2:hasToken ns2:token_3268db2f-e448-4116-ae84-4930cfc54d84 ;
+    ns2:hasVariable ns13:3268db2f-e448-4116-ae84-4930cfc54d84_test_var ;
+    ns2:processDefinition ns4:11719765-7b5e-469f-b26a-2b51fdfa48a8 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T16:30:26.439892" .
+
+ns2:49a81daa-f13c-4f90-a729-e681ef0a797b a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T15:53:47.200127" ;
+    ns2:hasToken ns2:token_49a81daa-f13c-4f90-a729-e681ef0a797b ;
+    ns2:hasVariable ns13:49a81daa-f13c-4f90-a729-e681ef0a797b_test_var ;
+    ns2:processDefinition ns4:5e84c84d-f480-4e5c-8f3e-d506ccd39b4d ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T15:53:47.228264" .
+
+ns2:517180f2-ff61-47ab-a29d-5ac92cea7a11 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T15:52:51.704907" ;
+    ns2:hasToken ns2:token_517180f2-ff61-47ab-a29d-5ac92cea7a11 ;
+    ns2:hasVariable ns13:517180f2-ff61-47ab-a29d-5ac92cea7a11_test_var ;
+    ns2:processDefinition ns4:aed51732-d0f4-465a-9090-2a8d7824ba08 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T15:52:51.729253" .
+
+ns2:5202ad9e-865b-4903-b74c-b11eaf418cd5 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T16:23:03.766766" ;
+    ns2:hasToken ns2:token_5202ad9e-865b-4903-b74c-b11eaf418cd5 ;
+    ns2:hasVariable ns13:5202ad9e-865b-4903-b74c-b11eaf418cd5_test_var ;
+    ns2:processDefinition ns4:e379b388-ff05-4c22-8a83-681a9896ac28 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T16:23:03.790405" .
+
+ns2:674e2445-9fa3-40b2-9a42-86a2cfdb74a5 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T15:01:29.862662" ;
+    ns2:hasToken ns2:token_674e2445-9fa3-40b2-9a42-86a2cfdb74a5 ;
+    ns2:hasVariable ns13:674e2445-9fa3-40b2-9a42-86a2cfdb74a5_test_var ;
+    ns2:processDefinition ns4:77021434-57e4-4a50-9e5f-0bcf70f87c9c ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T15:01:29.884956" .
+
+ns2:7d76329a-90c2-4bae-b8a0-4abfb892f4ed a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T16:16:33.244172" ;
+    ns2:hasToken ns2:token_7d76329a-90c2-4bae-b8a0-4abfb892f4ed ;
+    ns2:hasVariable ns13:7d76329a-90c2-4bae-b8a0-4abfb892f4ed_test_var ;
+    ns2:processDefinition ns4:f6b67ca9-c425-4935-9b61-cb2f69472d42 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T16:16:33.265628" .
+
+ns2:9bdaea40-06a9-41ba-b4b6-ff593fa2f8f3 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T17:05:05.607320" ;
+    ns2:hasToken ns2:token_9bdaea40-06a9-41ba-b4b6-ff593fa2f8f3 ;
+    ns2:hasVariable ns13:9bdaea40-06a9-41ba-b4b6-ff593fa2f8f3_test_var ;
+    ns2:processDefinition ns4:57f24b2f-68e8-4a7b-87b2-9b0bdb27db00 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T17:05:05.639720" .
+
+ns2:ac1af414-4a64-4ab9-a114-0f368c3c3d72 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T15:26:41.266972" ;
+    ns2:hasToken ns2:token_ac1af414-4a64-4ab9-a114-0f368c3c3d72 ;
+    ns2:hasVariable ns13:ac1af414-4a64-4ab9-a114-0f368c3c3d72_test_var ;
+    ns2:processDefinition ns4:996b6684-3514-4bc3-8242-b97e7a3dae92 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T15:26:41.287764" .
+
+ns2:af0aae96-9854-4b2e-a19e-a7f614034592 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-02-13T19:30:36.366443" ;
+    ns2:hasToken ns2:token_af0aae96-9854-4b2e-a19e-a7f614034592 ;
+    ns2:hasVariable ns13:af0aae96-9854-4b2e-a19e-a7f614034592_test_var ;
+    ns2:processDefinition ns4:58dc9df3-0bce-4403-9b6b-b692e5482397 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-02-13T19:30:36.391616" .
+
+ns2:b6a5f93f-4aa2-4398-b590-caa124b3aaa7 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T15:21:23.060291" ;
+    ns2:hasToken ns2:token_b6a5f93f-4aa2-4398-b590-caa124b3aaa7 ;
+    ns2:hasVariable ns13:b6a5f93f-4aa2-4398-b590-caa124b3aaa7_test_var ;
+    ns2:processDefinition ns4:9b95cbcf-406b-4e64-9911-fce95ebb6045 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T15:21:23.080067" .
+
+ns2:befe8c0b-b193-4a02-8076-fdef4bc2d5e5 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-23T12:02:53.909364" ;
+    ns2:hasToken ns2:token_befe8c0b-b193-4a02-8076-fdef4bc2d5e5 ;
+    ns2:hasVariable ns13:befe8c0b-b193-4a02-8076-fdef4bc2d5e5_test_var ;
+    ns2:processDefinition ns4:8e37c1d5-46a1-45d9-9944-1b17dd7be36d ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-23T12:02:53.925902" .
+
+ns2:c523bc37-c1dc-4fdd-b58e-6daef467ac6f a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T16:18:09.868293" ;
+    ns2:hasToken ns2:token_c523bc37-c1dc-4fdd-b58e-6daef467ac6f ;
+    ns2:hasVariable ns13:c523bc37-c1dc-4fdd-b58e-6daef467ac6f_test_var ;
+    ns2:processDefinition ns4:4c639a53-415b-425a-a938-6846653d0e80 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T16:18:09.889609" .
+
+ns2:d5a1af09-f83a-4911-90af-d675163188db a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T16:15:49.914603" ;
+    ns2:hasToken ns2:token_d5a1af09-f83a-4911-90af-d675163188db ;
+    ns2:hasVariable ns13:d5a1af09-f83a-4911-90af-d675163188db_test_var ;
+    ns2:processDefinition ns4:b05459ce-c610-4f84-b781-9d7c4377aa29 ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T16:15:49.934584" .
+
+ns2:d93d8529-bbcc-4200-b445-f702be4240b1 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T15:04:59.165016" ;
+    ns2:hasToken ns2:token_d93d8529-bbcc-4200-b445-f702be4240b1 ;
+    ns2:hasVariable ns13:d93d8529-bbcc-4200-b445-f702be4240b1_test_var ;
+    ns2:processDefinition ns4:5744e128-3877-470d-8bbf-0e3eed43fe1e ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T15:04:59.192115" .
+
+ns2:db64f1cd-0407-4529-a1cd-fcfe9f1da32b a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T15:47:13.144381" ;
+    ns2:hasToken ns2:token_db64f1cd-0407-4529-a1cd-fcfe9f1da32b ;
+    ns2:hasVariable ns13:db64f1cd-0407-4529-a1cd-fcfe9f1da32b_test_var ;
+    ns2:processDefinition ns4:db840417-58a5-4886-8729-7e680e0aceff ;
+    ns2:status "TERMINATED" ;
+    ns2:updatedAt "2026-01-22T15:47:13.170348" .
+
+<http://example.org/bpmn/subStart> a ns1:startEvent ;
+    ns1:hasParent <http://example.org/bpmn/mySubProcess> ;
+    ns1:outgoing <http://example.org/bpmn/subFlow> .
+
+ns2:2bae009a-bc37-4e9a-a71b-648241247150 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T15:49:16.050316" ;
+    ns2:hasToken ns2:token_2bae009a-bc37-4e9a-a71b-648241247150 ;
+    ns2:hasVariable ns13:2bae009a-bc37-4e9a-a71b-648241247150_test ;
+    ns2:processDefinition ns4:e945d68f-62a3-46c7-ad2e-2f8c959f3d9d ;
+    ns2:status "COMPLETED" ;
+    ns2:updatedAt "2026-01-22T15:49:16.076425" .
+
+<http://example.org/bpmn/MIProcess> a ns1:process ;
+    ns1:isExecutable "true" .
+
+ns2:4026d22d-6925-4e31-bbb9-d91601179897 a ns2:ProcessInstance ;
+    ns2:createdAt "2026-01-22T15:50:03.668720" ;
+    ns2:currentNode <http://example.org/bpmn/end1> ;
+    ns2:hasToken ns2:token_4026d22d-6925-4e31-bbb9-d91601179897,
+        ns2:token_4026d22d-6925-4e31-bbb9-d91601179897_5c6efdfe,
+        ns2:token_4026d22d-6925-4e31-bbb9-d91601179897_e1090d21,
+        ns2:token_4026d22d-6925-4e31-bbb9-d91601179897_e196d515,
+        ns2:token_4026d22d-6925-4e31-bbb9-d91601179897_fbbdeff2 ;
+    ns2:hasVariable ns13:4026d22d-6925-4e31-bbb9-d91601179897_test ;
+    ns2:processDefinition ns4:e01cb812-73a4-44f6-9ea4-09bfe2000274 ;
+    ns2:status "COMPLETED" ;
+    ns2:updatedAt "2026-01-22T15:50:03.696018" .
+
+<http://example.org/bpmn/mySubProcess> a ns1:subProcess,
+        <http://example.org/bpmn/ExpandedSubprocess> ;
+    ns1:hasParent <http://example.org/bpmn/MIProcess> ;
+    ns1:incoming <http://example.org/bpmn/flow1> ;
+    ns1:loopCharacteristics <http://example.org/bpmn/mySubProcess_loop_3307fa99>,
+        <http://example.org/bpmn/mySubProcess_loop_566965ad>,
+        <http://example.org/bpmn/mySubProcess_loop_638ba639>,
+        <http://example.org/bpmn/mySubProcess_loop_b9819507> ;
+    ns1:name "Embedded Subprocess" ;
+    ns1:outgoing <http://example.org/bpmn/flow2> .
+
+<http://example.org/bpmn/EndEvent_1> a ns1:endEvent ;
+    ns1:hasParent <http://example.org/bpmn/TestProcess> ;
+    ns1:incoming <http://example.org/bpmn/Flow_1> ;
+    ns1:name "End" .
+

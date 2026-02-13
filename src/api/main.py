@@ -1,10 +1,10 @@
 # SPEAR FastAPI Application
 # REST API for BPMN Process Engine with RDF Storage
 
-import os
 import time
+import uuid
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from src.api.models import HealthResponse, ApiInfoResponse, ErrorResponse
@@ -13,6 +13,12 @@ from src.api.instances import router as instances_router
 from src.api.tasks import router as tasks_router
 from src.api.topics import router as topics_router
 from src.api.errors import router as errors_router
+from src.api.security import (
+    enforce_rate_limit,
+    get_allowed_origins,
+    get_cors_allow_credentials,
+    require_api_key,
+)
 
 # Use the unified get_storage function from storage package
 # This automatically uses StorageFacade when SPEAR_USE_FACADE=true
@@ -20,7 +26,6 @@ from src.api.storage import get_storage
 
 # Initialize storage on module load
 storage = get_storage()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -78,20 +83,43 @@ app = FastAPI(
 )
 
 # Add CORS middleware
+allowed_origins = get_allowed_origins()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=allowed_origins,
+    allow_credentials=get_cors_allow_credentials(allowed_origins),
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Add request observability/security middleware
+@app.middleware("http")
+async def add_request_metadata(request: Request, call_next):
+    """Attach request tracing/performance and basic security headers."""
+    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    start = time.perf_counter()
+
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Process-Time-Ms"] = f"{elapsed_ms:.2f}"
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault(
+        "Permissions-Policy", "geolocation=(), microphone=(), camera=()"
+    )
+    return response
+
+
 # Include routers
-app.include_router(processes_router, prefix="/api/v1")
-app.include_router(instances_router, prefix="/api/v1")
-app.include_router(tasks_router, prefix="/api/v1")
-app.include_router(topics_router, prefix="/api/v1")
-app.include_router(errors_router, prefix="/api/v1")
+api_guard = [Depends(enforce_rate_limit), Depends(require_api_key)]
+app.include_router(processes_router, prefix="/api/v1", dependencies=api_guard)
+app.include_router(instances_router, prefix="/api/v1", dependencies=api_guard)
+app.include_router(tasks_router, prefix="/api/v1", dependencies=api_guard)
+app.include_router(topics_router, prefix="/api/v1", dependencies=api_guard)
+app.include_router(errors_router, prefix="/api/v1", dependencies=api_guard)
 
 
 # ==================== Health & Info Endpoints ====================
@@ -159,6 +187,7 @@ async def http_exception_handler(request, exc):
     """Custom HTTP exception handler"""
     return JSONResponse(
         status_code=exc.status_code,
+        headers=exc.headers,
         content={
             "error": exc.detail,
             "code": f"HTTP_{exc.status_code}",

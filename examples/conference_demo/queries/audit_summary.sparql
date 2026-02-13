@@ -1,0 +1,10 @@
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX log: <http://example.org/audit/>
+
+SELECT ?eventType (COUNT(?event) AS ?count)
+WHERE {
+  ?event rdf:type log:Event ;
+         log:eventType ?eventType .
+}
+GROUP BY ?eventType
+ORDER BY ?eventType

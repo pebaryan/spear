@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SPEAR Pitch Deck</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,700&display=swap");
+
+      :root {
+        --bg: #f7f3ea;
+        --ink: #112028;
+        --ink-soft: #44555f;
+        --panel: #fffdf7;
+        --accent: #d84d2a;
+        --accent-2: #1f8a7a;
+        --accent-3: #f0a202;
+        --line: #d9d2c2;
+        --shadow: 0 10px 30px rgba(17, 32, 40, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: radial-gradient(
+            circle at 15% 10%,
+            rgba(31, 138, 122, 0.09) 0,
+            rgba(31, 138, 122, 0) 40%
+          ),
+          radial-gradient(
+            circle at 95% 90%,
+            rgba(216, 77, 42, 0.12) 0,
+            rgba(216, 77, 42, 0) 35%
+          ),
+          var(--bg);
+        color: var(--ink);
+        font-family: "Sora", sans-serif;
+      }
+
+      body {
+        scroll-snap-type: y mandatory;
+      }
+
+      .deck {
+        width: min(1120px, 92vw);
+        margin: 0 auto;
+      }
+
+      .slide {
+        min-height: 100svh;
+        display: grid;
+        align-content: center;
+        gap: 1.1rem;
+        padding: 6rem 0 5rem;
+        scroll-snap-align: start;
+        position: relative;
+      }
+
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.13em;
+        font-weight: 700;
+        font-size: 0.75rem;
+        color: var(--accent-2);
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+      }
+
+      h1 {
+        font-family: "Fraunces", serif;
+        font-size: clamp(2.3rem, 7vw, 5.2rem);
+        line-height: 1.03;
+        max-width: 16ch;
+      }
+
+      h2 {
+        font-family: "Fraunces", serif;
+        font-size: clamp(1.6rem, 4vw, 3rem);
+        line-height: 1.12;
+      }
+
+      p {
+        margin: 0;
+        color: var(--ink-soft);
+        line-height: 1.62;
+      }
+
+      .lead {
+        max-width: 70ch;
+        font-size: clamp(1rem, 1.6vw, 1.2rem);
+      }
+
+      .hero-badges,
+      .metric-row,
+      .three-col,
+      .two-col,
+      .use-cases,
+      .timeline {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .hero-badges {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        margin-top: 1.2rem;
+      }
+
+      .badge {
+        padding: 0.9rem 1rem;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        font-weight: 600;
+      }
+
+      .metric-row {
+        margin-top: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      }
+
+      .metric {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 1rem;
+      }
+
+      .metric .big {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--accent);
+      }
+
+      .three-col {
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      }
+
+      .two-col {
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 1.15rem;
+        box-shadow: var(--shadow);
+      }
+
+      .card h3 {
+        font-size: 1rem;
+        margin-bottom: 0.35rem;
+      }
+
+      .query {
+        margin: 0;
+        padding: 0.9rem;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: #1f2b33;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        overflow-x: auto;
+      }
+
+      .flow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.65rem;
+      }
+
+      .step {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.4rem 0.72rem;
+        background: #fff;
+        font-size: 0.82rem;
+      }
+
+      .use-cases {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      }
+
+      .use-case {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-top: 4px solid var(--accent-2);
+        border-radius: 16px;
+        padding: 1.1rem;
+      }
+
+      .use-case:nth-child(2) {
+        border-top-color: var(--accent);
+      }
+
+      .use-case:nth-child(3) {
+        border-top-color: var(--accent-3);
+      }
+
+      .kpi {
+        margin-top: 0.65rem;
+        font-size: 0.92rem;
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .timeline {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .phase {
+        border-left: 5px solid var(--accent);
+        padding: 0.7rem 0.85rem;
+        background: #fff;
+        border-radius: 10px;
+      }
+
+      .note {
+        font-size: 0.84rem;
+        color: #5d6e77;
+      }
+
+      .cta {
+        display: inline-block;
+        margin-top: 1.25rem;
+        background: var(--ink);
+        color: #fff;
+        border-radius: 999px;
+        padding: 0.8rem 1.2rem;
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      .dots {
+        position: fixed;
+        top: 50%;
+        right: 18px;
+        transform: translateY(-50%);
+        display: grid;
+        gap: 8px;
+        z-index: 15;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        border: 1px solid #8d9788;
+        background: rgba(255, 255, 255, 0.8);
+      }
+
+      .dot.active {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(14px);
+        transition: opacity 0.7s ease, transform 0.7s ease;
+      }
+
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .shape {
+        position: absolute;
+        border-radius: 100%;
+        z-index: -1;
+        animation: float 8s ease-in-out infinite;
+      }
+
+      .shape.one {
+        width: 220px;
+        height: 220px;
+        right: 5%;
+        top: 8%;
+        background: rgba(216, 77, 42, 0.1);
+      }
+
+      .shape.two {
+        width: 160px;
+        height: 160px;
+        left: -30px;
+        bottom: 8%;
+        background: rgba(31, 138, 122, 0.12);
+        animation-delay: 1.2s;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-12px);
+        }
+      }
+
+      @media (max-width: 900px) {
+        .slide {
+          padding: 5.5rem 0 4rem;
+        }
+
+        .dots {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dots" id="dots"></div>
+    <main class="deck">
+      <section class="slide reveal" data-slide>
+        <span class="shape one"></span>
+        <span class="shape two"></span>
+        <div class="eyebrow">Pitch Deck</div>
+        <h1>Executable Knowledge Graphs for BPMN Orchestration</h1>
+        <p class="lead">
+          SPEAR combines BPMN execution with RDF-native state and provenance.
+          The goal is not only process automation, but machine-queryable
+          explanations of process behavior using semantic web standards.
+        </p>
+        <div class="hero-badges">
+          <div class="badge">BPMN-native orchestration</div>
+          <div class="badge">RDF graph persistence</div>
+          <div class="badge">SPARQL-queryable runtime provenance</div>
+        </div>
+      </section>
+
+      <section class="slide reveal" data-slide>
+        <div class="eyebrow">Research Problem</div>
+        <h2>Execution engines are strong at control-flow, weak at explainability.</h2>
+        <div class="three-col">
+          <article class="card">
+            <h3>Opaque Runtime State</h3>
+            <p>
+              Conventional logs capture events but not semantically linked state
+              transitions and decision rationale.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Weak Interoperability</h3>
+            <p>
+              Process tools often expose proprietary diagnostics instead of
+              reusable RDF vocabularies and query interfaces.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Limited Causal Analysis</h3>
+            <p>
+              Teams can answer "what happened" but struggle with "why did this
+              branch fire and what alternatives were excluded?"
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="slide reveal" data-slide>
+        <div class="eyebrow">Approach</div>
+        <h2>With SPEAR, every process instance is queryable at runtime.</h2>
+        <div class="card">
+          <p>
+            SPEAR maps process definitions, instance state, tokens, variables,
+            and audit events into RDF graphs. This enables direct SPARQL queries
+            for traceability, compliance, and debugging workflows.
+          </p>
+          <div class="flow">
+            <span class="step">Deploy BPMN</span>
+            <span class="step">Execute with topic handlers</span>
+            <span class="step">Capture events as triples</span>
+            <span class="step">Query decisions + provenance</span>
+            <span class="step">Act with confidence</span>
+          </div>
+        </div>
+        <div class="metric-row">
+          <article class="metric">
+            <div class="big">536</div>
+            <p>automated tests currently passing in this repository</p>
+          </article>
+          <article class="metric">
+            <div class="big">4 Graphs</div>
+            <p>definitions, instances, tasks, and audit persisted as RDF</p>
+          </article>
+          <article class="metric">
+            <div class="big">SPARQL</div>
+            <p>runtime decision introspection via query, not log parsing</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="slide reveal" data-slide>
+        <div class="eyebrow">Standards Fit</div>
+        <h2>Semantic web alignment and extension points</h2>
+        <div class="three-col">
+          <article class="card">
+            <h3>Representation</h3>
+            <p>
+              BPMN elements and runtime artifacts are represented as RDF
+              resources, enabling graph-native traversal and linking.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Query Layer</h3>
+            <p>
+              SPARQL is used for process introspection queries and can be
+              extended for provenance analytics and policy checks.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Roadmap Targets</h3>
+            <p>
+              Planned conference-ready alignment: PROV-O mapping profile, SHACL
+              validation shapes, and named-graph governance patterns.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="slide reveal" data-slide>
+        <div class="eyebrow">SPARQL View</div>
+        <h2>Example analysis questions exposed as queries</h2>
+        <div class="two-col">
+          <article class="card">
+            <h3>Trace executed activities per instance</h3>
+            <pre class="query">SELECT ?instance ?activity ?ts WHERE {
+  ?event &lt;http://example.org/audit/instance&gt; ?instance ;
+         &lt;http://example.org/audit/activity&gt; ?activity ;
+         &lt;http://example.org/audit/timestamp&gt; ?ts .
+}
+ORDER BY ?instance ?ts</pre>
+          </article>
+          <article class="card">
+            <h3>Find stalled instances with waiting tokens</h3>
+            <pre class="query">SELECT ?instance ?node WHERE {
+  ?token a &lt;http://example.org/instance/Token&gt; ;
+         &lt;http://example.org/instance/status&gt; "WAITING" ;
+         &lt;http://example.org/instance/currentNode&gt; ?node .
+  ?instance &lt;http://example.org/instance/hasToken&gt; ?token .
+}</pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="slide reveal" data-slide>
+        <div class="eyebrow">Use Case 1</div>
+        <h2>Agentic Customer Support with Human Escalation</h2>
+        <div class="use-case">
+          <p>
+            <strong>Scenario:</strong> AI drafts responses, but policy-sensitive
+            or high-value tickets require deterministic checks and supervisor
+            sign-off.
+          </p>
+          <div class="flow">
+            <span class="step">Ticket Ingest</span>
+            <span class="step">Policy Check Task</span>
+            <span class="step">Knowledge API Calls</span>
+            <span class="step">Human Approval Gateway</span>
+            <span class="step">Response + Audit</span>
+          </div>
+          <p class="kpi">
+            Pilot target band: 8-18% lower first-response time and 30-60% less
+            analyst time spent explaining escalated decisions.
+          </p>
+          <p class="note">
+            Assumes current flow has manual policy triage and no unified
+            decision provenance.
+          </p>
+        </div>
+      </section>
+
+      <section class="slide reveal" data-slide>
+        <div class="eyebrow">Use Case 2</div>
+        <h2>Insurance Claims Adjudication in Regulated Environments</h2>
+        <div class="use-case">
+          <p>
+            <strong>Scenario:</strong> Claims routing, fraud checks, and payout
+            approvals need repeatable logic and clear evidence trails.
+          </p>
+          <div class="flow">
+            <span class="step">Claim Intake</span>
+            <span class="step">Fraud Scoring API</span>
+            <span class="step">Rules Gateway</span>
+            <span class="step">Adjuster Task</span>
+            <span class="step">Settlement + Audit Export</span>
+          </div>
+          <p class="kpi">
+            Pilot target band: 10-25% lower median cycle time and 40-70%
+            reduction in audit evidence assembly effort.
+          </p>
+          <p class="note">
+            Assumes today's evidence is spread across BPM logs, adjuster notes,
+            and API traces.
+          </p>
+        </div>
+      </section>
+
+      <section class="slide reveal" data-slide>
+        <div class="eyebrow">Use Case 3</div>
+        <h2>B2B Order-to-Cash Across Fragmented Systems</h2>
+        <div class="use-case">
+          <p>
+            <strong>Scenario:</strong> ERP, inventory, credit, and logistics APIs
+            often fail asynchronously and create invisible bottlenecks.
+          </p>
+          <div class="flow">
+            <span class="step">Order Received</span>
+            <span class="step">Inventory/Price Checks</span>
+            <span class="step">Credit Decision Gateway</span>
+            <span class="step">Fulfillment + Notifications</span>
+            <span class="step">Exception Handling</span>
+          </div>
+          <p class="kpi">
+            Pilot target band: 5-15% higher straight-through processing and
+            20-40% lower MTTR for cross-system order failures.
+          </p>
+          <p class="note">
+            Assumes recurring retry/reconciliation issues between ERP, credit,
+            and fulfillment services.
+          </p>
+        </div>
+      </section>
+
+      <section class="slide reveal" data-slide>
+        <div class="eyebrow">Pilot Plan</div>
+        <h2>Start with one high-friction workflow and prove value in weeks.</h2>
+        <div class="timeline">
+          <article class="phase">
+            <h3>Week 1</h3>
+            <p>Model BPMN flow and define integration handlers.</p>
+          </article>
+          <article class="phase">
+            <h3>Week 2</h3>
+            <p>Run sandbox traffic with full audit and error-path coverage.</p>
+          </article>
+          <article class="phase">
+            <h3>Week 3-4</h3>
+            <p>
+              Measure baseline vs pilot on cycle-time, exception MTTR, and
+              explanation lead-time.
+            </p>
+          </article>
+        </div>
+        <p class="note">
+          Reporting discipline: present median and p90, plus sample size and
+          confidence intervals where available.
+        </p>
+      </section>
+
+      <section class="slide reveal" data-slide>
+        <div class="eyebrow">Evidence Protocol</div>
+        <h2>How to present claims credibly at a semantic web conference</h2>
+        <div class="three-col">
+          <article class="card">
+            <h3>1. Matched Baseline</h3>
+            <p>
+              Capture 2-4 weeks of pre-pilot metrics for the same workflow, team
+              mix, and ticket/order complexity profile.
+            </p>
+          </article>
+          <article class="card">
+            <h3>2. Controlled Pilot</h3>
+            <p>
+              Run SPEAR on the same class of cases. Keep SLAs and staffing
+              stable to isolate orchestration + semantic traceability effects.
+            </p>
+          </article>
+          <article class="card">
+            <h3>3. Query-Backed Results</h3>
+            <p>
+              Publish SPARQL query snippets used to compute KPIs so audience can
+              inspect definitions, not just final numbers.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="slide reveal" data-slide>
+        <div class="eyebrow">Limitations</div>
+        <h2>Current constraints and open technical questions</h2>
+        <div class="three-col">
+          <article class="card">
+            <h3>Not A Triplestore-First Runtime Yet</h3>
+            <p>
+              Current persistence is file-backed RDF in this repo; production
+              triplestore deployment patterns are part of the next phase.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Semantic Profiles In Progress</h3>
+            <p>
+              PROV-O and SHACL alignment is planned and should be shown with
+              concrete mappings, not only architecture claims.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Benchmarking Scope</h3>
+            <p>
+              Performance and reasoning overhead benchmarks are not yet fully
+              published across heterogeneous workloads.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="slide reveal" data-slide>
+        <div class="eyebrow">Demo Roadmap</div>
+        <h2>Feature preparation plan for conference demo readiness</h2>
+        <div class="timeline">
+          <article class="phase">
+            <h3>T-3 Weeks</h3>
+            <p>
+              Freeze one end-to-end scenario, pre-load datasets, and finalize
+              deterministic BPMN execution paths for repeatability.
+            </p>
+          </article>
+          <article class="phase">
+            <h3>T-2 Weeks</h3>
+            <p>
+              Add query pack: provenance, stuck-instance diagnosis, and KPI
+              extraction queries with validated expected outputs.
+            </p>
+          </article>
+          <article class="phase">
+            <h3>T-1 Week</h3>
+            <p>
+              Rehearse live runbook, fallback video capture, and failure-mode
+              drills (network issues, API timeout, malformed input).
+            </p>
+          </article>
+        </div>
+        <p class="note">
+          Detailed implementation roadmap: <code>examples/pitch_deck/demo_roadmap.md</code>
+        </p>
+      </section>
+
+      <section class="slide reveal" data-slide>
+        <div class="eyebrow">Collaboration</div>
+        <h2>Seeking pilot partners and semantic web collaborators</h2>
+        <p class="lead">
+          We are looking for workflows with high audit pressure, branching
+          complexity, or agentic decision risk. The aim is reproducible,
+          query-backed evaluation with shared artifacts.
+        </p>
+        <a class="cta" href="#"
+          >Contribute A Pilot Dataset Or Use Case</a
+        >
+      </section>
+    </main>
+
+    <script>
+      const slides = document.querySelectorAll("[data-slide]");
+      const dotsContainer = document.getElementById("dots");
+
+      slides.forEach((_, i) => {
+        const dot = document.createElement("button");
+        dot.className = "dot";
+        dot.setAttribute("aria-label", `Go to slide ${i + 1}`);
+        dot.addEventListener("click", () => {
+          slides[i].scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        dotsContainer.appendChild(dot);
+      });
+
+      const dots = document.querySelectorAll(".dot");
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            const idx = [...slides].indexOf(entry.target);
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              dots.forEach((d) => d.classList.remove("active"));
+              if (dots[idx]) dots[idx].classList.add("active");
+            }
+          });
+        },
+        { threshold: 0.45 }
+      );
+
+      slides.forEach((s) => io.observe(s));
+    </script>
+  </body>
+</html>

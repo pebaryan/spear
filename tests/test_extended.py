@@ -126,6 +126,63 @@ class TestHTTPHandlers:
         assert "headers" in call_kwargs
         assert call_kwargs["headers"].get("X-API-Key") == "test-api-key"
 
+    @patch("src.api.handlers.http_handlers.requests.request")
+    def test_make_request_with_bearer_auth(self, mock_request, handlers):
+        """Test request with bearer authentication."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {}
+        mock_request.return_value = mock_response
+
+        auth = {"type": "bearer", "token": "test-token"}
+        handlers._make_request("GET", "http://example.com", auth=auth)
+
+        call_kwargs = mock_request.call_args[1]
+        assert "headers" in call_kwargs
+        assert call_kwargs["headers"].get("Authorization") == "Bearer test-token"
+
+    def test_make_request_blocks_private_destinations_by_default(self, handlers):
+        """SSRF guard should block localhost/private destinations by default."""
+        with pytest.raises(ValueError, match="Blocked private"):
+            handlers._make_request("GET", "http://127.0.0.1/internal")
+
+    @patch("src.api.handlers.http_handlers.requests.request")
+    def test_make_request_allows_private_when_configured(
+        self, mock_request, handlers, monkeypatch
+    ):
+        """Private destinations can be explicitly enabled via env var."""
+        monkeypatch.setenv("SPEAR_HTTP_ALLOW_PRIVATE_NETWORKS", "true")
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"ok": True}
+        mock_request.return_value = mock_response
+
+        handlers._make_request("GET", "http://127.0.0.1/internal")
+        mock_request.assert_called_once()
+
+    def test_make_request_blocks_unlisted_hosts_when_allowlist_set(
+        self, handlers, monkeypatch
+    ):
+        """Outbound host allowlist should reject hosts not explicitly permitted."""
+        monkeypatch.setenv("SPEAR_HTTP_ALLOWED_HOSTS", "api.example.com,*.trusted.test")
+        with pytest.raises(ValueError, match="Host not permitted"):
+            handlers._make_request("GET", "https://not-allowed.example.net/path")
+
+    @patch("src.api.handlers.http_handlers.requests.request")
+    def test_make_request_allows_host_matching_allowlist(
+        self, mock_request, handlers, monkeypatch
+    ):
+        """Outbound host allowlist should allow exact and wildcard hosts."""
+        monkeypatch.setenv("SPEAR_HTTP_ALLOWED_HOSTS", "api.example.com,*.trusted.test")
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"ok": True}
+        mock_request.return_value = mock_response
+
+        handlers._make_request("GET", "https://api.example.com/v1")
+        handlers._make_request("GET", "https://svc.trusted.test/v1")
+        assert mock_request.call_count == 2
+
 
 class TestProcessContextExtended:
     """Extended tests for ProcessContext"""

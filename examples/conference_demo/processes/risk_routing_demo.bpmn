@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_RiskRoutingDemo"
+                  targetNamespace="http://example.org/conference-demo">
+  <bpmn:process id="RiskRoutingDemo" name="Risk Routing Demo" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Start" />
+
+    <bpmn:exclusiveGateway id="Gateway_Risk" name="Route by risk" />
+
+    <bpmn:userTask id="Task_ManualReview" name="Manual Risk Review" />
+
+    <bpmn:serviceTask id="Task_AutoApprove"
+                      name="Auto Decision"
+                      camunda:topic="calculate_tax" />
+
+    <bpmn:endEvent id="EndEvent_1" name="Done" />
+
+    <bpmn:sequenceFlow id="Flow_StartToGateway"
+                       sourceRef="StartEvent_1"
+                       targetRef="Gateway_Risk" />
+
+    <bpmn:sequenceFlow id="Flow_HighRisk"
+                       sourceRef="Gateway_Risk"
+                       targetRef="Task_ManualReview">
+      <bpmn:conditionExpression xsi:type="tFormalExpression"
+                                camunda:expression="${risk eq high}" />
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_LowRisk"
+                       sourceRef="Gateway_Risk"
+                       targetRef="Task_AutoApprove">
+      <bpmn:conditionExpression xsi:type="tFormalExpression"
+                                camunda:expression="${risk eq low}" />
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_ManualToEnd"
+                       sourceRef="Task_ManualReview"
+                       targetRef="EndEvent_1" />
+
+    <bpmn:sequenceFlow id="Flow_AutoToEnd"
+                       sourceRef="Task_AutoApprove"
+                       targetRef="EndEvent_1" />
+  </bpmn:process>
+</bpmn:definitions>

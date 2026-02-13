@@ -228,6 +228,28 @@ class TestServiceTaskRegistration:
         assert result is True
         assert facade.get_service_task_handler("my_topic") is None
 
+    def test_topic_compatibility_methods(self, tmp_path):
+        """Test backward-compatible topic API methods on facade."""
+        facade = StorageFacade(str(tmp_path))
+
+        def handler(instance_id, variables):
+            updated = dict(variables)
+            updated["processed"] = True
+            return updated
+
+        assert facade.register_topic_handler("compat_topic", handler) is True
+        topics = facade.get_registered_topics()
+        assert "compat_topic" in topics
+
+        result = facade.execute_service_task(
+            "test-instance", "compat_topic", {"input": "value"}
+        )
+        assert result["processed"] is True
+
+        assert facade.update_topic_description("compat_topic", "Updated") is True
+        assert facade.update_topic_async("compat_topic", True) is True
+        assert facade.unregister_topic_handler("compat_topic") is True
+
 
 class TestSaveOperation:
     """Tests for save operation."""

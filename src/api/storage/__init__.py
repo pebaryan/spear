@@ -34,16 +34,17 @@ def get_storage() -> Union[RDFStorageService, StorageFacade]:
     """
     Get or create the shared storage service instance.
 
-    Returns StorageFacade if SPEAR_USE_FACADE=true environment variable is set,
-    otherwise returns the original RDFStorageService for backward compatibility.
+    Defaults to StorageFacade unless SPEAR_USE_FACADE is explicitly set to false.
+    Uses SPEAR_STORAGE_PATH to select where RDF files are persisted.
     """
     global _shared_storage
     if _shared_storage is None:
-        use_facade = os.environ.get("SPEAR_USE_FACADE", "false").lower() == "true"
+        use_facade = os.environ.get("SPEAR_USE_FACADE", "true").lower() != "false"
+        storage_path = os.environ.get("SPEAR_STORAGE_PATH", "data/spear_rdf")
         if use_facade:
-            _shared_storage = get_facade()
+            _shared_storage = get_facade(storage_path)
         else:
-            _shared_storage = RDFStorageService()
+            _shared_storage = RDFStorageService(storage_path=storage_path)
     return _shared_storage
 
 

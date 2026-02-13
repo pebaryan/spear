@@ -51,6 +51,9 @@ Response Extraction:
 """
 
 import json
+import os
+import ipaddress
+from urllib.parse import urlparse
 import requests
 from typing import Dict, Any, Optional, List
 from datetime import datetime
@@ -74,6 +77,71 @@ class HTTPHandlers:
         """
         self.default_timeout = default_timeout
         self.max_retries = max_retries
+
+    def _allow_private_networks(self) -> bool:
+        """Whether private/loopback/link-local destinations are allowed."""
+        return os.getenv("SPEAR_HTTP_ALLOW_PRIVATE_NETWORKS", "false").lower() == "true"
+
+    def _get_allowed_hosts(self) -> List[str]:
+        """Return configured outbound host allowlist patterns."""
+        raw = os.getenv("SPEAR_HTTP_ALLOWED_HOSTS", "")
+        return [host.strip().lower() for host in raw.split(",") if host.strip()]
+
+    def _is_host_allowed(self, host: str, allowed_hosts: List[str]) -> bool:
+        """Check host against exact and wildcard allowlist patterns."""
+        if not allowed_hosts:
+            return True
+
+        normalized_host = host.lower()
+        for pattern in allowed_hosts:
+            if pattern.startswith("*."):
+                suffix = pattern[1:]  # ".example.com"
+                if normalized_host.endswith(suffix) and normalized_host != suffix[1:]:
+                    return True
+            elif normalized_host == pattern:
+                return True
+        return False
+
+    def _validate_request_url(self, url: str) -> None:
+        """Basic SSRF guardrails for outbound HTTP handlers."""
+        parsed = urlparse(url)
+        scheme = (parsed.scheme or "").lower()
+        if scheme not in {"http", "https"}:
+            raise ValueError(f"Unsupported URL scheme: {scheme or 'missing'}")
+
+        host = parsed.hostname
+        if not host:
+            raise ValueError("URL host is required")
+
+        allowed_hosts = self._get_allowed_hosts()
+        if not self._is_host_allowed(host, allowed_hosts):
+            raise ValueError(
+                f"Host not permitted by SPEAR_HTTP_ALLOWED_HOSTS: {host}"
+            )
+
+        if self._allow_private_networks():
+            return
+
+        normalized_host = host.lower()
+        blocked_hostnames = {"localhost", "localhost.localdomain"}
+        if normalized_host in blocked_hostnames or normalized_host.endswith(".localhost"):
+            raise ValueError(f"Blocked private host: {host}")
+
+        try:
+            ip = ipaddress.ip_address(host)
+        except ValueError:
+            # Hostname is not a literal IP; allow by default.
+            return
+
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+        ):
+            raise ValueError(f"Blocked private IP destination: {ip}")
     
     def _substitute_variables(self, text: str, variables: Dict[str, Any]) -> str:
         """
@@ -164,21 +232,21 @@ class HTTPHandlers:
         Raises:
             Exception: If request fails
         """
+        self._validate_request_url(url)
+
         # Set up authentication
+        req_headers = dict(headers) if headers else {}
         auth_obj = None
         if auth:
             auth_type = auth.get("type", "none")
             if auth_type == "bearer":
-                auth_obj = requests.auth.HTTPBearerAuth(auth.get("token", ""))
+                req_headers["Authorization"] = f"Bearer {auth.get('token', '')}"
             elif auth_type == "basic":
-                import base64
                 credentials = f"{auth.get('username', '')}:{auth.get('password', '')}"
                 auth_obj = requests.auth.HTTPBasicAuth(*credentials.split(":", 1))
             elif auth_type == "api_key":
                 header_name = auth.get("header", "X-API-Key")
-                if headers is None:
-                    headers = {}
-                headers[header_name] = auth.get("key", "")
+                req_headers[header_name] = auth.get("key", "")
         
         # Set default timeout
         if timeout is None:
@@ -191,7 +259,7 @@ class HTTPHandlers:
                 response = requests.request(
                     method=method.upper(),
                     url=url,
-                    headers=headers,
+                    headers=req_headers,
                     params=params,
                     json=data if method.upper() in ["POST", "PUT"] else None,
                     data=data if method.upper() not in ["POST", "PUT"] else None,

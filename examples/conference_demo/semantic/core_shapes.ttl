@@ -1,0 +1,51 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix inst: <http://example.org/instance/> .
+@prefix task: <http://example.org/task/> .
+
+inst:ProcessInstanceShape
+  a sh:NodeShape ;
+  sh:targetClass inst:ProcessInstance ;
+  sh:property [
+    sh:path inst:status ;
+    sh:minCount 1 ;
+    sh:datatype xsd:string ;
+  ] ;
+  sh:property [
+    sh:path inst:hasToken ;
+    sh:minCount 1 ;
+  ] .
+
+inst:TokenShape
+  a sh:NodeShape ;
+  sh:targetClass inst:Token ;
+  sh:property [
+    sh:path inst:status ;
+    sh:minCount 1 ;
+    sh:datatype xsd:string ;
+  ] ;
+  sh:property [
+    sh:path inst:belongsTo ;
+    sh:minCount 1 ;
+  ] ;
+  sh:property [
+    sh:path inst:currentNode ;
+    sh:minCount 1 ;
+  ] .
+
+task:UserTaskShape
+  a sh:NodeShape ;
+  sh:targetClass task:UserTask ;
+  sh:property [
+    sh:path task:instance ;
+    sh:minCount 1 ;
+  ] ;
+  sh:property [
+    sh:path task:status ;
+    sh:minCount 1 ;
+    sh:datatype xsd:string ;
+  ] ;
+  sh:property [
+    sh:path task:node ;
+    sh:minCount 1 ;
+  ] .

@@ -1,0 +1,20 @@
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX inst: <http://example.org/instance/>
+PREFIX var: <http://example.org/variables/>
+
+SELECT ?instance ?status ?risk ?currentNode
+WHERE {
+  ?instance rdf:type inst:ProcessInstance ;
+            inst:status ?status ;
+            inst:hasVariable ?v ;
+            inst:hasToken ?token .
+
+  ?v var:name "risk" ;
+     var:value ?risk .
+
+  ?token inst:status ?tokenStatus ;
+         inst:currentNode ?currentNode .
+
+  FILTER (?tokenStatus = "ACTIVE" || ?tokenStatus = "WAITING")
+}
+ORDER BY ?risk ?instance

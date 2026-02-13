@@ -1,12 +1,14 @@
 # Task Management API Endpoints
 # REST API for managing user tasks in process instances
 
+import logging
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
-from src.api.storage import RDFStorageService, get_storage
+from src.api.storage import get_storage
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
+logger = logging.getLogger(__name__)
 
 # Use shared storage service
 storage = get_storage()
@@ -153,8 +155,8 @@ async def claim_task(task_id: str, request: TaskClaimRequest):
             claimed_at=task["claimed_at"],
             completed_at=task["completed_at"]
         )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Unable to claim task")
 
 
 @router.post("/{task_id}/complete", response_model=TaskResponse)
@@ -187,8 +189,8 @@ async def complete_task(task_id: str, request: TaskCompleteRequest):
             claimed_at=task["claimed_at"],
             completed_at=task["completed_at"]
         )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Unable to complete task")
 
 
 @router.put("/{task_id}/assign", response_model=TaskResponse)
@@ -217,8 +219,9 @@ async def assign_task(task_id: str, request: TaskAssignRequest):
             claimed_at=task["claimed_at"],
             completed_at=task["completed_at"]
         )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        logger.exception("Failed to assign task %s", task_id)
+        raise HTTPException(status_code=400, detail="Unable to assign task")
 
 
 @router.get("/instance/{instance_id}")

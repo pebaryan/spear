@@ -1,0 +1,19 @@
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX inst: <http://example.org/instance/>
+PREFIX task: <http://example.org/task/>
+
+SELECT ?instance ?token ?node ?taskStatus
+WHERE {
+  ?instance rdf:type inst:ProcessInstance ;
+            inst:hasToken ?token .
+
+  ?token inst:status "WAITING" ;
+         inst:currentNode ?node .
+
+  OPTIONAL {
+    ?task task:instance ?instance ;
+          task:node ?node ;
+          task:status ?taskStatus .
+  }
+}
+ORDER BY ?instance

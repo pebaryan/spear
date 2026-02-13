@@ -1,0 +1,195 @@
+@prefix ns1: <http://example.org/instance/> .
+@prefix ns2: <http://example.org/variables/> .
+
+ns1:0f7a418b-70e5-4403-8fbd-5aae49d604fc a ns1:ProcessInstance ;
+    ns1:createdAt "2026-02-13T20:05:26.398504" ;
+    ns1:hasToken ns1:token_0f7a418b-70e5-4403-8fbd-5aae49d604fc ;
+    ns1:hasVariable ns2:0f7a418b-70e5-4403-8fbd-5aae49d604fc_test_var ;
+    ns1:processDefinition <http://example.org/process/cfa68278-0b08-4152-bed1-0618e743aa04> ;
+    ns1:status "TERMINATED" ;
+    ns1:updatedAt "2026-02-13T20:05:26.457166" .
+
+ns1:128ab7dd-fcb7-4c9e-a3b8-2fbfd691ef47 a ns1:ProcessInstance ;
+    ns1:createdAt "2026-02-13T20:05:19.779211" ;
+    ns1:hasToken ns1:token_128ab7dd-fcb7-4c9e-a3b8-2fbfd691ef47 ;
+    ns1:hasVariable ns2:128ab7dd-fcb7-4c9e-a3b8-2fbfd691ef47_test_var ;
+    ns1:processDefinition <http://example.org/process/799a2fc8-e0a9-4e08-b079-126eda412fcf> ;
+    ns1:status "TERMINATED" ;
+    ns1:updatedAt "2026-02-13T20:05:19.832665" .
+
+ns1:1e2ee42d-20c6-428d-97e4-eb0b76b97e4a a ns1:ProcessInstance ;
+    ns1:createdAt "2026-02-13T20:04:31.866490" ;
+    ns1:hasToken ns1:token_1e2ee42d-20c6-428d-97e4-eb0b76b97e4a ;
+    ns1:hasVariable ns2:1e2ee42d-20c6-428d-97e4-eb0b76b97e4a_test_var ;
+    ns1:processDefinition <http://example.org/process/c330c085-7753-4d32-94dd-8e6b6b6bafca> ;
+    ns1:status "TERMINATED" ;
+    ns1:updatedAt "2026-02-13T20:04:31.910357" .
+
+ns1:3977e647-0a4f-4d62-8c52-40d1fc985831 a ns1:ProcessInstance ;
+    ns1:createdAt "2026-02-13T19:59:29.251705" ;
+    ns1:hasToken ns1:token_3977e647-0a4f-4d62-8c52-40d1fc985831 ;
+    ns1:hasVariable ns2:3977e647-0a4f-4d62-8c52-40d1fc985831_test_var ;
+    ns1:processDefinition <http://example.org/process/1886f53a-9702-4ff7-a3b0-955bdf1aa199> ;
+    ns1:status "TERMINATED" ;
+    ns1:updatedAt "2026-02-13T19:59:29.284038" .
+
+ns1:4643826d-89de-4cb6-b5cc-d4f7edad7d49 a ns1:ProcessInstance ;
+    ns1:createdAt "2026-02-13T20:18:14.189786" ;
+    ns1:hasToken ns1:token_4643826d-89de-4cb6-b5cc-d4f7edad7d49 ;
+    ns1:hasVariable ns2:4643826d-89de-4cb6-b5cc-d4f7edad7d49_test_var ;
+    ns1:processDefinition <http://example.org/process/868117f1-df52-4630-84fd-1de685104167> ;
+    ns1:status "TERMINATED" ;
+    ns1:updatedAt "2026-02-13T20:18:14.291342" .
+
+ns1:4d6d37dc-6d7e-4267-b9db-74e13b1bbb78 a ns1:ProcessInstance ;
+    ns1:createdAt "2026-02-13T20:00:28.811465" ;
+    ns1:hasToken ns1:token_4d6d37dc-6d7e-4267-b9db-74e13b1bbb78 ;
+    ns1:hasVariable ns2:4d6d37dc-6d7e-4267-b9db-74e13b1bbb78_test_var ;
+    ns1:processDefinition <http://example.org/process/8ab049c7-3d0e-4075-91a5-92b8446c43e1> ;
+    ns1:status "TERMINATED" ;
+    ns1:updatedAt "2026-02-13T20:00:28.850963" .
+
+ns1:718e8832-ab8f-4a62-86f4-bf4e339ba754 a ns1:ProcessInstance ;
+    ns1:createdAt "2026-02-13T20:11:54.210210" ;
+    ns1:hasToken ns1:token_718e8832-ab8f-4a62-86f4-bf4e339ba754 ;
+    ns1:hasVariable ns2:718e8832-ab8f-4a62-86f4-bf4e339ba754_test_var ;
+    ns1:processDefinition <http://example.org/process/2d22cec1-1ae9-46d1-8944-cead473fa4ee> ;
+    ns1:status "TERMINATED" ;
+    ns1:updatedAt "2026-02-13T20:11:54.290069" .
+
+ns1:9fa44366-c251-4d6b-84af-07866723c0ab a ns1:ProcessInstance ;
+    ns1:createdAt "2026-02-13T19:30:50.678516" ;
+    ns1:hasToken ns1:token_9fa44366-c251-4d6b-84af-07866723c0ab ;
+    ns1:hasVariable ns2:9fa44366-c251-4d6b-84af-07866723c0ab_test_var ;
+    ns1:processDefinition <http://example.org/process/da0eb89a-abab-445c-aae5-db41c85fa90c> ;
+    ns1:status "TERMINATED" ;
+    ns1:updatedAt "2026-02-13T19:30:50.723631" .
+
+ns1:b1364a95-3bb8-4a6e-876a-4e1bfba5bbcb a ns1:ProcessInstance ;
+    ns1:createdAt "2026-02-13T20:18:07.458967" ;
+    ns1:hasToken ns1:token_b1364a95-3bb8-4a6e-876a-4e1bfba5bbcb ;
+    ns1:hasVariable ns2:b1364a95-3bb8-4a6e-876a-4e1bfba5bbcb_test_var ;
+    ns1:processDefinition <http://example.org/process/702f3051-9b59-44b2-a514-52f36fb50869> ;
+    ns1:status "TERMINATED" ;
+    ns1:updatedAt "2026-02-13T20:18:07.551545" .
+
+ns1:ba748e53-b4f5-41e2-9c4c-9046958e0e5c a ns1:ProcessInstance ;
+    ns1:createdAt "2026-02-13T20:11:06.794187" ;
+    ns1:hasToken ns1:token_ba748e53-b4f5-41e2-9c4c-9046958e0e5c ;
+    ns1:hasVariable ns2:ba748e53-b4f5-41e2-9c4c-9046958e0e5c_test_var ;
+    ns1:processDefinition <http://example.org/process/f259c7a8-efe7-4612-93a9-6af81addba38> ;
+    ns1:status "TERMINATED" ;
+    ns1:updatedAt "2026-02-13T20:11:06.866047" .
+
+ns1:cdf2620b-8c64-4163-8216-e65ebe13988f a ns1:ProcessInstance ;
+    ns1:createdAt "2026-02-13T20:11:13.004423" ;
+    ns1:hasToken ns1:token_cdf2620b-8c64-4163-8216-e65ebe13988f ;
+    ns1:hasVariable ns2:cdf2620b-8c64-4163-8216-e65ebe13988f_test_var ;
+    ns1:processDefinition <http://example.org/process/e404e1f6-f2cc-4d43-bf43-216094f874f9> ;
+    ns1:status "TERMINATED" ;
+    ns1:updatedAt "2026-02-13T20:11:13.077073" .
+
+ns1:fb5f5b4d-d57d-4afb-94bf-82cd2ceee994 a ns1:ProcessInstance ;
+    ns1:createdAt "2026-02-13T20:17:55.856856" ;
+    ns1:hasToken ns1:token_fb5f5b4d-d57d-4afb-94bf-82cd2ceee994 ;
+    ns1:hasVariable ns2:fb5f5b4d-d57d-4afb-94bf-82cd2ceee994_test_var ;
+    ns1:processDefinition <http://example.org/process/10607136-5e41-4b93-b279-db621ae359e7> ;
+    ns1:status "TERMINATED" ;
+    ns1:updatedAt "2026-02-13T20:17:55.948830" .
+
+ns1:token_0f7a418b-70e5-4403-8fbd-5aae49d604fc a ns1:Token ;
+    ns1:belongsTo ns1:0f7a418b-70e5-4403-8fbd-5aae49d604fc ;
+    ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns1:status "CONSUMED" .
+
+ns1:token_128ab7dd-fcb7-4c9e-a3b8-2fbfd691ef47 a ns1:Token ;
+    ns1:belongsTo ns1:128ab7dd-fcb7-4c9e-a3b8-2fbfd691ef47 ;
+    ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns1:status "CONSUMED" .
+
+ns1:token_1e2ee42d-20c6-428d-97e4-eb0b76b97e4a a ns1:Token ;
+    ns1:belongsTo ns1:1e2ee42d-20c6-428d-97e4-eb0b76b97e4a ;
+    ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns1:status "CONSUMED" .
+
+ns1:token_3977e647-0a4f-4d62-8c52-40d1fc985831 a ns1:Token ;
+    ns1:belongsTo ns1:3977e647-0a4f-4d62-8c52-40d1fc985831 ;
+    ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns1:status "CONSUMED" .
+
+ns1:token_4643826d-89de-4cb6-b5cc-d4f7edad7d49 a ns1:Token ;
+    ns1:belongsTo ns1:4643826d-89de-4cb6-b5cc-d4f7edad7d49 ;
+    ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns1:status "CONSUMED" .
+
+ns1:token_4d6d37dc-6d7e-4267-b9db-74e13b1bbb78 a ns1:Token ;
+    ns1:belongsTo ns1:4d6d37dc-6d7e-4267-b9db-74e13b1bbb78 ;
+    ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns1:status "CONSUMED" .
+
+ns1:token_718e8832-ab8f-4a62-86f4-bf4e339ba754 a ns1:Token ;
+    ns1:belongsTo ns1:718e8832-ab8f-4a62-86f4-bf4e339ba754 ;
+    ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns1:status "CONSUMED" .
+
+ns1:token_9fa44366-c251-4d6b-84af-07866723c0ab a ns1:Token ;
+    ns1:belongsTo ns1:9fa44366-c251-4d6b-84af-07866723c0ab ;
+    ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns1:status "CONSUMED" .
+
+ns1:token_b1364a95-3bb8-4a6e-876a-4e1bfba5bbcb a ns1:Token ;
+    ns1:belongsTo ns1:b1364a95-3bb8-4a6e-876a-4e1bfba5bbcb ;
+    ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns1:status "CONSUMED" .
+
+ns1:token_ba748e53-b4f5-41e2-9c4c-9046958e0e5c a ns1:Token ;
+    ns1:belongsTo ns1:ba748e53-b4f5-41e2-9c4c-9046958e0e5c ;
+    ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns1:status "CONSUMED" .
+
+ns1:token_cdf2620b-8c64-4163-8216-e65ebe13988f a ns1:Token ;
+    ns1:belongsTo ns1:cdf2620b-8c64-4163-8216-e65ebe13988f ;
+    ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns1:status "CONSUMED" .
+
+ns1:token_fb5f5b4d-d57d-4afb-94bf-82cd2ceee994 a ns1:Token ;
+    ns1:belongsTo ns1:fb5f5b4d-d57d-4afb-94bf-82cd2ceee994 ;
+    ns1:currentNode <http://example.org/bpmn/EndEvent_1> ;
+    ns1:status "CONSUMED" .
+
+ns2:0f7a418b-70e5-4403-8fbd-5aae49d604fc_test_var ns2:name "test_var" ;
+    ns2:value "value" .
+
+ns2:128ab7dd-fcb7-4c9e-a3b8-2fbfd691ef47_test_var ns2:name "test_var" ;
+    ns2:value "value" .
+
+ns2:1e2ee42d-20c6-428d-97e4-eb0b76b97e4a_test_var ns2:name "test_var" ;
+    ns2:value "value" .
+
+ns2:3977e647-0a4f-4d62-8c52-40d1fc985831_test_var ns2:name "test_var" ;
+    ns2:value "value" .
+
+ns2:4643826d-89de-4cb6-b5cc-d4f7edad7d49_test_var ns2:name "test_var" ;
+    ns2:value "value" .
+
+ns2:4d6d37dc-6d7e-4267-b9db-74e13b1bbb78_test_var ns2:name "test_var" ;
+    ns2:value "value" .
+
+ns2:718e8832-ab8f-4a62-86f4-bf4e339ba754_test_var ns2:name "test_var" ;
+    ns2:value "value" .
+
+ns2:9fa44366-c251-4d6b-84af-07866723c0ab_test_var ns2:name "test_var" ;
+    ns2:value "value" .
+
+ns2:b1364a95-3bb8-4a6e-876a-4e1bfba5bbcb_test_var ns2:name "test_var" ;
+    ns2:value "value" .
+
+ns2:ba748e53-b4f5-41e2-9c4c-9046958e0e5c_test_var ns2:name "test_var" ;
+    ns2:value "value" .
+
+ns2:cdf2620b-8c64-4163-8216-e65ebe13988f_test_var ns2:name "test_var" ;
+    ns2:value "value" .
+
+ns2:fb5f5b4d-d57d-4afb-94bf-82cd2ceee994_test_var ns2:name "test_var" ;
+    ns2:value "value" .
+

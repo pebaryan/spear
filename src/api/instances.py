@@ -1,6 +1,7 @@
 # Process Instance API Endpoints
 # REST API for managing process instances
 
+import logging
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from src.api.models import (
@@ -9,14 +10,34 @@ from src.api.models import (
     InstanceListResponse,
     VariableCreate,
     VariableListResponse,
-    ErrorResponse
 )
-from src.api.storage import RDFStorageService, get_storage
+from src.api.storage import get_storage
 
 router = APIRouter(prefix="/instances", tags=["Process Instances"])
+logger = logging.getLogger(__name__)
 
 # Use shared storage service
 storage = get_storage()
+
+
+def _to_instance_response_payload(instance: dict) -> dict:
+    """Normalize storage instance payload to API response schema."""
+    status = instance.get("status", "CREATED")
+    completed_at = instance.get("completed_at")
+    if completed_at is None and status in ["COMPLETED", "TERMINATED", "CANCELLED"]:
+        completed_at = instance.get("updated_at")
+
+    return {
+        "id": instance["id"],
+        "process_id": instance["process_id"],
+        "process_version": instance.get("process_version", "1.0.0"),
+        "status": status,
+        "current_nodes": instance.get("current_nodes", []),
+        "variables": instance.get("variables", {}),
+        "created_at": instance.get("created_at"),
+        "updated_at": instance.get("updated_at"),
+        "completed_at": completed_at,
+    }
 
 
 @router.get("", response_model=InstanceListResponse)
@@ -37,7 +58,17 @@ async def list_instances(
         page=page,
         page_size=page_size
     )
-    return InstanceListResponse(**result)
+
+    normalized_instances = [
+        _to_instance_response_payload(instance) for instance in result["instances"]
+    ]
+
+    return InstanceListResponse(
+        instances=normalized_instances,
+        total=result["total"],
+        page=result["page"],
+        page_size=result["page_size"],
+    )
 
 
 @router.get("/{instance_id}", response_model=InstanceResponse)
@@ -51,19 +82,7 @@ async def get_instance(instance_id: str):
     if not instance:
         raise HTTPException(status_code=404, detail=f"Instance {instance_id} not found")
     
-    # Convert to response format
-    response = InstanceResponse(
-        id=instance["id"],
-        process_id=instance["process_id"],
-        process_version="1.0.0",  # Could be stored in RDF
-        status=instance["status"],
-        current_nodes=instance.get("current_nodes", []),
-        variables=instance.get("variables", {}),
-        created_at=instance.get("created_at", ""),
-        updated_at=instance.get("updated_at", ""),
-        completed_at=None
-    )
-    return response
+    return InstanceResponse(**_to_instance_response_payload(instance))
 
 
 @router.post("", response_model=InstanceResponse, status_code=201)
@@ -86,25 +105,15 @@ async def create_instance(instance: InstanceCreate):
         if not instance_data:
             raise HTTPException(status_code=500, detail="Failed to create instance")
         
-        # Build response
-        response = InstanceResponse(
-            id=instance_data["id"],
-            process_id=instance_data["process_id"],
-            process_version="1.0.0",
-            status=instance_data["status"],
-            current_nodes=instance_data.get("current_nodes", []),
-            variables=instance_data.get("variables", {}),
-            created_at=instance_data.get("created_at", ""),
-            updated_at=instance_data.get("updated_at", ""),
-            completed_at=None
+        return InstanceResponse(**_to_instance_response_payload(instance_data))
+        
+    except ValueError:
+        raise HTTPException(
+            status_code=404, detail="Process not found or invalid start event"
         )
-        
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        logger.exception("Failed to create process instance")
+        raise HTTPException(status_code=400, detail="Invalid instance creation request")
 
 
 @router.post("/{instance_id}/stop", response_model=InstanceResponse)
@@ -122,22 +131,10 @@ async def stop_instance(instance_id: str, reason: str = "User request"):
         
         instance_data = storage.get_instance(instance_id)
         
-        response = InstanceResponse(
-            id=instance_data["id"],
-            process_id=instance_data["process_id"],
-            process_version="1.0.0",
-            status=instance_data["status"],
-            current_nodes=instance_data.get("current_nodes", []),
-            variables=instance_data.get("variables", {}),
-            created_at=instance_data.get("created_at", ""),
-            updated_at=instance_data.get("updated_at", ""),
-            completed_at=instance_data.get("updated_at", "")
-        )
+        return InstanceResponse(**_to_instance_response_payload(instance_data))
         
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"Instance {instance_id} not found")
 
 
 @router.delete("/{instance_id}", status_code=204)

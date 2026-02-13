@@ -1,0 +1,244 @@
+@prefix ns1: <http://example.org/audit/> .
+
+ns1:event_217652bd-e1a2-432f-a1dd-0d4ba77679ab a ns1:Event ;
+    ns1:details "User request" ;
+    ns1:eventType "TERMINATED" ;
+    ns1:instance <http://example.org/instance/4643826d-89de-4cb6-b5cc-d4f7edad7d49> ;
+    ns1:timestamp "2026-02-13T20:18:14.291596" ;
+    ns1:user "System" .
+
+ns1:event_25da2db2-ee45-47ba-9e8d-d0af9a599629 a ns1:Event ;
+    ns1:details "User request" ;
+    ns1:eventType "TERMINATED" ;
+    ns1:instance <http://example.org/instance/9fa44366-c251-4d6b-84af-07866723c0ab> ;
+    ns1:timestamp "2026-02-13T19:30:50.723898" ;
+    ns1:user "System" .
+
+ns1:event_2a1b88f1-7f3e-40b7-a07b-87b44c0b66b1 a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/0f7a418b-70e5-4403-8fbd-5aae49d604fc> ;
+    ns1:timestamp "2026-02-13T20:05:26.434595" ;
+    ns1:user "System" .
+
+ns1:event_2b744eb9-3cee-4791-8c23-e90750b9b434 a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/9fa44366-c251-4d6b-84af-07866723c0ab> ;
+    ns1:timestamp "2026-02-13T19:30:50.708127" ;
+    ns1:user "System" .
+
+ns1:event_2d7abbdc-5c8a-420f-95fc-a16c5a88f373 a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/b1364a95-3bb8-4a6e-876a-4e1bfba5bbcb> ;
+    ns1:timestamp "2026-02-13T20:18:07.519316" ;
+    ns1:user "System" .
+
+ns1:event_2e1a8f1b-4e54-4152-8128-1dbc573ac00d a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/128ab7dd-fcb7-4c9e-a3b8-2fbfd691ef47> ;
+    ns1:timestamp "2026-02-13T20:05:19.812165" ;
+    ns1:user "System" .
+
+ns1:event_3bbb24fe-5212-48e7-9e81-b335bceb1b9e a ns1:Event ;
+    ns1:details "http://example.org/bpmn/StartEvent_1" ;
+    ns1:eventType "START" ;
+    ns1:instance <http://example.org/instance/9fa44366-c251-4d6b-84af-07866723c0ab> ;
+    ns1:timestamp "2026-02-13T19:30:50.684513" ;
+    ns1:user "System" .
+
+ns1:event_3c194a5b-05e9-4906-b1d2-2f33872d9421 a ns1:Event ;
+    ns1:details "User request" ;
+    ns1:eventType "TERMINATED" ;
+    ns1:instance <http://example.org/instance/cdf2620b-8c64-4163-8216-e65ebe13988f> ;
+    ns1:timestamp "2026-02-13T20:11:13.077558" ;
+    ns1:user "System" .
+
+ns1:event_3ca759cc-ecd7-4f9b-bcb2-8d8d7bad62a8 a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/718e8832-ab8f-4a62-86f4-bf4e339ba754> ;
+    ns1:timestamp "2026-02-13T20:11:54.262049" ;
+    ns1:user "System" .
+
+ns1:event_3d78f007-f972-4f8e-bb6e-57beec07b5bb a ns1:Event ;
+    ns1:details "http://example.org/bpmn/EndEvent_1" ;
+    ns1:eventType "END" ;
+    ns1:instance <http://example.org/instance/9fa44366-c251-4d6b-84af-07866723c0ab> ;
+    ns1:timestamp "2026-02-13T19:30:50.702076" ;
+    ns1:user "System" .
+
+ns1:event_43f705de-fe5a-4e09-a64e-6a40824f39e2 a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/fb5f5b4d-d57d-4afb-94bf-82cd2ceee994> ;
+    ns1:timestamp "2026-02-13T20:17:55.918087" ;
+    ns1:user "System" .
+
+ns1:event_4bbd7522-ec93-465a-9482-8acaaaa0cddb a ns1:Event ;
+    ns1:details "User request" ;
+    ns1:eventType "TERMINATED" ;
+    ns1:instance <http://example.org/instance/0f7a418b-70e5-4403-8fbd-5aae49d604fc> ;
+    ns1:timestamp "2026-02-13T20:05:26.457547" ;
+    ns1:user "System" .
+
+ns1:event_550126bd-7f2d-4f26-84d2-c6337858a292 a ns1:Event ;
+    ns1:details "User request" ;
+    ns1:eventType "TERMINATED" ;
+    ns1:instance <http://example.org/instance/4d6d37dc-6d7e-4267-b9db-74e13b1bbb78> ;
+    ns1:timestamp "2026-02-13T20:00:28.851216" ;
+    ns1:user "System" .
+
+ns1:event_5b799b5b-fa2d-489d-866c-a919b8905a1e a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/cdf2620b-8c64-4163-8216-e65ebe13988f> ;
+    ns1:timestamp "2026-02-13T20:11:13.005032" ;
+    ns1:user "System" .
+
+ns1:event_6d290792-ca4f-4665-b004-0ae20d49aa22 a ns1:Event ;
+    ns1:details "User request" ;
+    ns1:eventType "TERMINATED" ;
+    ns1:instance <http://example.org/instance/718e8832-ab8f-4a62-86f4-bf4e339ba754> ;
+    ns1:timestamp "2026-02-13T20:11:54.290322" ;
+    ns1:user "System" .
+
+ns1:event_7f755835-0aa1-4092-b994-3b36df2374b0 a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/718e8832-ab8f-4a62-86f4-bf4e339ba754> ;
+    ns1:timestamp "2026-02-13T20:11:54.210793" ;
+    ns1:user "System" .
+
+ns1:event_84906671-d50b-417a-9966-28bb3bde3849 a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/cdf2620b-8c64-4163-8216-e65ebe13988f> ;
+    ns1:timestamp "2026-02-13T20:11:13.051246" ;
+    ns1:user "System" .
+
+ns1:event_8de52e98-5c17-4f03-bc16-4ff5642a54f8 a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/128ab7dd-fcb7-4c9e-a3b8-2fbfd691ef47> ;
+    ns1:timestamp "2026-02-13T20:05:19.780473" ;
+    ns1:user "System" .
+
+ns1:event_97abcc92-2d3b-44f1-abf1-5db79c6e2f6c a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/0f7a418b-70e5-4403-8fbd-5aae49d604fc> ;
+    ns1:timestamp "2026-02-13T20:05:26.399056" ;
+    ns1:user "System" .
+
+ns1:event_9ba0ebe4-145d-4c71-968a-78355d16df4a a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/3977e647-0a4f-4d62-8c52-40d1fc985831> ;
+    ns1:timestamp "2026-02-13T19:59:29.268488" ;
+    ns1:user "System" .
+
+ns1:event_9e0e803d-acdf-4522-b3dc-231a481616f0 a ns1:Event ;
+    ns1:details "User request" ;
+    ns1:eventType "TERMINATED" ;
+    ns1:instance <http://example.org/instance/ba748e53-b4f5-41e2-9c4c-9046958e0e5c> ;
+    ns1:timestamp "2026-02-13T20:11:06.866337" ;
+    ns1:user "System" .
+
+ns1:event_aeddc94e-84d7-4c9e-bd97-11fef94b2b5e a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/4d6d37dc-6d7e-4267-b9db-74e13b1bbb78> ;
+    ns1:timestamp "2026-02-13T20:00:28.834304" ;
+    ns1:user "System" .
+
+ns1:event_b6514362-5359-4ec0-9fcd-3c1d830f0758 a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/9fa44366-c251-4d6b-84af-07866723c0ab> ;
+    ns1:timestamp "2026-02-13T19:30:50.679284" ;
+    ns1:user "System" .
+
+ns1:event_b9812a58-ef83-4514-8cd5-2c7bacbde960 a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/ba748e53-b4f5-41e2-9c4c-9046958e0e5c> ;
+    ns1:timestamp "2026-02-13T20:11:06.794582" ;
+    ns1:user "System" .
+
+ns1:event_baa8fb8a-74c8-43d2-90df-d0befd6b1098 a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/4643826d-89de-4cb6-b5cc-d4f7edad7d49> ;
+    ns1:timestamp "2026-02-13T20:18:14.257549" ;
+    ns1:user "System" .
+
+ns1:event_bc10dc0d-5464-48ee-92df-0ac286cd8820 a ns1:Event ;
+    ns1:details "User request" ;
+    ns1:eventType "TERMINATED" ;
+    ns1:instance <http://example.org/instance/b1364a95-3bb8-4a6e-876a-4e1bfba5bbcb> ;
+    ns1:timestamp "2026-02-13T20:18:07.551785" ;
+    ns1:user "System" .
+
+ns1:event_bce01c98-c103-4433-ab7d-ef8a1a8814e8 a ns1:Event ;
+    ns1:details "User request" ;
+    ns1:eventType "TERMINATED" ;
+    ns1:instance <http://example.org/instance/fb5f5b4d-d57d-4afb-94bf-82cd2ceee994> ;
+    ns1:timestamp "2026-02-13T20:17:55.949271" ;
+    ns1:user "System" .
+
+ns1:event_c9de4585-e037-4d6f-b110-d9a35474092a a ns1:Event ;
+    ns1:details "User request" ;
+    ns1:eventType "TERMINATED" ;
+    ns1:instance <http://example.org/instance/128ab7dd-fcb7-4c9e-a3b8-2fbfd691ef47> ;
+    ns1:timestamp "2026-02-13T20:05:19.832926" ;
+    ns1:user "System" .
+
+ns1:event_cb8b57c8-8582-403c-a4d5-70fc23ad0b81 a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/4d6d37dc-6d7e-4267-b9db-74e13b1bbb78> ;
+    ns1:timestamp "2026-02-13T20:00:28.812008" ;
+    ns1:user "System" .
+
+ns1:event_cfda3941-72b3-4f07-95c4-50b7b00cf643 a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/fb5f5b4d-d57d-4afb-94bf-82cd2ceee994> ;
+    ns1:timestamp "2026-02-13T20:17:55.857561" ;
+    ns1:user "System" .
+
+ns1:event_d3d59966-9e3f-4218-b709-20fbfca016f8 a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/b1364a95-3bb8-4a6e-876a-4e1bfba5bbcb> ;
+    ns1:timestamp "2026-02-13T20:18:07.459515" ;
+    ns1:user "System" .
+
+ns1:event_d4769994-9dd3-4745-a42d-5fdf5f7b0f72 a ns1:Event ;
+    ns1:details "User request" ;
+    ns1:eventType "TERMINATED" ;
+    ns1:instance <http://example.org/instance/3977e647-0a4f-4d62-8c52-40d1fc985831> ;
+    ns1:timestamp "2026-02-13T19:59:29.284287" ;
+    ns1:user "System" .
+
+ns1:event_d6be4240-2291-4f36-a108-2e65741b4581 a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/1e2ee42d-20c6-428d-97e4-eb0b76b97e4a> ;
+    ns1:timestamp "2026-02-13T20:04:31.866839" ;
+    ns1:user "System" .
+
+ns1:event_db56745a-b016-41a9-bd42-8db7fed77bbe a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/1e2ee42d-20c6-428d-97e4-eb0b76b97e4a> ;
+    ns1:timestamp "2026-02-13T20:04:31.892781" ;
+    ns1:user "System" .
+
+ns1:event_df302320-cdc7-4dc2-b6bd-3cd38539b1ef a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/4643826d-89de-4cb6-b5cc-d4f7edad7d49> ;
+    ns1:timestamp "2026-02-13T20:18:14.190423" ;
+    ns1:user "System" .
+
+ns1:event_e36a9765-6301-49df-8cb7-f7ff1ee71936 a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/3977e647-0a4f-4d62-8c52-40d1fc985831> ;
+    ns1:timestamp "2026-02-13T19:59:29.252062" ;
+    ns1:user "System" .
+
+ns1:event_f8e4732e-b76c-4e7c-bac4-9ca358cbfccf a ns1:Event ;
+    ns1:details "User request" ;
+    ns1:eventType "TERMINATED" ;
+    ns1:instance <http://example.org/instance/1e2ee42d-20c6-428d-97e4-eb0b76b97e4a> ;
+    ns1:timestamp "2026-02-13T20:04:31.910640" ;
+    ns1:user "System" .
+
+ns1:event_f9e813ca-9a36-4f3e-b103-4caa015ce637 a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/ba748e53-b4f5-41e2-9c4c-9046958e0e5c> ;
+    ns1:timestamp "2026-02-13T20:11:06.843159" ;
+    ns1:user "System" .
+
