@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+             id="Definitions_minimal_coding_agent_build"
+             targetNamespace="http://example.org/minimal_coding_agent_build">
+  <process id="MinimalCodingAgentBuildProcess" isExecutable="true" name="SPEAR Minimal Coding Agent - Build Mode">
+    <startEvent id="StartEvent_AgentBuild" name="Start Agent Build">
+      <outgoing>Flow_StartToBuild</outgoing>
+    </startEvent>
+
+    <serviceTask id="ServiceTask_BuildCode" name="Build Code"
+                 camunda:topic="build_code"
+                 camunda:async="false">
+      <incoming>Flow_StartToBuild</incoming>
+      <outgoing>Flow_BuildToRunAfter</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_RunTestsAfter" name="Run Tests After"
+                 camunda:topic="run_tests_after"
+                 camunda:async="false">
+      <incoming>Flow_BuildToRunAfter</incoming>
+      <outgoing>Flow_RunAfterToWriteReport</outgoing>
+    </serviceTask>
+
+    <serviceTask id="ServiceTask_WriteReport" name="Write Report"
+                 camunda:topic="write_report"
+                 camunda:async="false">
+      <incoming>Flow_RunAfterToWriteReport</incoming>
+      <outgoing>Flow_WriteReportToEnd</outgoing>
+    </serviceTask>
+
+    <endEvent id="EndEvent_AgentBuild" name="End Agent Build">
+      <incoming>Flow_WriteReportToEnd</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_StartToBuild" sourceRef="StartEvent_AgentBuild" targetRef="ServiceTask_BuildCode" />
+    <sequenceFlow id="Flow_BuildToRunAfter" sourceRef="ServiceTask_BuildCode" targetRef="ServiceTask_RunTestsAfter" />
+    <sequenceFlow id="Flow_RunAfterToWriteReport" sourceRef="ServiceTask_RunTestsAfter" targetRef="ServiceTask_WriteReport" />
+    <sequenceFlow id="Flow_WriteReportToEnd" sourceRef="ServiceTask_WriteReport" targetRef="EndEvent_AgentBuild" />
+  </process>
+</definitions>

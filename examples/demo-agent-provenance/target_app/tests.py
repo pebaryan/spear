@@ -1,5 +1,5 @@
 import pytest
-from target_app.app import running_average, format_greeting
+from app import running_average, format_greeting
 
 
 def test_running_average_ok():

@@ -13,6 +13,8 @@ build/
 .venv
 env/
 venv/
+vw/
+nul
 ENV/
 env.bak/
 venv.bak/

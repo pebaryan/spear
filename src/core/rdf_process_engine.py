@@ -344,9 +344,60 @@ class RDFProcessEngine:
 
     def _execute_gateway(self, instance, token):
         """Execute a gateway"""
-        # Simple implementation - just move to next node
-        # Real implementation would evaluate conditions for exclusive gateways
+        node_type = self.definition_graph.value(token.current_node, RDF.type)
+        if node_type == BPMN.ExclusiveGateway:
+            self._execute_exclusive_gateway(instance, token)
+            return
+
+        # Parallel or other gateways: move to all outgoing
         self._move_token_to_next_node(instance, token)
+
+    def _execute_exclusive_gateway(self, instance, token):
+        """Execute an exclusive gateway with condition evaluation."""
+        gateway = token.current_node
+        default_flow = self.definition_graph.value(gateway, BPMN.default)
+
+        query = f"""
+        SELECT ?flow ?target ?conditionQuery WHERE {{
+            <{gateway}> bpmn:outgoing ?flow .
+            ?flow bpmn:targetRef ?target .
+            OPTIONAL {{ ?flow bpmn:conditionQuery ?conditionQuery . }}
+        }}
+        """
+        results = list(self.definition_graph.query(query))
+
+        chosen_target = None
+        for flow, target, condition_query in results:
+            if condition_query:
+                try:
+                    ask = self.instance_graph.query(
+                        str(condition_query),
+                        initBindings={"instance": instance.instance_uri},
+                        initNs={"var": VAR},
+                    )
+                    if bool(ask.askAnswer):
+                        chosen_target = URIRef(target)
+                        break
+                except Exception as e:
+                    logger.warning(f"Condition query failed: {e}")
+                    continue
+            elif default_flow and flow == default_flow:
+                chosen_target = URIRef(target)
+
+        if chosen_target is None:
+            # If no condition matched, fall back to default flow or first flow.
+            if default_flow:
+                for flow, target, _ in results:
+                    if flow == default_flow:
+                        chosen_target = URIRef(target)
+                        break
+            if chosen_target is None and results:
+                chosen_target = URIRef(results[0][1])
+
+        if chosen_target:
+            token.move_to_node(chosen_target)
+        else:
+            token.status = "CONSUMED"
 
     def _move_token_to_next_node(self, instance, token):
         """Move token to the next node in the sequence"""
@@ -388,8 +439,10 @@ class RDFProcessEngine:
 
         instance_uri = instance.instance_uri
 
-        # Remove old state
-        self.instance_graph.remove((instance_uri, None, None))
+        # Remove old instance metadata, preserve variables and external links
+        for _, pred, _ in list(self.instance_graph.triples((instance_uri, None, None))):
+            if str(pred).startswith(str(INST)):
+                self.instance_graph.remove((instance_uri, pred, None))
 
         # Add current state
         self.instance_graph.add((instance_uri, RDF.type, INST.ProcessInstance))

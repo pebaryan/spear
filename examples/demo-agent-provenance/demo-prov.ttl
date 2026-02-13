@@ -5,26 +5,21 @@
 
 <http://example.org/run/1/action/0> a ag:Action ;
     rdfs:label "run pytest (baseline)" ;
-    ag:output """
-==================================== ERRORS ====================================
-__________________________ ERROR collecting tests.py ___________________________
-ImportError while importing test module '/mnt/vmware/home/peb/works/hacks/phd/demo-agent-provenance/target_app/tests.py'.
-Hint: make sure your test modules/packages have valid Python names.
-Traceback:
-/usr/lib/python3.8/importlib/__init__.py:127: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-tests.py:2: in <module>
-    from target_app.app import running_average, format_greeting
-E   ModuleNotFoundError: No module named 'target_app'
-=========================== short test summary info ============================
-ERROR tests.py
-!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-1 error in 0.18s
+    ag:output """============================= test session starts =============================
+platform win32 -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: D:\\code\\spear
+configfile: pytest.ini
+plugins: anyio-4.12.1, cov-7.0.0
+collected 4 items
+
+tests.py ....                                                            [100%]
+
+============================== 4 passed in 0.03s ==============================
 """ ;
     ag:status "completed",
-        "failed" ;
+        "passed" ;
     ag:tool "pytest" ;
-    prov:startedAtTime "2026-02-11T10:01:00+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-02-13T20:34:24+00:00"^^xsd:dateTime ;
     prov:wasAssociatedWith <http://example.org/run/1> .
 
 <http://example.org/run/1/action/1> a ag:Action ;
@@ -32,39 +27,34 @@ ERROR tests.py
     ag:reason "policy: no network commands" ;
     ag:status "blocked" ;
     ag:tool "shell" ;
-    prov:startedAtTime "2026-02-11T10:01:01+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-02-13T20:34:25+00:00"^^xsd:dateTime ;
     prov:wasAssociatedWith <http://example.org/run/1> .
 
 <http://example.org/run/1/action/2> a ag:Action ;
     rdfs:label "fix running_average bug" ;
     ag:status "completed" ;
     ag:tool "edit" ;
-    prov:startedAtTime "2026-02-11T10:01:01+00:00"^^xsd:dateTime ;
-    prov:used <file:///mnt/vmware/home/peb/works/hacks/phd/demo-agent-provenance/target_app/app.py> ;
+    prov:startedAtTime "2026-02-13T20:34:25+00:00"^^xsd:dateTime ;
+    prov:used <file:///D:/code/spear/examples/demo-agent-provenance/target_app/app.py> ;
     prov:wasAssociatedWith <http://example.org/run/1> .
 
 <http://example.org/run/1/action/3> a ag:Action ;
     rdfs:label "run pytest (post-fix)" ;
-    ag:output """
-==================================== ERRORS ====================================
-__________________________ ERROR collecting tests.py ___________________________
-ImportError while importing test module '/mnt/vmware/home/peb/works/hacks/phd/demo-agent-provenance/target_app/tests.py'.
-Hint: make sure your test modules/packages have valid Python names.
-Traceback:
-/usr/lib/python3.8/importlib/__init__.py:127: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-tests.py:2: in <module>
-    from target_app.app import running_average, format_greeting
-E   ModuleNotFoundError: No module named 'target_app'
-=========================== short test summary info ============================
-ERROR tests.py
-!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-1 error in 0.12s
+    ag:output """============================= test session starts =============================
+platform win32 -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: D:\\code\\spear
+configfile: pytest.ini
+plugins: anyio-4.12.1, cov-7.0.0
+collected 4 items
+
+tests.py ....                                                            [100%]
+
+============================== 4 passed in 0.05s ==============================
 """ ;
     ag:status "completed",
-        "failed" ;
+        "passed" ;
     ag:tool "pytest" ;
-    prov:startedAtTime "2026-02-11T10:01:01+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-02-13T20:34:25+00:00"^^xsd:dateTime ;
     prov:wasAssociatedWith <http://example.org/run/1> .
 
 <http://example.org/run/1> a ag:Run ;

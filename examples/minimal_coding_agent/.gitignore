@@ -1,6 +1,16 @@
 latest_run_report.json
 engine_graph.ttl
 memory_graph.ttl
+session_history.json
+session_history.ttl
+run_reports.ttl
+llm_interactions.ttl
+artifact_changes.ttl
+reasoning_trace.ttl
+scratchpad.ttl
+memory_index.json
+mcp_calls.ttl
+skills.ttl
 target_project/.pytest_cache/
 target_project/__pycache__/
 __pycache__/

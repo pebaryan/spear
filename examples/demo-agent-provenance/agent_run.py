@@ -18,7 +18,9 @@ PROV = Namespace("http://www.w3.org/ns/prov#")
 
 
 def now_literal():
-    return Literal(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), datatype=XSD.dateTime)
+    return Literal(
+        time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), datatype=XSD.dateTime
+    )
 
 
 def log_action(g, run, label, tool, target=None, status="completed", reason=None):
@@ -41,13 +43,20 @@ def apply_fix():
     text = text.replace("return total / (count + 1)", "return total / count")
     # Adjust test expectation: zero count should raise ValueError, not ZeroDivisionError
     tests = (TARGET / "tests.py").read_text()
-    tests = tests.replace("with pytest.raises(ZeroDivisionError):", "with pytest.raises(ValueError):")
+    tests = tests.replace(
+        "with pytest.raises(ZeroDivisionError):", "with pytest.raises(ValueError):"
+    )
     APP_FILE.write_text(text)
     (TARGET / "tests.py").write_text(tests)
 
 
 def run_pytest():
-    proc = subprocess.run([sys.executable, "-m", "pytest", "-q", "tests.py"], cwd=TARGET, capture_output=True, text=True)
+    proc = subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", "tests.py"],
+        cwd=TARGET,
+        capture_output=True,
+        text=True,
+    )
     return proc.returncode, proc.stdout + proc.stderr
 
 
@@ -73,13 +82,22 @@ def main():
     # Step 2: attempt blocked command
     cmd = "curl http://example.com"
     if blocked(cmd):
-        log_action(g, run, "blocked shell command", "shell", status="blocked", reason="policy: no network commands")
+        log_action(
+            g,
+            run,
+            "blocked shell command",
+            "shell",
+            status="blocked",
+            reason="policy: no network commands",
+        )
     else:
         subprocess.run(cmd, shell=True, check=False)
 
     # Step 3: apply fix
-    target_file = URIRef(f"file://{APP_FILE.resolve()}")
-    action_fix = log_action(g, run, "fix running_average bug", "edit", target=target_file)
+    target_file = URIRef(APP_FILE.resolve().as_uri())
+    action_fix = log_action(
+        g, run, "fix running_average bug", "edit", target=target_file
+    )
     apply_fix()
     g.add((action_fix, AG.status, Literal("completed")))
 
