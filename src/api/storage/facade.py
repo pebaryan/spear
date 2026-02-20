@@ -2,11 +2,15 @@
 # Wires together all extracted modules into a unified interface
 
 import logging
+import os
+import contextlib
+import uuid
+from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Callable
 
-from rdflib import Graph, URIRef
+from rdflib import Graph, URIRef, RDF, Literal
 
-from src.api.storage.base import BaseStorageService, INST, BPMN
+from src.api.storage.base import BaseStorageService, INST, BPMN, PROC
 from src.api.storage.process_repository import ProcessRepository
 from src.api.storage.instance_repository import InstanceRepository
 from src.api.storage.task_repository import TaskRepository
@@ -26,6 +30,11 @@ from src.api.messaging.message_handler import MessageHandler
 from src.api.events.event_bus import ExecutionEventBus
 
 logger = logging.getLogger(__name__)
+
+try:
+    import fcntl
+except Exception:  # pragma: no cover - non-posix platforms
+    fcntl = None
 
 
 class StorageFacade(BaseStorageService):
@@ -120,6 +129,503 @@ class StorageFacade(BaseStorageService):
         )
 
         logger.info(f"StorageFacade initialized with data_dir: {data_dir}")
+
+    # ==================== Timer Jobs ====================
+
+    @contextlib.contextmanager
+    def _timer_jobs_lock(self):
+        """Serialize timer claim/finalize updates across workers."""
+        lock_path = os.path.join(self.storage_path, "timer_jobs.lock")
+        os.makedirs(self.storage_path, exist_ok=True)
+        with open(lock_path, "a+", encoding="utf-8") as lock_file:
+            if fcntl is not None:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                if fcntl is not None:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+    def _refresh_instances_graph_from_disk(self) -> None:
+        """Refresh instances graph in place to keep component references valid."""
+        latest = self._load_graph("instances.ttl")
+        self._instances_graph.remove((None, None, None))
+        for triple in latest:
+            self._instances_graph.add(triple)
+
+    def _claim_due_timer_jobs(
+        self,
+        now: datetime,
+        worker_id: str,
+        lease_seconds: float,
+    ) -> List[Dict[str, Any]]:
+        """Claim due timer jobs using a lease to avoid duplicate execution."""
+        claimed: List[Dict[str, Any]] = []
+        lease_until = now + timedelta(seconds=max(float(lease_seconds), 1.0))
+
+        with self._timer_jobs_lock():
+            self._refresh_instances_graph_from_disk()
+
+            for instance_uri in list(self._instances_graph.subjects(RDF.type, INST.ProcessInstance)):
+                instance_id = str(instance_uri).split("/")[-1]
+                for job_uri in list(self._instances_graph.objects(instance_uri, INST.hasTimerJob)):
+                    status = str(
+                        self._instances_graph.value(job_uri, INST.timerStatus) or "SCHEDULED"
+                    )
+                    due_at = self._parse_due_at(self._instances_graph.value(job_uri, INST.dueAt))
+                    if due_at and due_at > now:
+                        continue
+
+                    if status == "FIRED" or status == "FAILED":
+                        continue
+
+                    if status == "CLAIMED":
+                        leased_until = self._parse_due_at(
+                            self._instances_graph.value(job_uri, INST.leaseUntil)
+                        )
+                        if leased_until and leased_until > now:
+                            continue
+                    elif status != "SCHEDULED":
+                        continue
+
+                    self._instances_graph.set((job_uri, INST.timerStatus, Literal("CLAIMED")))
+                    self._instances_graph.set((job_uri, INST.claimedBy, Literal(worker_id)))
+                    self._instances_graph.set((job_uri, INST.claimedAt, Literal(now.isoformat())))
+                    self._instances_graph.set(
+                        (job_uri, INST.leaseUntil, Literal(lease_until.isoformat()))
+                    )
+
+                    claimed.append(
+                        {
+                            "instance_uri": URIRef(instance_uri),
+                            "instance_id": instance_id,
+                            "job_uri": URIRef(job_uri),
+                            "token_uri": self._instances_graph.value(job_uri, INST.forToken),
+                            "node_uri": self._instances_graph.value(job_uri, INST.forNode),
+                            "kind": str(
+                                self._instances_graph.value(job_uri, INST.timerKind)
+                                or "TOKEN_TIMER"
+                            ),
+                        }
+                    )
+
+            self._save_graph(self._instances_graph, "instances.ttl")
+
+        return claimed
+
+    def _finalize_timer_job(
+        self,
+        job_uri: URIRef,
+        worker_id: str,
+        final_status: str,
+        error_message: Optional[str] = None,
+    ) -> bool:
+        """Finalize a claimed timer job if still owned by this worker."""
+        if final_status not in {"FIRED", "FAILED"}:
+            return False
+
+        with self._timer_jobs_lock():
+            status = str(self._instances_graph.value(job_uri, INST.timerStatus) or "")
+            claimed_by = str(self._instances_graph.value(job_uri, INST.claimedBy) or "")
+
+            if status != "CLAIMED" or claimed_by != worker_id:
+                return False
+
+            self._instances_graph.set((job_uri, INST.timerStatus, Literal(final_status)))
+            if final_status == "FIRED":
+                self._instances_graph.set(
+                    (job_uri, INST.firedAt, Literal(datetime.utcnow().isoformat()))
+                )
+            else:
+                self._instances_graph.set(
+                    (job_uri, INST.failedAt, Literal(datetime.utcnow().isoformat()))
+                )
+                if error_message:
+                    self._instances_graph.set(
+                        (job_uri, INST.lastError, Literal(str(error_message)))
+                    )
+
+            self._instances_graph.remove((job_uri, INST.claimedBy, None))
+            self._instances_graph.remove((job_uri, INST.claimedAt, None))
+            self._instances_graph.remove((job_uri, INST.leaseUntil, None))
+
+            self._save_graph(self._instances_graph, "instances.ttl")
+            return True
+
+    def _schedule_timer_job(
+        self,
+        instance_uri: URIRef,
+        token_uri: Optional[URIRef],
+        timer_node_uri: URIRef,
+        due_at: Optional[datetime] = None,
+        kind: str = "TOKEN_TIMER",
+    ) -> URIRef:
+        """Persist a timer job for future activation."""
+        due_at = due_at or datetime.utcnow()
+
+        # Avoid duplicate jobs for the same token/timer/kind.
+        for job_uri in self._instances_graph.objects(instance_uri, INST.hasTimerJob):
+            job_token = self._instances_graph.value(job_uri, INST.forToken)
+            job_node = self._instances_graph.value(job_uri, INST.forNode)
+            job_kind = self._instances_graph.value(job_uri, INST.timerKind)
+            if (
+                job_token == token_uri
+                and job_node == timer_node_uri
+                and str(job_kind or "TOKEN_TIMER") == kind
+            ):
+                return URIRef(job_uri)
+
+        job_uri = INST[f"timer_job_{str(uuid.uuid4())[:8]}"]
+        self._instances_graph.add((job_uri, RDF.type, INST.TimerJob))
+        if token_uri is not None:
+            self._instances_graph.add((job_uri, INST.forToken, token_uri))
+        self._instances_graph.add((job_uri, INST.forNode, timer_node_uri))
+        self._instances_graph.add((job_uri, INST.timerKind, Literal(kind)))
+        self._instances_graph.add((job_uri, INST.timerStatus, Literal("SCHEDULED")))
+        self._instances_graph.add((job_uri, INST.dueAt, Literal(due_at.isoformat())))
+        self._instances_graph.add(
+            (job_uri, INST.createdAt, Literal(datetime.utcnow().isoformat()))
+        )
+        self._instances_graph.add((instance_uri, INST.hasTimerJob, job_uri))
+        self._save_graph(self._instances_graph, "instances.ttl")
+        return job_uri
+
+    def _parse_due_at(self, due_literal: Any) -> Optional[datetime]:
+        if not due_literal:
+            return None
+        try:
+            return datetime.fromisoformat(str(due_literal))
+        except Exception:
+            return None
+
+    def _timer_due_for_node(self, node_uri: URIRef) -> datetime:
+        """Compute due time for a timer node. Defaults to immediate fire."""
+        now = datetime.utcnow()
+        delay_literal = self._definitions_graph.value(node_uri, BPMN.timerDelaySeconds)
+        if delay_literal is not None:
+            try:
+                delay = float(str(delay_literal))
+                return now + timedelta(seconds=delay)
+            except Exception:
+                pass
+
+        due_literal = self._definitions_graph.value(node_uri, BPMN.timerDueAt)
+        parsed_due = self._parse_due_at(due_literal)
+        if parsed_due:
+            return parsed_due
+
+        camunda_due = self._definitions_graph.value(
+            node_uri, URIRef("http://camunda.org/schema/1.0/bpmn#dueDate")
+        )
+        parsed_camunda_due = self._parse_due_at(camunda_due)
+        if parsed_camunda_due:
+            return parsed_camunda_due
+
+        return now
+
+    def _is_timer_boundary_event(self, node_uri: URIRef) -> bool:
+        for _, _, node_type in self._definitions_graph.triples((node_uri, RDF.type, None)):
+            if "TimerBoundaryEvent" in str(node_type):
+                return True
+        return False
+
+    def _node_has_timer_definition(self, node_uri: URIRef) -> bool:
+        for child in self._definitions_graph.subjects(BPMN.hasParent, node_uri):
+            for _, _, child_type in self._definitions_graph.triples((child, RDF.type, None)):
+                if (
+                    "timerEventDefinition" in str(child_type)
+                    or "TimerEventDefinition" in str(child_type)
+                ):
+                    return True
+        return False
+
+    def _schedule_boundary_timer_jobs(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+    ) -> int:
+        count = 0
+        for boundary_uri in self._definitions_graph.objects(node_uri, BPMN.hasBoundaryEvent):
+            if not self._is_timer_boundary_event(URIRef(boundary_uri)):
+                continue
+            due_at = self._timer_due_for_node(URIRef(boundary_uri))
+            self._schedule_timer_job(
+                instance_uri,
+                token_uri,
+                URIRef(boundary_uri),
+                due_at=due_at,
+            )
+            count += 1
+        return count
+
+    def _is_event_subprocess(self, node_uri: URIRef) -> bool:
+        for _, _, node_type in self._definitions_graph.triples((node_uri, RDF.type, None)):
+            if "eventsubprocess" in str(node_type).lower():
+                return True
+        return False
+
+    def _get_parent_scope(self, node_uri: URIRef) -> Optional[URIRef]:
+        parent = self._definitions_graph.value(node_uri, BPMN.hasParent)
+        return URIRef(parent) if parent else None
+
+    def _is_node_within_scope(self, node_uri: URIRef, scope_uri: URIRef) -> bool:
+        current = URIRef(node_uri)
+        while current is not None:
+            if current == scope_uri:
+                return True
+            parent = self._definitions_graph.value(current, BPMN.hasParent)
+            current = URIRef(parent) if parent else None
+        return False
+
+    def _is_interrupting_event_subprocess_start(self, start_uri: URIRef) -> bool:
+        """Determine whether an event subprocess start is interrupting."""
+        for pred in (
+            BPMN.interrupting,
+            URIRef("http://dkm.fbk.eu/index.php/BPMN2_Ontology#isInterrupting"),
+            URIRef("http://www.omg.org/spec/BPMN/20100524/MODEL#isInterrupting"),
+            URIRef("http://camunda.org/schema/1.0/bpmn#isInterrupting"),
+        ):
+            raw = self._definitions_graph.value(start_uri, pred)
+            if raw is not None:
+                return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+        # Preserve existing runtime compatibility: default to non-interrupting
+        # unless explicitly marked as interrupting.
+        return False
+
+    def _consume_interrupting_scope_tokens(
+        self,
+        instance_uri: URIRef,
+        event_scope_uri: URIRef,
+        parent_scope_uri: Optional[URIRef],
+    ) -> int:
+        """Consume active/waiting tokens in parent scope except event subprocess tokens."""
+        consumed = 0
+        for token_uri in list(self._instances_graph.objects(instance_uri, INST.hasToken)):
+            status = self._instances_graph.value(token_uri, INST.status)
+            if not status or str(status) not in {"ACTIVE", "WAITING"}:
+                continue
+
+            current_node = self._instances_graph.value(token_uri, INST.currentNode)
+            if not current_node:
+                continue
+
+            if self._is_node_within_scope(URIRef(current_node), event_scope_uri):
+                continue
+
+            if parent_scope_uri and not self._is_node_within_scope(
+                URIRef(current_node), parent_scope_uri
+            ):
+                continue
+
+            self._execution_engine.consume_token(URIRef(token_uri))
+            consumed += 1
+
+        return consumed
+
+    def _schedule_event_subprocess_timers(self, instance_uri: URIRef) -> int:
+        process_def_uri = self._instances_graph.value(instance_uri, INST.processDefinition)
+        if not process_def_uri:
+            return 0
+
+        scheduled = 0
+        for elem in self._definitions_graph.objects(process_def_uri, PROC.hasElement):
+            scope_uri = URIRef(elem)
+            if not self._is_event_subprocess(scope_uri):
+                continue
+            for start_uri in self._find_scope_start_events(scope_uri):
+                if not self._node_has_timer_definition(start_uri):
+                    continue
+                due_at = self._timer_due_for_node(start_uri)
+                self._schedule_timer_job(
+                    instance_uri=instance_uri,
+                    token_uri=None,
+                    timer_node_uri=start_uri,
+                    due_at=due_at,
+                    kind="EVENT_SUBPROCESS_START",
+                )
+                scheduled += 1
+        return scheduled
+
+    def _trigger_event_subprocess_start(
+        self,
+        instance_id: str,
+        start_uri: URIRef,
+        variables: Optional[Dict[str, Any]] = None,
+        source: str = "event",
+    ) -> bool:
+        instance_uri = INST[instance_id]
+        if (instance_uri, RDF.type, INST.ProcessInstance) not in self._instances_graph:
+            return False
+
+        scope_uri = self._get_parent_scope(start_uri)
+        if scope_uri and self._is_interrupting_event_subprocess_start(start_uri):
+            parent_scope_uri = self._get_parent_scope(scope_uri)
+            consumed = self._consume_interrupting_scope_tokens(
+                instance_uri=instance_uri,
+                event_scope_uri=scope_uri,
+                parent_scope_uri=parent_scope_uri,
+            )
+            self._audit_repo.log_event(
+                instance_uri,
+                "EVENT_SUBPROCESS_INTERRUPTED_SCOPE",
+                "System",
+                (
+                    f"Interrupting start {str(start_uri)} consumed {consumed} "
+                    f"token(s) in parent scope"
+                ),
+            )
+
+        sub_instance_id = f"{instance_id}_event_{str(uuid.uuid4())[:8]}"
+        sub_token_uri = self._execution_engine.create_token(instance_uri, start_uri, sub_instance_id)
+
+        parent_vars = self._variables_service.get_variables(instance_id)
+        for name, value in parent_vars.items():
+            self._variables_service.set_variable(sub_instance_id, name, value, save=False)
+
+        if variables:
+            for name, value in variables.items():
+                self._variables_service.set_variable(sub_instance_id, name, value, save=False)
+
+        self._audit_repo.log_event(
+            instance_uri,
+            "EVENT_SUBPROCESS_TRIGGERED",
+            "System",
+            f"Triggered start {str(start_uri)} via {source}",
+        )
+
+        while self._execution_engine.get_token_status(sub_token_uri) == "ACTIVE":
+            self._execute_token(instance_uri, sub_token_uri, sub_instance_id, merged_gateways=set())
+
+        return True
+
+    def run_due_timers(
+        self,
+        now: Optional[datetime] = None,
+        worker_id: Optional[str] = None,
+        lease_seconds: float = 30.0,
+    ) -> Dict[str, Any]:
+        """Fire due timer jobs and resume affected instances."""
+        now = now or datetime.utcnow()
+        worker_id = worker_id or f"worker-{str(uuid.uuid4())[:8]}"
+        fired = 0
+        affected_instance_ids = set()
+        claimed_jobs = self._claim_due_timer_jobs(
+            now=now, worker_id=worker_id, lease_seconds=lease_seconds
+        )
+
+        for claimed in claimed_jobs:
+            instance_uri = URIRef(claimed["instance_uri"])
+            instance_id = claimed["instance_id"]
+            job_uri = URIRef(claimed["job_uri"])
+            token_uri = claimed["token_uri"]
+            node_uri = claimed["node_uri"]
+            kind = claimed["kind"]
+            try:
+                if not node_uri:
+                    self._finalize_timer_job(
+                        job_uri=job_uri,
+                        worker_id=worker_id,
+                        final_status="FAILED",
+                        error_message="Timer job missing target node",
+                    )
+                    continue
+
+                if kind == "EVENT_SUBPROCESS_START":
+                    if not self._trigger_event_subprocess_start(
+                        instance_id=instance_id,
+                        start_uri=URIRef(node_uri),
+                        source="timer",
+                    ):
+                        self._finalize_timer_job(
+                            job_uri=job_uri,
+                            worker_id=worker_id,
+                            final_status="FAILED",
+                            error_message="Failed to trigger event subprocess start",
+                        )
+                        continue
+                    self._audit_repo.log_event(
+                        URIRef(instance_uri),
+                        "TIMER_FIRED",
+                        "System",
+                        f"Event subprocess timer fired at {str(node_uri)}",
+                    )
+                elif self._is_timer_boundary_event(URIRef(node_uri)):
+                    if not token_uri:
+                        self._finalize_timer_job(
+                            job_uri=job_uri,
+                            worker_id=worker_id,
+                            final_status="FAILED",
+                            error_message="Boundary timer missing token",
+                        )
+                        continue
+                    interrupting = True
+                    interrupting_val = self._definitions_graph.value(
+                        URIRef(node_uri), BPMN.interrupting
+                    )
+                    if interrupting_val:
+                        interrupting = str(interrupting_val).lower() == "true"
+
+                    def log_callback(inst_uri, event, user, details):
+                        self._audit_repo.log_event(inst_uri, event, user, details)
+
+                    def execute_callback(inst_uri, tok_uri, inst_id):
+                        self._execute_token(inst_uri, tok_uri, inst_id, merged_gateways=set())
+
+                    self._message_handler.trigger_boundary_event(
+                        token_uri=URIRef(token_uri),
+                        instance_uri=URIRef(instance_uri),
+                        boundary_event_uri=URIRef(node_uri),
+                        instance_id=instance_id,
+                        is_interrupting=interrupting,
+                        log_callback=log_callback,
+                        execute_callback=execute_callback,
+                    )
+                else:
+                    # Intermediate timer catch event path: activate and continue.
+                    if not token_uri:
+                        self._finalize_timer_job(
+                            job_uri=job_uri,
+                            worker_id=worker_id,
+                            final_status="FAILED",
+                            error_message="Intermediate timer missing token",
+                        )
+                        continue
+                    self._instances_graph.set((URIRef(token_uri), INST.status, Literal("ACTIVE")))
+                    self._execution_engine.move_token_to_next(
+                        URIRef(instance_uri), URIRef(token_uri), instance_id
+                    )
+                    self._audit_repo.log_event(
+                        URIRef(instance_uri),
+                        "TIMER_FIRED",
+                        "System",
+                        f"Timer fired at {str(node_uri)}",
+                    )
+
+                if self._finalize_timer_job(
+                    job_uri=job_uri,
+                    worker_id=worker_id,
+                    final_status="FIRED",
+                ):
+                    fired += 1
+                    affected_instance_ids.add(instance_id)
+            except Exception as exc:
+                self._finalize_timer_job(
+                    job_uri=job_uri,
+                    worker_id=worker_id,
+                    final_status="FAILED",
+                    error_message=str(exc),
+                )
+
+        for instance_id in affected_instance_ids:
+            self._execute_instance(INST[instance_id], instance_id, process_timers=False)
+
+        return {
+            "fired": fired,
+            "claimed": len(claimed_jobs),
+            "worker_id": worker_id,
+            "affected_instances": sorted(affected_instance_ids),
+        }
 
     # ==================== Properties for Component Access ====================
 
@@ -589,11 +1095,350 @@ class StorageFacade(BaseStorageService):
         for instance_id in instance_ids:
             self._execute_instance(INST[instance_id], instance_id)
 
+        # Event subprocess message-start support.
+        triggered = []
+        candidate_instance_ids = set(instance_ids)
+        if correlation_key:
+            candidate_instance_ids.add(correlation_key)
+        if not candidate_instance_ids:
+            for inst_uri in self._instances_graph.subjects(RDF.type, INST.ProcessInstance):
+                candidate_instance_ids.add(str(inst_uri).split("/")[-1])
+
+        for instance_id in candidate_instance_ids:
+            event_result = self._trigger_event_subprocess_variant(
+                instance_id=instance_id,
+                variant="message",
+                trigger_value=message_name,
+                variables=variables,
+                source=f"message:{message_name}",
+            )
+            if event_result.get("triggered"):
+                triggered.append(instance_id)
+
+        if triggered:
+            result["event_subprocess_triggers"] = triggered
+
+        return result
+
+    def _event_subprocess_scopes(self, process_def_uri: URIRef) -> List[URIRef]:
+        scopes = []
+        for elem in self._definitions_graph.objects(process_def_uri, PROC.hasElement):
+            for _, _, node_type in self._definitions_graph.triples((elem, RDF.type, None)):
+                if "eventsubprocess" in str(node_type).lower():
+                    scopes.append(URIRef(elem))
+                    break
+        return scopes
+
+    def _event_start_info(self, start_uri: URIRef) -> Dict[str, Any]:
+        info: Dict[str, Any] = {"variants": set(), "defs": []}
+        camunda_ns = "http://camunda.org/schema/1.0/bpmn#"
+
+        for pred in (BPMN.message, BPMN.messageRef, URIRef(f"{camunda_ns}message")):
+            configured = self._definitions_graph.value(start_uri, pred)
+            if configured:
+                info["variants"].add("message")
+                info["message"] = str(configured)
+                break
+
+        for child in self._definitions_graph.subjects(BPMN.hasParent, start_uri):
+            child_uri = URIRef(child)
+            child_types = [
+                str(t).lower()
+                for _, _, t in self._definitions_graph.triples((child_uri, RDF.type, None))
+            ]
+            if not child_types:
+                continue
+
+            variant = None
+            if any("messageeventdefinition" in t for t in child_types):
+                variant = "message"
+                for pred in (BPMN.message, BPMN.messageRef, URIRef(f"{camunda_ns}message")):
+                    configured = self._definitions_graph.value(child_uri, pred)
+                    if configured:
+                        info["message"] = str(configured)
+                        break
+            elif any("timereventdefinition" in t for t in child_types):
+                variant = "timer"
+            elif any("erroreventdefinition" in t for t in child_types):
+                variant = "error"
+                for pred in (BPMN.errorRef, URIRef(f"{camunda_ns}error"), URIRef(f"{camunda_ns}errorRef")):
+                    configured = self._definitions_graph.value(child_uri, pred)
+                    if configured:
+                        info["error"] = str(configured)
+                        break
+            elif any("escalationeventdefinition" in t for t in child_types):
+                variant = "escalation"
+                for pred in (
+                    BPMN.escalationRef,
+                    URIRef(f"{camunda_ns}escalation"),
+                    URIRef(f"{camunda_ns}escalationRef"),
+                ):
+                    configured = self._definitions_graph.value(child_uri, pred)
+                    if configured:
+                        info["escalation"] = str(configured)
+                        break
+            elif any("signaleventdefinition" in t for t in child_types):
+                variant = "signal"
+                for pred in (BPMN.signalRef, URIRef(f"{camunda_ns}signal"), URIRef(f"{camunda_ns}signalRef")):
+                    configured = self._definitions_graph.value(child_uri, pred)
+                    if configured:
+                        info["signal"] = str(configured)
+                        break
+            elif any("conditionaleventdefinition" in t for t in child_types):
+                variant = "conditional"
+                for pred in (
+                    BPMN.conditionExpression,
+                    BPMN.conditionBody,
+                    URIRef(f"{camunda_ns}conditionExpression"),
+                ):
+                    configured = self._definitions_graph.value(child_uri, pred)
+                    if configured:
+                        info["condition"] = str(configured)
+                        break
+            else:
+                info["defs"].append({"uri": child_uri, "variant": "unsupported"})
+                continue
+
+            if variant:
+                info["variants"].add(variant)
+                info["defs"].append({"uri": child_uri, "variant": variant})
+
+        if "conditional" not in info["variants"]:
+            for pred in (
+                BPMN.conditionExpression,
+                BPMN.conditionBody,
+                URIRef(f"{camunda_ns}conditionExpression"),
+            ):
+                configured = self._definitions_graph.value(start_uri, pred)
+                if configured:
+                    info["variants"].add("conditional")
+                    info["condition"] = str(configured)
+                    break
+
+        return info
+
+    def _matches_conditional_trigger(
+        self,
+        condition_expr: Optional[str],
+        variables: Optional[Dict[str, Any]],
+    ) -> bool:
+        payload = variables or {}
+        if not payload and not condition_expr:
+            return False
+        if not condition_expr:
+            return any(bool(v) for v in payload.values())
+
+        expr = condition_expr.strip()
+        if "==" in expr:
+            left, right = expr.split("==", 1)
+            left = left.strip().strip("${} ")
+            right = right.strip().strip("'\" ")
+            return str(payload.get(left)) == right
+
+        key = expr.strip().strip("${} ")
+        return bool(payload.get(key))
+
+    def _trigger_event_subprocess_variant(
+        self,
+        instance_id: str,
+        variant: str,
+        trigger_value: Optional[str] = None,
+        variables: Optional[Dict[str, Any]] = None,
+        source: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Trigger event subprocess starts of a specific variant."""
+        supported = {"message", "timer", "error", "escalation", "signal", "conditional"}
+        if variant not in supported:
+            raise ValueError(f"Unsupported event subprocess start variant: {variant}")
+
+        instance_uri = INST[instance_id]
+        if (instance_uri, RDF.type, INST.ProcessInstance) not in self._instances_graph:
+            return {"triggered": False, "count": 0, "errors": ["instance_not_found"]}
+
+        process_def_uri = self._instances_graph.value(instance_uri, INST.processDefinition)
+        if not process_def_uri:
+            return {"triggered": False, "count": 0, "errors": ["missing_process_definition"]}
+
+        triggered_count = 0
+        errors = []
+        event_subprocesses = self._event_subprocess_scopes(URIRef(process_def_uri))
+
+        for scope_uri in event_subprocesses:
+            for start_uri in self._find_scope_start_events(scope_uri):
+                info = self._event_start_info(start_uri)
+                if any(d["variant"] == "unsupported" for d in info["defs"]):
+                    self._audit_repo.log_event(
+                        instance_uri,
+                        "EVENT_SUBPROCESS_START_UNSUPPORTED",
+                        "System",
+                        f"Unsupported start event definition at {str(start_uri)}",
+                    )
+                    errors.append(f"unsupported_start_definition:{str(start_uri)}")
+
+                if variant not in info["variants"]:
+                    continue
+
+                matched = False
+                if variant == "conditional":
+                    matched = self._matches_conditional_trigger(info.get("condition"), variables)
+                elif variant == "timer":
+                    matched = True
+                else:
+                    configured = info.get(variant)
+                    matched = configured is None or str(configured) == str(trigger_value)
+
+                if not matched:
+                    continue
+
+                if self._trigger_event_subprocess_start(
+                    instance_id=instance_id,
+                    start_uri=start_uri,
+                    variables=variables,
+                    source=source or f"{variant}:{trigger_value}",
+                ):
+                    triggered_count += 1
+
+        if triggered_count:
+            self._save_graph(self._instances_graph, "instances.ttl")
+
+        return {"triggered": triggered_count > 0, "count": triggered_count, "errors": errors}
+
+    def _trigger_event_subprocess_message(
+        self,
+        instance_id: str,
+        message_name: str,
+        variables: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """Trigger message-based event subprocess starts for an instance."""
+        result = self._trigger_event_subprocess_variant(
+            instance_id=instance_id,
+            variant="message",
+            trigger_value=message_name,
+            variables=variables,
+            source=f"message:{message_name}",
+        )
+        return bool(result.get("triggered"))
+
+    def throw_error(
+        self,
+        instance_id: str,
+        error_code: str,
+        error_message: Optional[str] = None,
+        variables: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Trigger error-start event subprocesses for an instance."""
+        payload = dict(variables or {})
+        payload["errorCode"] = error_code
+        if error_message:
+            payload["errorMessage"] = error_message
+        result = self._trigger_event_subprocess_variant(
+            instance_id=instance_id,
+            variant="error",
+            trigger_value=error_code,
+            variables=payload,
+            source=f"error:{error_code}",
+        )
+        if not result.get("triggered"):
+            self._audit_repo.log_event(
+                INST[instance_id],
+                "EVENT_SUBPROCESS_TRIGGER_MISS",
+                "System",
+                f"No error-start event subprocess matched '{error_code}'",
+            )
+        return result
+
+    def throw_signal(
+        self,
+        signal_name: str,
+        correlation_key: Optional[str] = None,
+        variables: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Trigger signal-start event subprocesses."""
+        candidate_instance_ids = []
+        if correlation_key:
+            candidate_instance_ids.append(correlation_key)
+        else:
+            for inst_uri in self._instances_graph.subjects(RDF.type, INST.ProcessInstance):
+                candidate_instance_ids.append(str(inst_uri).split("/")[-1])
+
+        triggered = []
+        errors = []
+        for instance_id in candidate_instance_ids:
+            result = self._trigger_event_subprocess_variant(
+                instance_id=instance_id,
+                variant="signal",
+                trigger_value=signal_name,
+                variables=variables,
+                source=f"signal:{signal_name}",
+            )
+            if result.get("triggered"):
+                triggered.append(instance_id)
+            errors.extend(result.get("errors", []))
+
+        if not triggered:
+            for instance_id in candidate_instance_ids:
+                self._audit_repo.log_event(
+                    INST[instance_id],
+                    "EVENT_SUBPROCESS_TRIGGER_MISS",
+                    "System",
+                    f"No signal-start event subprocess matched '{signal_name}'",
+                )
+        return {"triggered_instances": triggered, "errors": errors}
+
+    def throw_escalation(
+        self,
+        instance_id: str,
+        escalation_code: str,
+        variables: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Trigger escalation-start event subprocesses for an instance."""
+        payload = dict(variables or {})
+        payload["escalationCode"] = escalation_code
+        result = self._trigger_event_subprocess_variant(
+            instance_id=instance_id,
+            variant="escalation",
+            trigger_value=escalation_code,
+            variables=payload,
+            source=f"escalation:{escalation_code}",
+        )
+        if not result.get("triggered"):
+            self._audit_repo.log_event(
+                INST[instance_id],
+                "EVENT_SUBPROCESS_TRIGGER_MISS",
+                "System",
+                f"No escalation-start event subprocess matched '{escalation_code}'",
+            )
+        return result
+
+    def trigger_conditional_event_subprocesses(
+        self,
+        instance_id: str,
+        variables: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Evaluate and trigger conditional-start event subprocesses."""
+        result = self._trigger_event_subprocess_variant(
+            instance_id=instance_id,
+            variant="conditional",
+            variables=variables,
+            source="conditional",
+        )
+        if not result.get("triggered"):
+            self._audit_repo.log_event(
+                INST[instance_id],
+                "EVENT_SUBPROCESS_TRIGGER_MISS",
+                "System",
+                "No conditional-start event subprocess condition matched",
+            )
         return result
 
     # ==================== Internal Execution ====================
 
-    def _execute_instance(self, instance_uri: URIRef, instance_id: str) -> None:
+    def _execute_instance(
+        self,
+        instance_uri: URIRef,
+        instance_id: str,
+        process_timers: bool = True,
+    ) -> None:
         """
         Execute a process instance by processing all active tokens.
 
@@ -609,6 +1454,12 @@ class StorageFacade(BaseStorageService):
 
         def node_executor(inst_uri, token_uri, inst_id, merged_gateways):
             self._execute_token(inst_uri, token_uri, inst_id, merged_gateways)
+
+        self._schedule_event_subprocess_timers(instance_uri)
+
+        if process_timers:
+            # Fire any due timers first so waiting tokens can become active.
+            self.run_due_timers()
 
         self._execution_engine.execute_instance(
             instance_uri,
@@ -645,18 +1496,25 @@ class StorageFacade(BaseStorageService):
             "end_event": self._handle_end_event,
             "message_end_event": self._handle_message_end_event,
             "service_task": self._handle_service_task,
+            "send_task": self._handle_send_task,
             "user_task": self._handle_user_task,
+            "manual_task": self._handle_manual_task,
             "exclusive_gateway": self._handle_exclusive_gateway,
             "parallel_gateway": self._handle_parallel_gateway,
             "inclusive_gateway": self._handle_inclusive_gateway,
             "event_based_gateway": self._handle_event_based_gateway,
             "script_task": self._handle_script_task,
             "receive_task": self._handle_receive_task,
+            "intermediate_catch_event": self._handle_intermediate_catch_event,
+            "intermediate_throw_event": self._handle_intermediate_throw_event,
             "boundary_event": self._handle_boundary_event,
             "error_end_event": self._handle_error_end_event,
             "cancel_end_event": self._handle_cancel_end_event,
             "compensation_end_event": self._handle_compensation_end_event,
             "terminate_end_event": self._handle_terminate_end_event,
+            "expanded_subprocess": self._handle_expanded_subprocess,
+            "call_activity": self._handle_call_activity,
+            "event_subprocess": self._handle_event_subprocess,
             # Add more handlers as needed
         }
 
@@ -819,6 +1677,57 @@ class StorageFacade(BaseStorageService):
         # Move to next node
         self._execution_engine.move_token_to_next(instance_uri, token_uri, instance_id)
 
+    def _handle_send_task(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        """Handle send task by emitting a message if configured, then continue."""
+        message_name = self._definitions_graph.value(node_uri, BPMN.message)
+        if not message_name:
+            message_name = self._definitions_graph.value(node_uri, BPMN.messageRef)
+        if not message_name:
+            camunda_msg = URIRef("http://camunda.org/schema/1.0/bpmn#message")
+            message_name = self._definitions_graph.value(node_uri, camunda_msg)
+
+        if message_name:
+            self.send_message(str(message_name))
+            self._audit_repo.log_event(
+                instance_uri,
+                "SEND_TASK",
+                "System",
+                f"{str(node_uri)} (message: {str(message_name)})",
+            )
+        else:
+            self._audit_repo.log_event(
+                instance_uri,
+                "SEND_TASK",
+                "System",
+                f"{str(node_uri)} (no message configured)",
+            )
+
+        self._execution_engine.move_token_to_next(instance_uri, token_uri, instance_id)
+
+    def _handle_manual_task(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        """Handle manual task as a recorded pass-through activity."""
+        self._audit_repo.log_event(
+            instance_uri,
+            "MANUAL_TASK",
+            "System",
+            f"{str(node_uri)}",
+        )
+        self._execution_engine.move_token_to_next(instance_uri, token_uri, instance_id)
+
     def _execute_service_task_handler(
         self,
         instance_id: str,
@@ -878,6 +1787,7 @@ class StorageFacade(BaseStorageService):
 
         # Set token to waiting
         self._execution_engine.set_token_waiting(token_uri)
+        self._schedule_boundary_timer_jobs(instance_uri, token_uri, node_uri)
 
     def _handle_exclusive_gateway(
         self,
@@ -1107,6 +2017,7 @@ class StorageFacade(BaseStorageService):
 
         if message_name:
             self._execution_engine.set_token_waiting(token_uri)
+            self._schedule_boundary_timer_jobs(instance_uri, token_uri, node_uri)
             self._audit_repo.log_event(
                 instance_uri,
                 "WAITING_FOR_MESSAGE",
@@ -1121,6 +2032,272 @@ class StorageFacade(BaseStorageService):
                 f"{str(node_uri)} (no message configured)",
             )
             self._execution_engine.consume_token(token_uri)
+
+    def _find_scope_start_events(self, scope_uri: URIRef) -> List[URIRef]:
+        starts = []
+        for candidate in self._definitions_graph.subjects(BPMN.hasParent, scope_uri):
+            for _, _, o in self._definitions_graph.triples((candidate, RDF.type, None)):
+                if "startevent" in str(o).lower():
+                    starts.append(URIRef(candidate))
+                    break
+        return starts
+
+    def _execute_embedded_scope(
+        self,
+        scope_uri: URIRef,
+        instance_uri: URIRef,
+        instance_id: str,
+        event_name: str,
+    ) -> bool:
+        starts = self._find_scope_start_events(scope_uri)
+        if not starts:
+            return False
+
+        sub_instance_id = f"{instance_id}_sub_{str(uuid.uuid4())[:8]}"
+        sub_token_uri = self._execution_engine.create_token(
+            instance_uri,
+            starts[0],
+            sub_instance_id,
+        )
+        self._audit_repo.log_event(
+            instance_uri,
+            event_name,
+            "System",
+            f"Started scope {str(scope_uri)}",
+        )
+        while self._execution_engine.get_token_status(sub_token_uri) == "ACTIVE":
+            self._execute_token(instance_uri, sub_token_uri, sub_instance_id, merged_gateways=set())
+        self._execution_engine.consume_token(sub_token_uri)
+        return True
+
+    def _handle_expanded_subprocess(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        executed = self._execute_embedded_scope(
+            scope_uri=node_uri,
+            instance_uri=instance_uri,
+            instance_id=instance_id,
+            event_name="EXPANDED_SUBPROCESS_STARTED",
+        )
+        if executed:
+            self._audit_repo.log_event(
+                instance_uri,
+                "EXPANDED_SUBPROCESS_COMPLETED",
+                "System",
+                f"Completed expanded subprocess {str(node_uri)}",
+            )
+        self._execution_engine.move_token_to_next(instance_uri, token_uri, instance_id)
+
+    def _handle_call_activity(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        def _parse_var_list(node: URIRef, local_name: str) -> List[str]:
+            values: List[str] = []
+            predicates = [
+                BPMN[local_name],
+                URIRef(f"http://camunda.org/schema/1.0/bpmn#{local_name}"),
+            ]
+            for pred in predicates:
+                raw = self._definitions_graph.value(node, pred)
+                if raw:
+                    values.extend(
+                        [item.strip() for item in str(raw).split(",") if item.strip()]
+                    )
+            return values
+
+        def _copy_vars(
+            source_instance_id: str,
+            target_instance_id: str,
+            names: Optional[List[str]] = None,
+        ) -> int:
+            source_vars = self._variables_service.get_variables(source_instance_id)
+            count = 0
+            for name, value in source_vars.items():
+                if names is not None and name not in names:
+                    continue
+                self._variables_service.set_variable(
+                    target_instance_id, name, value, save=False
+                )
+                count += 1
+            return count
+
+        called_element = self._definitions_graph.value(node_uri, BPMN.calledElement)
+        if not called_element:
+            self._audit_repo.log_event(
+                instance_uri,
+                "CALL_ACTIVITY_SKIPPED",
+                "System",
+                f"No calledElement on {str(node_uri)}",
+            )
+            self._execution_engine.move_token_to_next(instance_uri, token_uri, instance_id)
+            return
+
+        starts = self._find_scope_start_events(URIRef(called_element))
+        if not starts:
+            self._audit_repo.log_event(
+                instance_uri,
+                "CALL_ACTIVITY_SKIPPED",
+                "System",
+                f"Called element has no start event: {str(called_element)}",
+            )
+            self._execution_engine.move_token_to_next(instance_uri, token_uri, instance_id)
+            return
+
+        in_names = _parse_var_list(node_uri, "inVariables")
+        out_names = _parse_var_list(node_uri, "outVariables")
+        in_filter = in_names if in_names else None
+        out_filter = out_names if out_names else None
+
+        sub_instance_id = f"{instance_id}_call_{str(uuid.uuid4())[:8]}"
+        sub_token_uri = self._execution_engine.create_token(
+            instance_uri,
+            starts[0],
+            sub_instance_id,
+        )
+
+        call_exec_uri = INST[f"call_exec_{str(uuid.uuid4())[:8]}"]
+        self._instances_graph.add((call_exec_uri, RDF.type, INST.CallActivityExecution))
+        self._instances_graph.add((call_exec_uri, INST.parentInstance, instance_uri))
+        self._instances_graph.add((call_exec_uri, INST.callNode, node_uri))
+        self._instances_graph.add((call_exec_uri, INST.calledElement, URIRef(called_element)))
+        self._instances_graph.add((call_exec_uri, INST.childExecutionId, Literal(sub_instance_id)))
+        self._instances_graph.add(
+            (call_exec_uri, INST.startedAt, Literal(datetime.utcnow().isoformat()))
+        )
+        self._instances_graph.add((call_exec_uri, INST.status, Literal("RUNNING")))
+        self._instances_graph.add((instance_uri, INST.hasCallExecution, call_exec_uri))
+
+        copied_in = _copy_vars(instance_id, sub_instance_id, names=in_filter)
+        self._audit_repo.log_event(
+            instance_uri,
+            "CALL_ACTIVITY_STARTED",
+            "System",
+            f"Started call activity to {str(called_element)} with child {sub_instance_id}",
+        )
+
+        while self._execution_engine.get_token_status(sub_token_uri) == "ACTIVE":
+            self._execute_token(
+                instance_uri,
+                sub_token_uri,
+                sub_instance_id,
+                merged_gateways=set(),
+            )
+        self._execution_engine.consume_token(sub_token_uri)
+
+        copied_out = _copy_vars(sub_instance_id, instance_id, names=out_filter)
+        self._instances_graph.set(
+            (call_exec_uri, INST.endedAt, Literal(datetime.utcnow().isoformat()))
+        )
+        self._instances_graph.set((call_exec_uri, INST.status, Literal("COMPLETED")))
+        self._instances_graph.set((call_exec_uri, INST.copiedInCount, Literal(str(copied_in))))
+        self._instances_graph.set(
+            (call_exec_uri, INST.copiedOutCount, Literal(str(copied_out)))
+        )
+        executed = True
+        if executed:
+            self._audit_repo.log_event(
+                instance_uri,
+                "CALL_ACTIVITY_COMPLETED",
+                "System",
+                f"Completed call activity to {str(called_element)} (in={copied_in}, out={copied_out})",
+            )
+        else:
+            self._audit_repo.log_event(
+                instance_uri,
+                "CALL_ACTIVITY_SKIPPED",
+                "System",
+                f"Called element has no start event: {str(called_element)}",
+            )
+        self._execution_engine.move_token_to_next(instance_uri, token_uri, instance_id)
+
+    def _handle_event_subprocess(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        # Event subprocesses are normally triggered by events and not sequence flow.
+        self._audit_repo.log_event(
+            instance_uri,
+            "EVENT_SUBPROCESS_SKIPPED",
+            "System",
+            f"Event subprocess node reached in normal flow: {str(node_uri)}",
+        )
+        self._execution_engine.consume_token(token_uri)
+
+    def _handle_intermediate_throw_event(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        message_name = self._definitions_graph.value(node_uri, BPMN.messageRef)
+        if not message_name:
+            message_name = self._definitions_graph.value(
+                node_uri, URIRef("http://camunda.org/schema/1.0/bpmn#message")
+            )
+        if message_name:
+            self.send_message(str(message_name))
+            self._audit_repo.log_event(
+                instance_uri,
+                "MESSAGE_THROWN",
+                "System",
+                f"Intermediate throw message: {str(message_name)}",
+            )
+        self._execution_engine.move_token_to_next(instance_uri, token_uri, instance_id)
+
+    def _handle_intermediate_catch_event(
+        self,
+        instance_uri: URIRef,
+        token_uri: URIRef,
+        node_uri: URIRef,
+        instance_id: str,
+        merged_gateways: set,
+    ) -> None:
+        # Timer catch event: park token and schedule timer.
+        if self._node_has_timer_definition(node_uri):
+            self._execution_engine.set_token_waiting(token_uri)
+            due_at = self._timer_due_for_node(node_uri)
+            self._schedule_timer_job(instance_uri, token_uri, node_uri, due_at=due_at)
+            self._audit_repo.log_event(
+                instance_uri,
+                "WAITING_FOR_TIMER",
+                "System",
+                f"Timer scheduled at {due_at.isoformat()} for {str(node_uri)}",
+            )
+            return
+
+        # Message catch event: behave like receive task.
+        message_name = self._definitions_graph.value(node_uri, BPMN.messageRef)
+        if not message_name:
+            message_name = self._definitions_graph.value(
+                node_uri, URIRef("http://camunda.org/schema/1.0/bpmn#message")
+            )
+        if message_name:
+            self._execution_engine.set_token_waiting(token_uri)
+            self._audit_repo.log_event(
+                instance_uri,
+                "WAITING_FOR_MESSAGE",
+                "System",
+                f"Waiting for message '{str(message_name)}' at {str(node_uri)}",
+            )
+            return
+
+        self._execution_engine.move_token_to_next(instance_uri, token_uri, instance_id)
 
     def _handle_boundary_event(
         self,

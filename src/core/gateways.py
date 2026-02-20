@@ -11,8 +11,7 @@ This module provides comprehensive support for BPMN gateway types:
 All gateway types are implemented using RDF and SPARQL for routing decisions.
 """
 
-from rdflib import Graph, Namespace, RDF, RDFS, OWL, Literal, URIRef, BNode
-from rdflib.plugins.sparql import prepareQuery
+from rdflib import Graph, Namespace, RDF, Literal, URIRef
 import logging
 
 logger = logging.getLogger(__name__)
@@ -94,7 +93,11 @@ class GatewayEvaluator:
             
             # Evaluate condition
             target_uri = self.def_graph.value(flow_uri, BPMN.targetRef)
-            condition_matches = self._evaluate_flow_condition(flow_uri, context.instance_variables)
+            condition_matches = self._evaluate_flow_condition(
+                flow_uri,
+                context.instance_variables,
+                context.instance_uri,
+            )
             
             if condition_matches:
                 targets.append(target_uri)
@@ -115,7 +118,12 @@ class GatewayEvaluator:
         
         return targets
     
-    def _evaluate_flow_condition(self, flow_uri: URIRef, variables: dict) -> bool:
+    def _evaluate_flow_condition(
+        self,
+        flow_uri: URIRef,
+        variables: dict,
+        instance_uri: URIRef = None,
+    ) -> bool:
         """
         Evaluate the condition on a single flow.
         
@@ -133,7 +141,11 @@ class GatewayEvaluator:
         # Try to get condition query first
         condition_query = self.def_graph.value(flow_uri, BPMN.conditionQuery)
         if condition_query:
-            return self._evaluate_sparql_condition(str(condition_query), variables)
+            return self._evaluate_sparql_condition(
+                str(condition_query),
+                variables,
+                instance_uri,
+            )
         
         # Try condition body (Camunda expression)
         condition_body = self.def_graph.value(flow_uri, BPMN.conditionBody)
@@ -143,7 +155,12 @@ class GatewayEvaluator:
         # No condition - path is always valid
         return True
     
-    def _evaluate_sparql_condition(self, query_str: str, variables: dict) -> bool:
+    def _evaluate_sparql_condition(
+        self,
+        query_str: str,
+        variables: dict,
+        instance_uri: URIRef = None,
+    ) -> bool:
         """
         Evaluate a SPARQL ASK query against instance variables.
         
@@ -155,19 +172,21 @@ class GatewayEvaluator:
             True if query returns true, False otherwise
         """
         try:
-            # Build instance variable graph fragment
+            # Build a graph containing instance variables for query evaluation.
             instance_graph = Graph()
-            
+            for prefix, ns in self.def_graph.namespaces():
+                instance_graph.bind(prefix, ns)
+            instance_graph.bind("var", VAR)
+
+            instance_subject = instance_uri or URIRef("http://example.org/instance/instance")
             for var_name, var_value in variables.items():
                 var_uri = VAR[var_name]
-                instance_graph.add((instance_graph.namespace_manager.resolve('var:instance'), var_uri, Literal(var_value)))
-            
+                instance_graph.add((instance_subject, var_uri, Literal(var_value)))
+
             # Execute ASK query
-            result = self.def_graph.query(query_str)
-            
-            if hasattr(result, 'askAnswer'):
-                return result.askAnswer
-            
+            result = instance_graph.query(query_str, initNs={"var": VAR})
+            if hasattr(result, "askAnswer"):
+                return bool(result.askAnswer)
             return bool(result)
         except Exception as e:
             logger.warning(f"SPARQL condition query failed: {e}")
@@ -294,7 +313,11 @@ class GatewayEvaluator:
         
         for flow_uri in context.outgoing_flows:
             target_uri = self.def_graph.value(flow_uri, BPMN.targetRef)
-            condition_matches = self._evaluate_flow_condition(flow_uri, context.instance_variables)
+            condition_matches = self._evaluate_flow_condition(
+                flow_uri,
+                context.instance_variables,
+                context.instance_uri,
+            )
             
             if condition_matches:
                 targets.append(target_uri)

@@ -69,10 +69,15 @@ class MCPTool:
     def execute(self, arguments: Dict[str, Any] = None) -> Dict[str, Any]:
         """Execute the tool with given arguments."""
         if self._handler is None:
-            return {"error": f"No handler registered for tool: {self.name}"}
+            return {"success": False, "error": f"No handler registered for tool: {self.name}"}
 
         try:
             result = self._handler(arguments or {})
+            if isinstance(result, dict):
+                if "success" in result:
+                    return result
+                if "error" in result:
+                    return {"success": False, "error": result["error"]}
             return {"success": True, "result": result}
         except Exception as e:
             return {"success": False, "error": str(e)}

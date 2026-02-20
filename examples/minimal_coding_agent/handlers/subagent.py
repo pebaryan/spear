@@ -180,6 +180,9 @@ def run_parallel_subtasks(
     """
     import concurrent.futures
 
+    if not task_descriptions:
+        return []
+
     results = []
 
     with concurrent.futures.ThreadPoolExecutor(

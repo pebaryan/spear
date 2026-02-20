@@ -263,6 +263,18 @@ class TestCategorizeNode:
         NS = Namespace("http://example.org/bpmn/")
         assert engine.categorize_node([NS.ScriptTask]) == "script_task"
 
+    def test_categorize_send_task(self):
+        """Test categorizing send task."""
+        engine = ExecutionEngine(Graph(), Graph())
+        NS = Namespace("http://example.org/bpmn/")
+        assert engine.categorize_node([NS.SendTask]) == "send_task"
+
+    def test_categorize_manual_task(self):
+        """Test categorizing manual task."""
+        engine = ExecutionEngine(Graph(), Graph())
+        NS = Namespace("http://example.org/bpmn/")
+        assert engine.categorize_node([NS.ManualTask]) == "manual_task"
+
     def test_categorize_intermediate_catch_event(self):
         """Test categorizing intermediate catch event."""
         engine = ExecutionEngine(Graph(), Graph())

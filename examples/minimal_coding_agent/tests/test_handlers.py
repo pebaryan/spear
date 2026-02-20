@@ -111,6 +111,20 @@ class TestMCP:
         assert result["success"] is True
         assert result["result"]["echo"] == "hello"
 
+    def test_tool_error_is_not_marked_success(self):
+        """Tool handler error payload should map to success=False."""
+        from handlers.mcp_tools import MCPTool
+
+        tool = MCPTool("broken", "Returns an error payload")
+
+        @tool.handler
+        def broken_handler(args):
+            return {"error": "broken"}
+
+        result = tool.execute({})
+        assert result["success"] is False
+        assert "broken" in result["error"]
+
 
 class TestSubagent:
     """Tests for sub-agent functionality."""
@@ -123,6 +137,13 @@ class TestSubagent:
 
         assert isinstance(result, list)
         assert len(result) >= 1
+
+    def test_run_parallel_subtasks_empty(self):
+        """Empty input should return empty results without raising."""
+        from handlers.subagent import run_parallel_subtasks
+
+        result = run_parallel_subtasks([], lambda task: {"success": True})
+        assert result == []
 
 
 class TestBuiltinTools:

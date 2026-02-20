@@ -23,12 +23,13 @@ def now_literal():
     )
 
 
-def log_action(g, run, label, tool, target=None, status="completed", reason=None):
+def log_action(g, run, label, tool, target=None, status=None, reason=None):
     action = URIRef(f"{run}/action/{len(list(g.subjects(RDF.type, AG.Action)))}")
     g.add((action, RDF.type, AG.Action))
     g.add((action, RDFS.label, Literal(label)))
     g.add((action, AG.tool, Literal(tool)))
-    g.add((action, AG.status, Literal(status)))
+    if status:
+        g.add((action, AG.status, Literal(status)))
     g.add((action, PROV.wasAssociatedWith, run))
     g.add((action, PROV.startedAtTime, now_literal()))
     if target:

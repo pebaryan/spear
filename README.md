@@ -29,7 +29,15 @@ The engine follows a decoupled, asynchronous pattern:
 
 ### 4. Supported BPMN Elements
 
-SPEAR supports a comprehensive set of BPMN 2.0 elements:
+SPEAR supports a broad set of BPMN 2.0 elements.
+
+Support labels in this section refer to **runtime execution support** in the
+current engine (`StorageFacade` path), not just BPMN parsing/import capability.
+
+Legend:
+- `✅ Full`: parsed and executable end-to-end
+- `⚠️ Partial`: parsed, but runtime behavior is limited or simplified
+- `🧪 Basic`: executable with minimal/default behavior
 
 #### 4.1 Events
 
@@ -37,8 +45,8 @@ SPEAR supports a comprehensive set of BPMN 2.0 elements:
 |---------|---------|-------------|
 | **StartEvent** | ✅ Full | Process initiation point, supports multiple start events |
 | **EndEvent** | ✅ Full | Process termination, supports message end events |
-| **Intermediate Throw Event** | ✅ Full | Message throw events |
-| **Intermediate Catch Event** | ✅ Full | Message receive tasks, timer events |
+| **Intermediate Throw Event** | ⚠️ Partial | Message throw supported; non-message throw types are limited |
+| **Intermediate Catch Event** | ⚠️ Partial | Message/timer catch supported; advanced event semantics are limited |
 | **Boundary Events** | ✅ Full | Attached to activities, supports message/timer/error/signal |
 
 ##### 4.1.1 Error End Events
@@ -117,10 +125,10 @@ SPEAR supports a comprehensive set of BPMN 2.0 elements:
 |---------|---------|-------------|
 | **Service Task** | ✅ Full | Execute registered topic handlers |
 | **User Task** | ✅ Full | Manual tasks requiring human intervention |
-| **Send Task** | ✅ Full | Message sending via HTTP handlers |
+| **Send Task** | 🧪 Basic | Emits configured message and continues flow |
 | **Receive Task** | ✅ Full | Message waiting and receiving |
 | **Script Task** | ✅ Full | Python script execution (secure by default) |
-| **Manual Task** | ✅ Basic | Documented-only tasks |
+| **Manual Task** | 🧪 Basic | Recorded pass-through task with audit event |
 
 ##### 4.2.1 Script Tasks
 
@@ -307,15 +315,15 @@ All listener attributes are preserved during BPMN import/export:
 | **Exclusive Gateway** | ✅ Full | Single outgoing flow based on conditions |
 | **Parallel Gateway** | ✅ Full | All outgoing flows activated simultaneously |
 | **Inclusive Gateway** | ✅ Full | Multiple flows based on evaluated conditions |
-| **Event-Based Gateway** | ✅ Full | Wait for specific events before proceeding |
+| **Event-Based Gateway** | ⚠️ Partial | Waits for receive/message paths; advanced timer/event races are limited |
 
 #### 4.4 Subprocesses
 
 | Element | Support | Description |
 |---------|---------|-------------|
 | **Embedded Subprocess** | ✅ Full | Nested process definitions within parent |
-| **Event Subprocess** | ✅ Full | Triggered by boundary events |
-| **Call Activity** | ✅ Full | References external process definitions |
+| **Event Subprocess** | ⚠️ Partial | Message/timer start triggering supported; advanced BPMN variants limited |
+| **Call Activity** | ⚠️ Partial | Inline called-scope execution with basic in/out mapping |
 
 #### 4.5 Multi-Instance
 
@@ -817,26 +825,122 @@ Execute the same activity multiple times in parallel or sequentially.
 
 #### 11.2 Event Subprocess
 
+Current runtime support:
+- Message start event subprocess trigger (via `send_message(...)`)
+- Timer start event subprocess trigger (via persisted timer jobs and `run_due_timers(...)` or API poller)
+
+Current limitations:
+- Error/escalation/signal/conditional start variants are not implemented yet
+- Advanced interrupting/non-interrupting semantics are limited
+
 ```xml
-<subProcess id="errorHandler" triggeredByEvent="true">
-  <startEvent id="errorStart">
-    <errorEventDefinition errorRef="Error_1"/>
+<subProcess id="messageHandler" triggeredByEvent="true">
+  <startEvent id="msgStart">
+    <messageEventDefinition messageRef="OrderUpdate"/>
   </startEvent>
-  <serviceTask id="handleError"/>
-  <endEvent id="errorEnd"/>
+  <serviceTask id="handleMessage" camunda:topic="handle_order_update"/>
+  <endEvent id="msgEnd"/>
 </subProcess>
 ```
 
 #### 11.3 Call Activity (Collapsed Subprocess)
 
+Current runtime support:
+- Inline called-scope execution for `calledElement`
+- Variable mapping using:
+  - `bpmn:inVariables` / `camunda:inVariables`
+  - `bpmn:outVariables` / `camunda:outVariables`
+- If mapping is omitted, all parent variables are copied in/out
+
+Current limitations:
+- Full BPMN call activity lifecycle and advanced binding semantics are not fully implemented
+
 ```xml
 <callActivity id="callApproval" calledElement="ApprovalProcess">
   <extensionElements>
-    <camunda:in variables="all"/>
-    <camunda:out variables="approvalResult"/>
+    <camunda:inVariables>customerId,totalAmount</camunda:inVariables>
+    <camunda:outVariables>approvalResult,approvalCode</camunda:outVariables>
   </extensionElements>
 </callActivity>
 ```
+
+#### 11.4 Known Gaps / Roadmap
+
+Priority backlog alignment:
+- `P0` Timer reliability and orchestration robustness:
+  - API-level background timer polling is available but opt-in (`SPEAR_TIMER_POLLING_ENABLED`)
+  - More production hardening is still needed (multi-worker coordination, stronger idempotency guarantees)
+- `P0` Event subprocess completeness:
+  - Implement error/escalation/signal/conditional event subprocess start variants
+  - Improve interrupting vs non-interrupting behavior fidelity
+- `P1` Call activity completeness:
+  - Expand BPMN binding/called-element resolution semantics
+  - Extend lifecycle observability and parent/child execution traceability
+- `P1` Task coverage:
+  - Send/manual task baseline support is implemented
+  - Additional BPMN task variants and richer semantics remain
+
+Tracking note:
+- The support matrix in Section 4 is the current source of truth for what is production-ready vs partial.
+- Backlog execution details are maintained in `BACKLOG.md`.
+
+#### 11.5 Issue-Ready Checklist
+
+Use the following as GitHub issue seeds.
+
+1. `[P0] Harden Timer Polling For Multi-Worker Deployments`
+- Scope:
+  - Add lease/lock semantics for claiming due timer jobs.
+  - Ensure `run_due_timers(...)` is safe under concurrent workers.
+- Acceptance criteria:
+  - Given two API workers, each due timer job executes exactly once.
+  - Re-running due processing is idempotent (no duplicate side effects).
+  - Tests cover concurrent claim/execute/retry paths.
+
+2. `[P0] Expand Event Subprocess Start Variant Support`
+- Scope:
+  - Add event subprocess start handling for `error`, `escalation`, `signal`, and `conditional`.
+  - Keep message/timer behavior backward-compatible.
+- Acceptance criteria:
+  - Each start variant can trigger an event subprocess from BPMN definitions.
+  - Unsupported variants fail with explicit, auditable errors.
+  - Integration tests exist per variant with at least one happy path.
+
+3. `[P0] Improve Interrupting vs Non-Interrupting Event Subprocess Semantics`
+- Scope:
+  - Model and enforce interrupting behavior against active parent scope tokens.
+  - Preserve non-interrupting concurrent execution behavior.
+- Acceptance criteria:
+  - Interrupting start cancels/supersedes parent path per modeled scope rules.
+  - Non-interrupting start leaves parent execution active.
+  - Tests validate token state transitions for both modes.
+
+4. `[P1] Extend Call Activity Binding Semantics`
+- Scope:
+  - Expand `calledElement` resolution/binding beyond current baseline behavior.
+  - Document fallback and error semantics when resolution fails.
+- Acceptance criteria:
+  - Resolution strategy is deterministic and documented.
+  - Invalid or missing bindings return explicit runtime errors.
+  - Integration tests cover resolved, unresolved, and fallback scenarios.
+
+5. `[P1] Deepen Call Activity Lifecycle Observability`
+- Scope:
+  - Enrich parent/child execution linkage and lifecycle events.
+  - Improve audit triples for call start, completion, failure, and mapping stats.
+- Acceptance criteria:
+  - Parent execution can be traced to child execution and back.
+  - Lifecycle states are queryable for start/end/failure.
+  - Tests verify emitted RDF triples and status transitions.
+
+6. `[P1] Complete BPMN Task Variant Coverage`
+- Scope:
+  - Extend runtime support for additional task types beyond current send/manual baseline.
+  - Add explicit unsupported-task diagnostics where implementation is pending.
+- Acceptance criteria:
+  - Newly supported task types are categorized and executable end-to-end.
+  - Unsupported types fail with clear, actionable errors.
+  - Matrix in Section 4 is updated with each addition.
 
 ---
 

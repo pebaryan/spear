@@ -2,7 +2,8 @@
 # Tests complete process execution through the facade
 
 import pytest
-from rdflib import Graph, Literal, RDF
+import threading
+from rdflib import Graph, Literal, RDF, URIRef
 
 from src.api.storage.facade import StorageFacade, reset_facade
 from src.api.storage.base import PROC, BPMN, INST
@@ -257,6 +258,781 @@ class TestAuditLog:
         # Audit repository returns "type" not "event_type"
         event_types = [e["type"] for e in log]
         assert "TERMINATED" in event_types
+
+
+class TestAdvancedNodeHandlers:
+    """Integration tests for advanced node categories wired via facade."""
+
+    def test_execute_expanded_subprocess_handler(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="p1" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:subProcess id="sub1">
+      <bpmn:startEvent id="subStart"/>
+      <bpmn:serviceTask id="subTask" camunda:topic="sub_task"/>
+      <bpmn:endEvent id="subEnd"/>
+      <bpmn:sequenceFlow id="sf1" sourceRef="subStart" targetRef="subTask"/>
+      <bpmn:sequenceFlow id="sf2" sourceRef="subTask" targetRef="subEnd"/>
+    </bpmn:subProcess>
+    <bpmn:endEvent id="end1"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="start1" targetRef="sub1"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="sub1" targetRef="end1"/>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        called = []
+
+        def sub_task_handler(instance_id, variables):
+            called.append(instance_id)
+            return {"ok": True}
+
+        facade.register_topic_handler("sub_task", sub_task_handler)
+        process_id = facade.deploy_process("Expanded", bpmn, version="1.0")
+        instance = facade.create_instance(process_id)
+        data = facade.get_instance(instance["id"])
+
+        assert data["status"] == "COMPLETED"
+        assert len(called) == 1
+
+    def test_execute_call_activity_handler(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="mainProcess" isExecutable="true">
+    <bpmn:startEvent id="mainStart"/>
+    <bpmn:callActivity id="call1" calledElement="calledProc"/>
+    <bpmn:endEvent id="mainEnd"/>
+    <bpmn:sequenceFlow id="cf1" sourceRef="mainStart" targetRef="call1"/>
+    <bpmn:sequenceFlow id="cf2" sourceRef="call1" targetRef="mainEnd"/>
+  </bpmn:process>
+  <bpmn:process id="calledProc" isExecutable="false">
+    <bpmn:startEvent id="calledStart"/>
+    <bpmn:serviceTask id="calledTask" camunda:topic="called_task"/>
+    <bpmn:endEvent id="calledEnd"/>
+    <bpmn:sequenceFlow id="cf3" sourceRef="calledStart" targetRef="calledTask"/>
+    <bpmn:sequenceFlow id="cf4" sourceRef="calledTask" targetRef="calledEnd"/>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        called = []
+
+        def called_task_handler(instance_id, variables):
+            called.append(instance_id)
+            return {"ok": True}
+
+        facade.register_topic_handler("called_task", called_task_handler)
+        process_id = facade.deploy_process("Call Activity", bpmn, version="1.0")
+        instance = facade.create_instance(process_id)
+        data = facade.get_instance(instance["id"])
+
+        assert data["status"] == "COMPLETED"
+        assert len(called) == 1
+
+    def test_call_activity_variable_mapping_and_lifecycle(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="mainProcess" isExecutable="true">
+    <bpmn:startEvent id="mainStart"/>
+    <bpmn:callActivity id="call1" calledElement="calledProc" bpmn:inVariables="orderId,amount" bpmn:outVariables="approvalCode"/>
+    <bpmn:endEvent id="mainEnd"/>
+    <bpmn:sequenceFlow id="cf1" sourceRef="mainStart" targetRef="call1"/>
+    <bpmn:sequenceFlow id="cf2" sourceRef="call1" targetRef="mainEnd"/>
+  </bpmn:process>
+  <bpmn:process id="calledProc" isExecutable="false">
+    <bpmn:startEvent id="calledStart"/>
+    <bpmn:serviceTask id="calledTask" camunda:topic="called_task"/>
+    <bpmn:endEvent id="calledEnd"/>
+    <bpmn:sequenceFlow id="cf3" sourceRef="calledStart" targetRef="calledTask"/>
+    <bpmn:sequenceFlow id="cf4" sourceRef="calledTask" targetRef="calledEnd"/>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        seen = []
+
+        def called_task_handler(instance_id, variables):
+            seen.append(dict(variables))
+            return {"approvalCode": f"OK-{variables.get('orderId', 'NA')}"}
+
+        facade.register_topic_handler("called_task", called_task_handler)
+        process_id = facade.deploy_process("Call Mapping", bpmn, version="1.0")
+        instance = facade.create_instance(
+            process_id,
+            variables={"orderId": "O-1", "amount": "12.5", "ignored": "x"},
+        )
+
+        vars_after = facade.get_instance_variables(instance["id"])
+        assert vars_after["approvalCode"] == "OK-O-1"
+        assert len(seen) == 1
+        assert seen[0]["orderId"] == "O-1"
+        assert seen[0]["amount"] == "12.5"
+        assert "ignored" not in seen[0]
+
+        instance_uri = URIRef(f"http://example.org/instance/{instance['id']}")
+        call_execs = list(
+            facade.instances_graph.objects(
+                instance_uri, URIRef("http://example.org/instance/hasCallExecution")
+            )
+        )
+        assert len(call_execs) == 1
+        call_exec = call_execs[0]
+        status = facade.instances_graph.value(
+            call_exec, URIRef("http://example.org/instance/status")
+        )
+        copied_in = facade.instances_graph.value(
+            call_exec, URIRef("http://example.org/instance/copiedInCount")
+        )
+        copied_out = facade.instances_graph.value(
+            call_exec, URIRef("http://example.org/instance/copiedOutCount")
+        )
+        assert str(status) == "COMPLETED"
+        assert str(copied_in) == "2"
+        assert str(copied_out) == "1"
+
+    def test_event_subprocess_triggers_on_message(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="proc1" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:userTask id="waitTask"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="start1" targetRef="waitTask"/>
+    <bpmn:subProcess id="eventSub" triggeredByEvent="true">
+      <bpmn:startEvent id="eventStart">
+        <bpmn:messageEventDefinition camunda:message="kickoff"/>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="eventTask" camunda:topic="event_task"/>
+      <bpmn:endEvent id="eventEnd"/>
+      <bpmn:sequenceFlow id="ef1" sourceRef="eventStart" targetRef="eventTask"/>
+      <bpmn:sequenceFlow id="ef2" sourceRef="eventTask" targetRef="eventEnd"/>
+    </bpmn:subProcess>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        calls = []
+
+        def event_task_handler(instance_id, variables):
+            calls.append((instance_id, dict(variables)))
+            return {"eventDone": "yes"}
+
+        facade.register_topic_handler("event_task", event_task_handler)
+        process_id = facade.deploy_process("Event Subprocess", bpmn, version="1.0")
+        instance = facade.create_instance(process_id, variables={"seed": "A"})
+
+        result = facade.send_message(
+            "kickoff",
+            correlation_key=instance["id"],
+            variables={"msgVar": "B"},
+        )
+
+        assert len(calls) == 1
+        assert calls[0][1]["seed"] == "A"
+        assert calls[0][1]["msgVar"] == "B"
+        assert instance["id"] in result.get("event_subprocess_triggers", [])
+
+    def test_event_subprocess_triggers_on_timer(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="procTimer" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:userTask id="waitTask"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="start1" targetRef="waitTask"/>
+    <bpmn:subProcess id="eventSubTimer" triggeredByEvent="true">
+      <bpmn:startEvent id="timerStart">
+        <bpmn:timerEventDefinition/>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="eventTimerTask" camunda:topic="event_timer_task"/>
+      <bpmn:endEvent id="eventEnd"/>
+      <bpmn:sequenceFlow id="ef1" sourceRef="timerStart" targetRef="eventTimerTask"/>
+      <bpmn:sequenceFlow id="ef2" sourceRef="eventTimerTask" targetRef="eventEnd"/>
+    </bpmn:subProcess>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        calls = []
+
+        def event_timer_task_handler(instance_id, variables):
+            calls.append((instance_id, dict(variables)))
+            return {"timerDone": "yes"}
+
+        facade.register_topic_handler("event_timer_task", event_timer_task_handler)
+        process_id = facade.deploy_process("Event Subprocess Timer", bpmn, version="1.0")
+
+        timer_start_uri = URIRef("http://example.org/bpmn/timerStart")
+        facade.definitions_graph.add(
+            (
+                timer_start_uri,
+                URIRef("http://dkm.fbk.eu/index.php/BPMN2_Ontology#timerDelaySeconds"),
+                Literal("0"),
+            )
+        )
+
+        instance = facade.create_instance(process_id, variables={"seed": "T"})
+        data = facade.get_instance(instance["id"])
+
+        assert data["status"] == "RUNNING"
+        assert len(calls) == 1
+        assert calls[0][1]["seed"] == "T"
+
+    def test_timer_intermediate_catch_and_run_due_timers(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="timerProc" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:intermediateCatchEvent id="waitTimer"/>
+    <bpmn:serviceTask id="afterTimerTask" camunda:topic="after_timer"/>
+    <bpmn:endEvent id="end1"/>
+    <bpmn:sequenceFlow id="t1" sourceRef="start1" targetRef="waitTimer"/>
+    <bpmn:sequenceFlow id="t2" sourceRef="waitTimer" targetRef="afterTimerTask"/>
+    <bpmn:sequenceFlow id="t3" sourceRef="afterTimerTask" targetRef="end1"/>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        called = []
+
+        def after_timer_handler(instance_id, variables):
+            called.append(instance_id)
+            return {"ok": True}
+
+        facade.register_topic_handler("after_timer", after_timer_handler)
+        process_id = facade.deploy_process("Timer Process", bpmn, version="1.0")
+
+        # Mark catch event as timer-backed and immediate due.
+        wait_timer_uri = URIRef("http://example.org/bpmn/waitTimer")
+        timer_def_uri = URIRef("http://example.org/bpmn/timer_def_test")
+        facade.definitions_graph.add(
+            (
+                timer_def_uri,
+                RDF.type,
+                URIRef("http://dkm.fbk.eu/index.php/BPMN2_Ontology#timerEventDefinition"),
+            )
+        )
+        facade.definitions_graph.add(
+            (
+                timer_def_uri,
+                URIRef("http://dkm.fbk.eu/index.php/BPMN2_Ontology#hasParent"),
+                wait_timer_uri,
+            )
+        )
+        facade.definitions_graph.add(
+            (
+                wait_timer_uri,
+                URIRef("http://dkm.fbk.eu/index.php/BPMN2_Ontology#timerDelaySeconds"),
+                Literal("0"),
+            )
+        )
+
+        instance = facade.create_instance(process_id)
+        before = facade.get_instance(instance["id"])
+        assert before["status"] == "RUNNING"
+
+        fired = facade.run_due_timers()
+        after = facade.get_instance(instance["id"])
+
+        assert fired["fired"] >= 1
+        assert after["status"] == "COMPLETED"
+        assert len(called) == 1
+
+    def test_send_task_handler_completes_process(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="sendProc" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:sendTask id="send1" camunda:message="order.sent"/>
+    <bpmn:endEvent id="end1"/>
+    <bpmn:sequenceFlow id="s1" sourceRef="start1" targetRef="send1"/>
+    <bpmn:sequenceFlow id="s2" sourceRef="send1" targetRef="end1"/>
+  </bpmn:process>
+</bpmn:definitions>"""
+        process_id = facade.deploy_process("Send Task", bpmn, version="1.0")
+        instance = facade.create_instance(process_id)
+        data = facade.get_instance(instance["id"])
+        assert data["status"] == "COMPLETED"
+
+    def test_manual_task_handler_completes_process(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="manualProc" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:manualTask id="manual1"/>
+    <bpmn:endEvent id="end1"/>
+    <bpmn:sequenceFlow id="m1" sourceRef="start1" targetRef="manual1"/>
+    <bpmn:sequenceFlow id="m2" sourceRef="manual1" targetRef="end1"/>
+  </bpmn:process>
+</bpmn:definitions>"""
+        process_id = facade.deploy_process("Manual Task", bpmn, version="1.0")
+        instance = facade.create_instance(process_id)
+        data = facade.get_instance(instance["id"])
+        assert data["status"] == "COMPLETED"
+
+    def test_run_due_timers_multi_worker_claims_once(self, tmp_path):
+        facade_a = StorageFacade(str(tmp_path))
+
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="timerProcConcurrent" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:intermediateCatchEvent id="waitTimer"/>
+    <bpmn:serviceTask id="afterTimerTask" camunda:topic="after_timer_concurrent"/>
+    <bpmn:endEvent id="end1"/>
+    <bpmn:sequenceFlow id="t1" sourceRef="start1" targetRef="waitTimer"/>
+    <bpmn:sequenceFlow id="t2" sourceRef="waitTimer" targetRef="afterTimerTask"/>
+    <bpmn:sequenceFlow id="t3" sourceRef="afterTimerTask" targetRef="end1"/>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        call_count = {"count": 0}
+        counter_lock = threading.Lock()
+
+        def after_timer_handler(instance_id, variables):
+            with counter_lock:
+                call_count["count"] += 1
+            return {"ok": True}
+
+        facade_a.register_topic_handler("after_timer_concurrent", after_timer_handler)
+
+        process_id = facade_a.deploy_process("Timer Concurrent", bpmn, version="1.0")
+        wait_timer_uri = URIRef("http://example.org/bpmn/waitTimer")
+        timer_def_uri = URIRef("http://example.org/bpmn/timer_def_concurrent")
+        facade_a.definitions_graph.add(
+            (
+                timer_def_uri,
+                RDF.type,
+                URIRef("http://dkm.fbk.eu/index.php/BPMN2_Ontology#timerEventDefinition"),
+            )
+        )
+        facade_a.definitions_graph.add(
+            (
+                timer_def_uri,
+                URIRef("http://dkm.fbk.eu/index.php/BPMN2_Ontology#hasParent"),
+                wait_timer_uri,
+            )
+        )
+        facade_a.definitions_graph.add(
+            (
+                wait_timer_uri,
+                URIRef("http://dkm.fbk.eu/index.php/BPMN2_Ontology#timerDelaySeconds"),
+                Literal("0"),
+            )
+        )
+        facade_a.save_definitions()
+
+        facade_b = StorageFacade(str(tmp_path))
+        facade_b.register_topic_handler("after_timer_concurrent", after_timer_handler)
+
+        instance = facade_a.create_instance(process_id)
+
+        results = []
+        start_barrier = threading.Barrier(2)
+
+        def _run_worker(local_facade, worker_name):
+            start_barrier.wait()
+            results.append(local_facade.run_due_timers(worker_id=worker_name))
+
+        t1 = threading.Thread(target=_run_worker, args=(facade_a, "worker-a"))
+        t2 = threading.Thread(target=_run_worker, args=(facade_b, "worker-b"))
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        assert sum(r["fired"] for r in results) == 1
+        assert call_count["count"] == 1
+
+        verifier = StorageFacade(str(tmp_path))
+        final_instance = verifier.get_instance(instance["id"])
+        assert final_instance["status"] == "COMPLETED"
+
+    def test_run_due_timers_reclaims_expired_lease(self, tmp_path):
+        facade = StorageFacade(str(tmp_path))
+
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="timerProcLease" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:intermediateCatchEvent id="waitTimer"/>
+    <bpmn:serviceTask id="afterTimerTask" camunda:topic="after_timer_lease"/>
+    <bpmn:endEvent id="end1"/>
+    <bpmn:sequenceFlow id="t1" sourceRef="start1" targetRef="waitTimer"/>
+    <bpmn:sequenceFlow id="t2" sourceRef="waitTimer" targetRef="afterTimerTask"/>
+    <bpmn:sequenceFlow id="t3" sourceRef="afterTimerTask" targetRef="end1"/>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        call_count = {"count": 0}
+
+        def after_timer_handler(instance_id, variables):
+            call_count["count"] += 1
+            return {"ok": True}
+
+        facade.register_topic_handler("after_timer_lease", after_timer_handler)
+        process_id = facade.deploy_process("Timer Lease", bpmn, version="1.0")
+        wait_timer_uri = URIRef("http://example.org/bpmn/waitTimer")
+        timer_def_uri = URIRef("http://example.org/bpmn/timer_def_lease")
+        facade.definitions_graph.add(
+            (
+                timer_def_uri,
+                RDF.type,
+                URIRef("http://dkm.fbk.eu/index.php/BPMN2_Ontology#timerEventDefinition"),
+            )
+        )
+        facade.definitions_graph.add(
+            (
+                timer_def_uri,
+                URIRef("http://dkm.fbk.eu/index.php/BPMN2_Ontology#hasParent"),
+                wait_timer_uri,
+            )
+        )
+        facade.definitions_graph.add(
+            (
+                wait_timer_uri,
+                URIRef("http://dkm.fbk.eu/index.php/BPMN2_Ontology#timerDelaySeconds"),
+                Literal("0"),
+            )
+        )
+        facade.save_definitions()
+
+        instance = facade.create_instance(process_id)
+        instance_uri = URIRef(f"http://example.org/instance/{instance['id']}")
+        job_uri = next(facade.instances_graph.objects(instance_uri, INST.hasTimerJob))
+
+        facade.instances_graph.set((job_uri, INST.timerStatus, Literal("CLAIMED")))
+        facade.instances_graph.set((job_uri, INST.claimedBy, Literal("stale-worker")))
+        facade.instances_graph.set((job_uri, INST.claimedAt, Literal("2020-01-01T00:00:00")))
+        facade.instances_graph.set((job_uri, INST.leaseUntil, Literal("2020-01-01T00:00:01")))
+        facade.save_instances()
+
+        result = facade.run_due_timers(worker_id="new-worker")
+
+        assert result["fired"] == 1
+        assert call_count["count"] == 1
+        refreshed = StorageFacade(str(tmp_path))
+        final_instance = refreshed.get_instance(instance["id"])
+        assert final_instance["status"] == "COMPLETED"
+
+    def test_event_subprocess_triggers_on_error_variant(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="procErr" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:userTask id="waitTask"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="start1" targetRef="waitTask"/>
+    <bpmn:subProcess id="eventSubErr" triggeredByEvent="true">
+      <bpmn:startEvent id="errorStart">
+        <bpmn:errorEventDefinition id="errDef"/>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="eventTask" camunda:topic="event_error_task"/>
+      <bpmn:endEvent id="eventEnd"/>
+      <bpmn:sequenceFlow id="ef1" sourceRef="errorStart" targetRef="eventTask"/>
+      <bpmn:sequenceFlow id="ef2" sourceRef="eventTask" targetRef="eventEnd"/>
+    </bpmn:subProcess>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        calls = []
+
+        def event_error_handler(instance_id, variables):
+            calls.append((instance_id, dict(variables)))
+            return {"eventDone": "yes"}
+
+        facade.register_topic_handler("event_error_task", event_error_handler)
+        process_id = facade.deploy_process("Event Subprocess Error", bpmn, version="1.0")
+        instance = facade.create_instance(process_id, variables={"seed": "E"})
+
+        start_uri = URIRef("http://example.org/bpmn/errorStart")
+        for child in facade.definitions_graph.subjects(BPMN.hasParent, start_uri):
+            for _, _, child_type in facade.definitions_graph.triples((child, RDF.type, None)):
+                if "erroreventdefinition" in str(child_type).lower():
+                    facade.definitions_graph.set((child, BPMN.errorRef, Literal("E-ORDER")))
+                    break
+        facade.save_definitions()
+
+        result = facade.throw_error(
+            instance["id"],
+            "E-ORDER",
+            error_message="bad order",
+            variables={"errSource": "api"},
+        )
+
+        assert result["triggered"] is True
+        assert result["count"] == 1
+        assert len(calls) == 1
+        assert calls[0][1]["seed"] == "E"
+        assert calls[0][1]["errorCode"] == "E-ORDER"
+        assert calls[0][1]["errSource"] == "api"
+
+    def test_event_subprocess_triggers_on_signal_variant(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="procSignal" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:userTask id="waitTask"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="start1" targetRef="waitTask"/>
+    <bpmn:subProcess id="eventSubSignal" triggeredByEvent="true">
+      <bpmn:startEvent id="signalStart">
+        <bpmn:signalEventDefinition id="sigDef"/>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="eventTask" camunda:topic="event_signal_task"/>
+      <bpmn:endEvent id="eventEnd"/>
+      <bpmn:sequenceFlow id="ef1" sourceRef="signalStart" targetRef="eventTask"/>
+      <bpmn:sequenceFlow id="ef2" sourceRef="eventTask" targetRef="eventEnd"/>
+    </bpmn:subProcess>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        calls = []
+
+        def event_signal_handler(instance_id, variables):
+            calls.append((instance_id, dict(variables)))
+            return {"eventDone": "yes"}
+
+        facade.register_topic_handler("event_signal_task", event_signal_handler)
+        process_id = facade.deploy_process("Event Subprocess Signal", bpmn, version="1.0")
+        instance = facade.create_instance(process_id, variables={"seed": "S"})
+
+        start_uri = URIRef("http://example.org/bpmn/signalStart")
+        for child in facade.definitions_graph.subjects(BPMN.hasParent, start_uri):
+            for _, _, child_type in facade.definitions_graph.triples((child, RDF.type, None)):
+                if "signaleventdefinition" in str(child_type).lower():
+                    facade.definitions_graph.set((child, BPMN.signalRef, Literal("SIG-KICKOFF")))
+                    break
+        facade.save_definitions()
+
+        result = facade.throw_signal(
+            "SIG-KICKOFF",
+            correlation_key=instance["id"],
+            variables={"sigPayload": "x"},
+        )
+
+        assert instance["id"] in result["triggered_instances"]
+        assert len(calls) == 1
+        assert calls[0][1]["seed"] == "S"
+        assert calls[0][1]["sigPayload"] == "x"
+
+    def test_event_subprocess_triggers_on_escalation_variant(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="procEsc" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:userTask id="waitTask"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="start1" targetRef="waitTask"/>
+    <bpmn:subProcess id="eventSubEsc" triggeredByEvent="true">
+      <bpmn:startEvent id="escStart">
+        <bpmn:escalationEventDefinition id="escDef"/>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="eventTask" camunda:topic="event_escalation_task"/>
+      <bpmn:endEvent id="eventEnd"/>
+      <bpmn:sequenceFlow id="ef1" sourceRef="escStart" targetRef="eventTask"/>
+      <bpmn:sequenceFlow id="ef2" sourceRef="eventTask" targetRef="eventEnd"/>
+    </bpmn:subProcess>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        calls = []
+
+        def event_escalation_handler(instance_id, variables):
+            calls.append((instance_id, dict(variables)))
+            return {"eventDone": "yes"}
+
+        facade.register_topic_handler("event_escalation_task", event_escalation_handler)
+        process_id = facade.deploy_process("Event Subprocess Escalation", bpmn, version="1.0")
+        instance = facade.create_instance(process_id, variables={"seed": "C"})
+
+        start_uri = URIRef("http://example.org/bpmn/escStart")
+        for child in facade.definitions_graph.subjects(BPMN.hasParent, start_uri):
+            for _, _, child_type in facade.definitions_graph.triples((child, RDF.type, None)):
+                if "escalationeventdefinition" in str(child_type).lower():
+                    facade.definitions_graph.set((child, BPMN.escalationRef, Literal("ESC-1")))
+                    break
+        facade.save_definitions()
+
+        result = facade.throw_escalation(
+            instance["id"],
+            "ESC-1",
+            variables={"escalatedBy": "policy"},
+        )
+
+        assert result["triggered"] is True
+        assert result["count"] == 1
+        assert len(calls) == 1
+        assert calls[0][1]["seed"] == "C"
+        assert calls[0][1]["escalationCode"] == "ESC-1"
+        assert calls[0][1]["escalatedBy"] == "policy"
+
+    def test_event_subprocess_triggers_on_conditional_variant(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="procCond" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:userTask id="waitTask"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="start1" targetRef="waitTask"/>
+    <bpmn:subProcess id="eventSubCond" triggeredByEvent="true">
+      <bpmn:startEvent id="condStart">
+        <bpmn:conditionalEventDefinition id="condDef"/>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="eventTask" camunda:topic="event_conditional_task"/>
+      <bpmn:endEvent id="eventEnd"/>
+      <bpmn:sequenceFlow id="ef1" sourceRef="condStart" targetRef="eventTask"/>
+      <bpmn:sequenceFlow id="ef2" sourceRef="eventTask" targetRef="eventEnd"/>
+    </bpmn:subProcess>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        calls = []
+
+        def event_conditional_handler(instance_id, variables):
+            calls.append((instance_id, dict(variables)))
+            return {"eventDone": "yes"}
+
+        facade.register_topic_handler("event_conditional_task", event_conditional_handler)
+        process_id = facade.deploy_process("Event Subprocess Conditional", bpmn, version="1.0")
+        instance = facade.create_instance(process_id, variables={"seed": "Q"})
+
+        start_uri = URIRef("http://example.org/bpmn/condStart")
+        for child in facade.definitions_graph.subjects(BPMN.hasParent, start_uri):
+            for _, _, child_type in facade.definitions_graph.triples((child, RDF.type, None)):
+                if "conditionaleventdefinition" in str(child_type).lower():
+                    facade.definitions_graph.set(
+                        (child, BPMN.conditionExpression, Literal("kickoff"))
+                    )
+                    break
+        facade.save_definitions()
+
+        result = facade.trigger_conditional_event_subprocesses(
+            instance["id"],
+            variables={"kickoff": True},
+        )
+
+        assert result["triggered"] is True
+        assert result["count"] == 1
+        assert len(calls) == 1
+        assert calls[0][1]["seed"] == "Q"
+        assert str(calls[0][1]["kickoff"]).lower() == "true"
+
+    def test_event_subprocess_unsupported_variant_is_auditable(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="procUnsup" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:userTask id="waitTask"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="start1" targetRef="waitTask"/>
+    <bpmn:subProcess id="eventSubUnsup" triggeredByEvent="true">
+      <bpmn:startEvent id="unsupStart">
+        <bpmn:compensateEventDefinition id="compDef"/>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="eventTask" camunda:topic="event_unsup_task"/>
+      <bpmn:endEvent id="eventEnd"/>
+      <bpmn:sequenceFlow id="ef1" sourceRef="unsupStart" targetRef="eventTask"/>
+      <bpmn:sequenceFlow id="ef2" sourceRef="eventTask" targetRef="eventEnd"/>
+    </bpmn:subProcess>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        facade.register_topic_handler("event_unsup_task", lambda i, v: {"ok": True})
+        process_id = facade.deploy_process("Event Subprocess Unsupported", bpmn, version="1.0")
+        instance = facade.create_instance(process_id)
+
+        result = facade.throw_signal("SIG-NONE", correlation_key=instance["id"])
+        assert instance["id"] not in result["triggered_instances"]
+
+        audit = facade.get_instance_audit_log(instance["id"])
+        event_types = [entry["type"] for entry in audit]
+        assert "EVENT_SUBPROCESS_START_UNSUPPORTED" in event_types
+
+    def test_event_subprocess_non_interrupting_keeps_parent_token_active(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="procNonInterrupt" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:userTask id="waitTask"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="start1" targetRef="waitTask"/>
+    <bpmn:subProcess id="eventSub" triggeredByEvent="true">
+      <bpmn:startEvent id="msgStart">
+        <bpmn:messageEventDefinition camunda:message="kickoff.nonint"/>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="eventTask" camunda:topic="event_nonint_task"/>
+      <bpmn:endEvent id="eventEnd"/>
+      <bpmn:sequenceFlow id="ef1" sourceRef="msgStart" targetRef="eventTask"/>
+      <bpmn:sequenceFlow id="ef2" sourceRef="eventTask" targetRef="eventEnd"/>
+    </bpmn:subProcess>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        facade.register_topic_handler("event_nonint_task", lambda i, v: {"ok": True})
+        process_id = facade.deploy_process("Event Non Interrupting", bpmn, version="1.0")
+        instance = facade.create_instance(process_id)
+
+        msg_start_uri = URIRef("http://example.org/bpmn/msgStart")
+        facade.definitions_graph.set((msg_start_uri, BPMN.interrupting, Literal("false")))
+        facade.save_definitions()
+
+        facade.send_message("kickoff.nonint", correlation_key=instance["id"])
+
+        instance_uri = URIRef(f"http://example.org/instance/{instance['id']}")
+        wait_task_uri = URIRef("http://example.org/bpmn/waitTask")
+        statuses = []
+        for tok in facade.instances_graph.objects(instance_uri, INST.hasToken):
+            node = facade.instances_graph.value(tok, INST.currentNode)
+            if node == wait_task_uri:
+                statuses.append(str(facade.instances_graph.value(tok, INST.status)))
+        assert "WAITING" in statuses
+
+    def test_event_subprocess_interrupting_consumes_parent_scope_tokens(self, facade):
+        bpmn = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="procInterrupt" isExecutable="true">
+    <bpmn:startEvent id="start1"/>
+    <bpmn:userTask id="waitTask"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="start1" targetRef="waitTask"/>
+    <bpmn:subProcess id="eventSub" triggeredByEvent="true">
+      <bpmn:startEvent id="msgStart">
+        <bpmn:messageEventDefinition camunda:message="kickoff.int"/>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="eventTask" camunda:topic="event_int_task"/>
+      <bpmn:endEvent id="eventEnd"/>
+      <bpmn:sequenceFlow id="ef1" sourceRef="msgStart" targetRef="eventTask"/>
+      <bpmn:sequenceFlow id="ef2" sourceRef="eventTask" targetRef="eventEnd"/>
+    </bpmn:subProcess>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        facade.register_topic_handler("event_int_task", lambda i, v: {"ok": True})
+        process_id = facade.deploy_process("Event Interrupting", bpmn, version="1.0")
+        instance = facade.create_instance(process_id)
+
+        msg_start_uri = URIRef("http://example.org/bpmn/msgStart")
+        facade.definitions_graph.set((msg_start_uri, BPMN.interrupting, Literal("true")))
+        facade.save_definitions()
+
+        facade.send_message("kickoff.int", correlation_key=instance["id"])
+
+        instance_uri = URIRef(f"http://example.org/instance/{instance['id']}")
+        wait_task_uri = URIRef("http://example.org/bpmn/waitTask")
+        statuses = []
+        for tok in facade.instances_graph.objects(instance_uri, INST.hasToken):
+            node = facade.instances_graph.value(tok, INST.currentNode)
+            if node == wait_task_uri:
+                statuses.append(str(facade.instances_graph.value(tok, INST.status)))
+        assert statuses
+        assert all(status == "CONSUMED" for status in statuses)
+
+        audit = facade.get_instance_audit_log(instance["id"])
+        event_types = [entry["type"] for entry in audit]
+        assert "EVENT_SUBPROCESS_INTERRUPTED_SCOPE" in event_types
 
 
 class TestServiceTaskRegistration:

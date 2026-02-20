@@ -220,10 +220,14 @@ class ExecutionEngine:
         # Check for tasks
         if BPMN.ServiceTask in node_types or BPMN.serviceTask in node_types:
             return "service_task"
+        if "sendtask" in type_str_combined:
+            return "send_task"
         if "scripttask" in type_str_combined:
             return "script_task"
         if BPMN.UserTask in node_types or BPMN.userTask in node_types:
             return "user_task"
+        if "manualtask" in type_str_combined:
+            return "manual_task"
         if BPMN.ReceiveTask in node_types or BPMN.receiveTask in node_types:
             return "receive_task"
 

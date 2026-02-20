@@ -618,9 +618,13 @@ def main() -> None:
                     "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\n"
                     "agt:Agent_1 a agt:Agent, agt:AgentInstance ;\n"
                     "    agt:currentGoal \"Discover itself and research ways to improve itself.\" ;\n"
+                    "    agt:baselineGoal \"Discover itself and research ways to improve itself.\" ;\n"
                     "    agt:cadenceSeconds 1800 ;\n"
                     "    agt:cycleProcess bpmn:AgentCycleProcess ;\n"
-                    "    agt:schedulerProcess bpmn:AgentSchedulerProcess .\n"
+                    "    agt:schedulerProcess bpmn:AgentSchedulerProcess .\n\n"
+                    "mem:SeedNote_1 a mem:Note ;\n"
+                    "    mem:content \"Seed memory: begin self-discovery and improvement research.\" ;\n"
+                    "    mem:createdAt \"2026-02-02T00:00:00Z\"^^xsd:dateTime .\n"
                 )
         print(f"[runner] Reset memory at {MEMORY_PATH}")
         return

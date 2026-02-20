@@ -3,6 +3,9 @@
 
 import time
 import uuid
+import os
+import asyncio
+import contextlib
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,15 +30,61 @@ from src.api.storage import get_storage
 # Initialize storage on module load
 storage = get_storage()
 
+
+def _timer_polling_enabled() -> bool:
+    """Return whether background timer polling is enabled."""
+    raw = os.getenv("SPEAR_TIMER_POLLING_ENABLED", "false").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _timer_poll_interval_seconds() -> float:
+    """Return polling interval for timer jobs."""
+    raw = os.getenv("SPEAR_TIMER_POLL_INTERVAL_SECONDS", "1.0").strip()
+    try:
+        interval = float(raw)
+    except Exception:
+        interval = 1.0
+    if interval <= 0:
+        interval = 1.0
+    return interval
+
+
+async def _timer_poller(stop_event: asyncio.Event, interval_seconds: float) -> None:
+    """Background loop that periodically fires due timer jobs."""
+    while not stop_event.is_set():
+        try:
+            if hasattr(storage, "run_due_timers"):
+                storage.run_due_timers()
+        except Exception:
+            # Keep poller resilient; lifecycle shutdown should still proceed.
+            pass
+
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=interval_seconds)
+        except asyncio.TimeoutError:
+            continue
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
     startup_time = time.time()
+    timer_stop_event = asyncio.Event()
+    timer_task = None
     print("SPEAR API starting up...")
     print("RDF storage initialized")
+    if _timer_polling_enabled() and hasattr(storage, "run_due_timers"):
+        interval = _timer_poll_interval_seconds()
+        timer_task = asyncio.create_task(_timer_poller(timer_stop_event, interval))
+        print(f"Timer polling enabled (interval={interval}s)")
     yield
     # Shutdown
+    timer_stop_event.set()
+    if timer_task:
+        timer_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await timer_task
     print("SPEAR API shutting down...")
 
 

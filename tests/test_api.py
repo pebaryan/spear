@@ -4,7 +4,9 @@ Test script for SPEAR REST API
 """
 
 import pytest
+import asyncio
 from fastapi.testclient import TestClient
+from src.api import main as api_main
 from src.api.main import app
 from src.api.security import _reset_rate_limiter_state_for_tests
 
@@ -13,6 +15,47 @@ from src.api.security import _reset_rate_limiter_state_for_tests
 def client():
     """Create a test client"""
     return TestClient(app)
+
+
+def test_timer_polling_enabled_env(monkeypatch):
+    monkeypatch.setenv("SPEAR_TIMER_POLLING_ENABLED", "true")
+    assert api_main._timer_polling_enabled() is True
+    monkeypatch.setenv("SPEAR_TIMER_POLLING_ENABLED", "false")
+    assert api_main._timer_polling_enabled() is False
+
+
+def test_timer_poll_interval_parsing(monkeypatch):
+    monkeypatch.setenv("SPEAR_TIMER_POLL_INTERVAL_SECONDS", "2.5")
+    assert api_main._timer_poll_interval_seconds() == 2.5
+    monkeypatch.setenv("SPEAR_TIMER_POLL_INTERVAL_SECONDS", "0")
+    assert api_main._timer_poll_interval_seconds() == 1.0
+    monkeypatch.setenv("SPEAR_TIMER_POLL_INTERVAL_SECONDS", "bad")
+    assert api_main._timer_poll_interval_seconds() == 1.0
+
+
+def test_timer_poller_executes_due_timers(monkeypatch):
+    calls = {"count": 0}
+
+    class FakeStorage:
+        def run_due_timers(self):
+            calls["count"] += 1
+
+    monkeypatch.setattr(api_main, "storage", FakeStorage())
+
+    async def _run():
+        stop = asyncio.Event()
+        task = asyncio.create_task(api_main._timer_poller(stop, 0.01))
+        await asyncio.sleep(0.03)
+        stop.set()
+        await asyncio.sleep(0.01)
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+    asyncio.run(_run())
+    assert calls["count"] >= 1
 
 
 def test_health_check(client):
