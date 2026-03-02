@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+             id="Definitions_autonomous_agent"
+             targetNamespace="http://example.org/autonomous_agent">
+  <process id="AutonomousAgentProcess" isExecutable="true" name="SPEAR Autonomous Coding Agent">
+    <!-- Self-correcting loop that runs until success or max iterations -->
+    
+    <startEvent id="StartEvent_Autonomous" name="Start">
+      <outgoing>Flow_StartToInit</outgoing>
+    </startEvent>
+
+    <!-- Initialize: understand vague request, set up iteration -->
+    <serviceTask id="ServiceTask_Init" name="Understand Request"
+                 camunda:topic="autonomous_init"
+                 camunda:async="false">
+      <incoming>Flow_StartToInit</incoming>
+      <outgoing>Flow_InitToAnalyze</outgoing>
+    </serviceTask>
+
+    <!-- Analyze current state -->
+    <serviceTask id="ServiceTask_Analyze" name="Analyze State"
+                 camunda:topic="autonomous_analyze"
+                 camunda:async="false">
+      <incoming>Flow_InitToAnalyze</incoming>
+      <incoming>Flow_LoopBack</incoming>
+      <outgoing>Flow_AnalyzeToGateway</outgoing>
+    </serviceTask>
+
+    <!-- Decision: Is work done? -->
+    <exclusiveGateway id="Gateway_Done" name="Done?">
+      <incoming>Flow_AnalyzeToGateway</incoming>
+      <outgoing>Flow_YesDone</outgoing>
+      <outgoing>Flow_NotDone</outgoing>
+    </exclusiveGateway>
+
+    <sequenceFlow id="Flow_YesDone" name="Yes - Done" sourceRef="Gateway_Done" targetRef="ServiceTask_Report">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" camunda:expression="ASK { ?instance var:all_done 'true' }" />
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_NotDone" name="No - Continue" sourceRef="Gateway_Done" targetRef="Gateway_RetryLimit">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" camunda:expression="ASK { ?instance var:all_done 'false' }" />
+    </sequenceFlow>
+
+    <!-- Check retry limit -->
+    <exclusiveGateway id="Gateway_RetryLimit" name="Try More?">
+      <incoming>Flow_NotDone</incoming>
+      <outgoing>Flow_TryMore</outgoing>
+      <outgoing>Flow_MaxTries</outgoing>
+    </exclusiveGateway>
+
+    <sequenceFlow id="Flow_TryMore" name="Yes - Continue" sourceRef="Gateway_RetryLimit" targetRef="ServiceTask_Plan">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" camunda:expression="ASK { ?instance var:iteration ?i FILTER(?i &lt; 10) }" />
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_MaxTries" name="Max Reached" sourceRef="Gateway_RetryLimit" targetRef="ServiceTask_Report">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" camunda:expression="ASK { ?instance var:iteration ?i FILTER(?i &gt;= 10) }" />
+    </sequenceFlow>
+
+    <!-- Plan the next action based on analysis -->
+    <serviceTask id="ServiceTask_Plan" name="Plan Next Step"
+                 camunda:topic="autonomous_plan"
+                 camunda:async="false">
+      <incoming>Flow_TryMore</incoming>
+      <outgoing>Flow_PlanToExecute</outgoing>
+    </serviceTask>
+
+    <!-- Execute the planned action -->
+    <serviceTask id="ServiceTask_Execute" name="Execute Action"
+                 camunda:topic="autonomous_execute"
+                 camunda:async="false">
+      <incoming>Flow_PlanToExecute</incoming>
+      <outgoing>Flow_ExecuteToVerify</outgoing>
+    </serviceTask>
+
+    <!-- Verify the result -->
+    <serviceTask id="ServiceTask_Verify" name="Verify Result"
+                 camunda:topic="autonomous_verify"
+                 camunda:async="false">
+      <incoming>Flow_ExecuteToVerify</incoming>
+      <outgoing>Flow_VerifyToGateway</outgoing>
+    </serviceTask>
+
+    <!-- Decision: Did action succeed? -->
+    <exclusiveGateway id="Gateway_Success" name="Success?">
+      <incoming>Flow_VerifyToGateway</incoming>
+      <outgoing>Flow_ActionSuccess</outgoing>
+      <outgoing>Flow_ActionFail</outgoing>
+    </exclusiveGateway>
+
+    <sequenceFlow id="Flow_ActionSuccess" name="Success" sourceRef="Gateway_Success" targetRef="ServiceTask_Record">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" camunda:expression="ASK { ?instance var:action_success 'true' }" />
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_ActionFail" name="Failed" sourceRef="Gateway_Success" targetRef="ServiceTask_Learn">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" camunda:expression="ASK { ?instance var:action_success 'false' }" />
+    </sequenceFlow>
+
+    <!-- Record success and continue -->
+    <serviceTask id="ServiceTask_Record" name="Record Success"
+                 camunda:topic="autonomous_record"
+                 camunda:async="false">
+      <incoming>Flow_ActionSuccess</incoming>
+      <outgoing>Flow_RecordToLoop</outgoing>
+    </serviceTask>
+
+    <!-- Learn from failure and loop back -->
+    <serviceTask id="ServiceTask_Learn" name="Learn from Failure"
+                 camunda:topic="autonomous_learn"
+                 camunda:async="false">
+      <incoming>Flow_ActionFail</incoming>
+      <outgoing>Flow_LearnToLoop</outgoing>
+    </serviceTask>
+
+    <!-- Increment iteration and loop back -->
+    <serviceTask id="ServiceTask_Increment" name="Next Iteration"
+                 camunda:topic="autonomous_increment"
+                 camunda:async="false">
+      <incoming>Flow_RecordToLoop</incoming>
+      <incoming>Flow_LearnToLoop</incoming>
+      <outgoing>Flow_LoopBack</outgoing>
+    </serviceTask>
+
+    <sequenceFlow id="Flow_LoopBack" sourceRef="ServiceTask_Increment" targetRef="ServiceTask_Analyze" />
+
+    <!-- Final report -->
+    <serviceTask id="ServiceTask_Report" name="Final Report"
+                 camunda:topic="autonomous_report"
+                 camunda:async="false">
+      <incoming>Flow_YesDone</incoming>
+      <incoming>Flow_MaxTries</incoming>
+      <outgoing>Flow_ReportToEnd</outgoing>
+    </serviceTask>
+
+    <endEvent id="EndEvent_Autonomous" name="End">
+      <incoming>Flow_ReportToEnd</incoming>
+    </endEvent>
+
+    <!-- Connectors -->
+    <sequenceFlow id="Flow_InitToAnalyze" sourceRef="ServiceTask_Init" targetRef="ServiceTask_Analyze" />
+    <sequenceFlow id="Flow_AnalyzeToGateway" sourceRef="ServiceTask_Analyze" targetRef="Gateway_Done" />
+    <sequenceFlow id="Flow_PlanToExecute" sourceRef="ServiceTask_Plan" targetRef="ServiceTask_Execute" />
+    <sequenceFlow id="Flow_ExecuteToVerify" sourceRef="ServiceTask_Execute" targetRef="ServiceTask_Verify" />
+    <sequenceFlow id="Flow_VerifyToGateway" sourceRef="ServiceTask_Verify" targetRef="Gateway_Success" />
+    <sequenceFlow id="Flow_RecordToLoop" sourceRef="ServiceTask_Record" targetRef="ServiceTask_Increment" />
+    <sequenceFlow id="Flow_LearnToLoop" sourceRef="ServiceTask_Learn" targetRef="ServiceTask_Increment" />
+    <sequenceFlow id="Flow_ReportToEnd" sourceRef="ServiceTask_Report" targetRef="EndEvent_Autonomous" />
+  </process>
+</definitions>

@@ -147,11 +147,11 @@ def dispatch_subagents(
     """
     subtasks = decompose_task(task)
 
-    results = []
-
-    for subtask in subtasks:
-        result = execute_subtask(subtask, executor_fn)
-        results.append(result)
+    task_descriptions = [st.get("description", st.get("task", "")) for st in subtasks]
+    if max_parallel <= 1:
+        results = [execute_subtask(st, executor_fn) for st in subtasks]
+    else:
+        results = run_parallel_subtasks(task_descriptions, executor_fn, max_parallel)
 
     all_success = all(r.get("success", False) for r in results)
 
@@ -168,6 +168,7 @@ def dispatch_subagents(
 def run_parallel_subtasks(
     task_descriptions: List[str],
     executor_fn: Callable[[str], Dict[str, Any]],
+    max_parallel: int | None = None,
 ) -> List[Dict[str, Any]]:
     """Run multiple tasks in parallel.
 
@@ -185,9 +186,14 @@ def run_parallel_subtasks(
 
     results = []
 
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=len(task_descriptions)
-    ) as executor:
+    if not task_descriptions:
+        return []
+
+    max_workers = len(task_descriptions)
+    if max_parallel is not None:
+        max_workers = max(1, min(max_workers, max_parallel))
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_task = {
             executor.submit(executor_fn, desc): desc for desc in task_descriptions
         }

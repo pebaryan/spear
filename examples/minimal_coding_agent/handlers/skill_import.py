@@ -29,6 +29,25 @@ _namespaces = {
     "xsd": XSD,
 }
 
+PROMPT_INJECTION_PATTERNS = {
+    "instruction_override": re.compile(
+        r"(ignore\s+(all|previous|prior)\s+instructions?)",
+        re.IGNORECASE,
+    ),
+    "prompt_exfiltration": re.compile(
+        r"(system\s+prompt|developer\s+message|hidden\s+prompt)",
+        re.IGNORECASE,
+    ),
+    "dangerous_execution": re.compile(
+        r"(run\s+this\s+command|execute\s+(shell|bash|powershell)|subprocess\.)",
+        re.IGNORECASE,
+    ),
+    "secret_exfiltration": re.compile(
+        r"(print\s+environment\s+variables|show\s+api\s+key|reveal\s+secrets?)",
+        re.IGNORECASE,
+    ),
+}
+
 
 def _create_skills_graph() -> Graph:
     g = Graph()
@@ -55,6 +74,28 @@ def _get_skill_count(g: Graph) -> int:
     return count
 
 
+def sanitize_skill_text(text: str) -> tuple[str, List[str]]:
+    """Remove prompt-injection style lines and return risk flags."""
+    if not text:
+        return "", []
+
+    risk_flags = set()
+    kept_lines = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        matched_flags = []
+        for flag, pattern in PROMPT_INJECTION_PATTERNS.items():
+            if pattern.search(stripped):
+                matched_flags.append(flag)
+        if matched_flags:
+            risk_flags.update(matched_flags)
+        else:
+            kept_lines.append(line)
+
+    cleaned = "\n".join(kept_lines).strip()
+    return cleaned, sorted(risk_flags)
+
+
 def parse_markdown_skill(
     markdown_content: str, source_file: str = None
 ) -> Dict[str, Any]:
@@ -75,6 +116,12 @@ def parse_markdown_skill(
 
     for line in lines:
         line = line.rstrip()
+        stripped = line.strip()
+        is_bullet = stripped.startswith("- ")
+        is_numbered = bool(re.match(r"^\d+\.\s+", stripped))
+        item_text = re.sub(r"^\d+\.\s+", "", stripped)
+        if is_bullet:
+            item_text = stripped[2:].strip()
 
         if line.startswith("# "):
             title = line[2:].strip()
@@ -101,15 +148,15 @@ def parse_markdown_skill(
                 code_blocks.append(lang if lang else "python")
             continue
 
-        if in_examples and line.startswith("-"):
+        if in_examples and (is_bullet or is_numbered):
             if current_example:
                 examples.append(current_example)
-            current_example = line[2:].strip()
+            current_example = item_text.strip()
             continue
-        elif in_patterns and line.startswith("-"):
+        elif in_patterns and (is_bullet or is_numbered):
             if current_pattern:
                 patterns.append(current_pattern)
-            current_pattern = line[2:].strip()
+            current_pattern = item_text.strip()
             continue
         elif not in_examples and not in_patterns and line:
             description += line + " "
@@ -119,13 +166,39 @@ def parse_markdown_skill(
     if current_pattern:
         patterns.append(current_pattern)
 
+    risk_flags = set()
+
+    title, title_flags = sanitize_skill_text(title)
+    risk_flags.update(title_flags)
+    if not title:
+        title = "Untitled Skill"
+
+    description, description_flags = sanitize_skill_text(description.strip())
+    risk_flags.update(description_flags)
+
+    cleaned_examples = []
+    for example in examples:
+        cleaned, flags = sanitize_skill_text(example)
+        risk_flags.update(flags)
+        if cleaned:
+            cleaned_examples.append(cleaned)
+
+    cleaned_patterns = []
+    for pattern in patterns:
+        cleaned, flags = sanitize_skill_text(pattern)
+        risk_flags.update(flags)
+        if cleaned:
+            cleaned_patterns.append(cleaned)
+
     return {
         "title": title,
-        "description": description.strip(),
+        "description": description,
         "category": category,
-        "examples": examples,
-        "patterns": patterns,
+        "examples": cleaned_examples,
+        "patterns": cleaned_patterns,
         "source": source_file,
+        "sanitized": bool(risk_flags),
+        "risk_flags": sorted(risk_flags),
     }
 
 
@@ -155,9 +228,18 @@ def import_markdown_skill(markdown_path: str) -> str:
     g.add((skill_uri, SKILL.title, Literal(skill_data["title"])))
     g.add((skill_uri, SKILL.description, Literal(skill_data["description"])))
     g.add((skill_uri, SKILL.category, Literal(skill_data["category"])))
+    g.add(
+        (
+            skill_uri,
+            SKILL.isSanitized,
+            Literal(bool(skill_data.get("sanitized")), datatype=XSD.boolean),
+        )
+    )
 
     if skill_data["source"]:
         g.add((skill_uri, SKILL.sourceFile, Literal(skill_data["source"])))
+    for flag in skill_data.get("risk_flags", []):
+        g.add((skill_uri, SKILL.safetyFlag, Literal(flag)))
 
     for idx, example in enumerate(skill_data["examples"]):
         example_uri = SKILL[f"skill/{skill_id}/example/{idx}"]
@@ -173,7 +255,10 @@ def import_markdown_skill(markdown_path: str) -> str:
 
     save_skills_graph(g)
 
-    return f"Imported skill: {skill_data['title']} (ID: {skill_id})"
+    sanitized_note = ""
+    if skill_data.get("risk_flags"):
+        sanitized_note = f" [sanitized flags: {', '.join(skill_data['risk_flags'])}]"
+    return f"Imported skill: {skill_data['title']} (ID: {skill_id}){sanitized_note}"
 
 
 def import_directory_skills(directory: str) -> List[str]:
@@ -207,6 +292,8 @@ def get_skills(limit: int = 50) -> List[Dict[str, Any]]:
             "source": str(g.value(skill, SKILL.sourceFile) or ""),
             "examples": [],
             "patterns": [],
+            "risk_flags": [],
+            "sanitized": False,
         }
 
         for example in g.objects(skill, SKILL.hasExample):
@@ -219,19 +306,35 @@ def get_skills(limit: int = 50) -> List[Dict[str, Any]]:
             if content:
                 data["patterns"].append(str(content))
 
+        for flag in g.objects(skill, SKILL.safetyFlag):
+            data["risk_flags"].append(str(flag))
+        data["risk_flags"] = sorted(set(data["risk_flags"]))
+        sanitized_literal = g.value(skill, SKILL.isSanitized)
+        if sanitized_literal is not None:
+            try:
+                data["sanitized"] = bool(sanitized_literal.toPython())
+            except Exception:
+                data["sanitized"] = (
+                    str(sanitized_literal).strip().lower() in {"1", "true", "yes"}
+                )
+        elif data["risk_flags"]:
+            data["sanitized"] = True
+
         skills.append(data)
 
     skills.sort(key=lambda x: x["imported_at"], reverse=True)
     return skills[:limit]
 
 
-def search_skills(query: str) -> List[Dict[str, Any]]:
+def search_skills(query: str, safe_only: bool = True) -> List[Dict[str, Any]]:
     """Search skills by query."""
     skills = get_skills()
     query_lower = query.lower()
 
     results = []
     for skill in skills:
+        if safe_only and skill.get("risk_flags"):
+            continue
         if query_lower in skill["title"].lower():
             results.append(skill)
         elif query_lower in skill["description"].lower():
@@ -244,7 +347,7 @@ def search_skills(query: str) -> List[Dict[str, Any]]:
 
 def get_skill_for_context(context: str) -> Optional[Dict[str, Any]]:
     """Get most relevant skill for a context."""
-    skills = search_skills(context)
+    skills = search_skills(context, safe_only=True)
     return skills[0] if skills else None
 
 

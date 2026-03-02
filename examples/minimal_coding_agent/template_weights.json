@@ -1,0 +1,19 @@
+{
+  "generated_at": "2026-02-14T07:52:52.194779",
+  "source_eval_file": "examples\\minimal_coding_agent\\evals\\latest_eval.json",
+  "processed_runs": 1,
+  "record_count": 1,
+  "min_support": 2,
+  "weights": {
+    "off_by_one_fix": 1.0
+  },
+  "stats": {
+    "off_by_one_fix": {
+      "support": 1,
+      "success": 1,
+      "fail": 0,
+      "success_rate": 1.0,
+      "weight": 1.0
+    }
+  }
+}

@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 
 from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef, XSD
 
+from .redaction import redact_object, redact_text
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 REPORT_GRAPH_PATH = BASE_DIR / "run_reports.ttl"
 
@@ -50,6 +52,7 @@ def _get_report_count(g: Graph) -> int:
 
 
 def save_report(data: Dict[str, Any]) -> str:
+    data = redact_object(data)
     g = load_report_graph()
 
     report_id = _get_report_count(g)
@@ -71,6 +74,10 @@ def save_report(data: Dict[str, Any]) -> str:
     command = data.get("command")
     if command:
         g.add((report_uri, AG.command, Literal(command)))
+
+    run_id = data.get("run_id")
+    if run_id:
+        g.add((report_uri, AG.runId, Literal(run_id)))
 
     success = data.get("success", data.get("build_success", False))
     if isinstance(success, str):
@@ -129,6 +136,39 @@ def save_report(data: Dict[str, Any]) -> str:
     if "query" in data and data["query"]:
         g.add((report_uri, AG.searchQuery, Literal(data["query"])))
 
+    if "strategy_result" in data and data["strategy_result"]:
+        g.add((report_uri, AG.strategyResult, Literal(str(data["strategy_result"]))))
+    if "retry_policy_profile" in data and data["retry_policy_profile"]:
+        g.add(
+            (
+                report_uri,
+                AG.retryPolicyProfile,
+                Literal(str(data["retry_policy_profile"])),
+            )
+        )
+    if "retry_policy_requested" in data and data["retry_policy_requested"]:
+        g.add(
+            (
+                report_uri,
+                AG.retryPolicyRequested,
+                Literal(str(data["retry_policy_requested"])),
+            )
+        )
+    if "retry_policy_class" in data and data["retry_policy_class"]:
+        g.add(
+            (report_uri, AG.retryPolicyClass, Literal(str(data["retry_policy_class"])))
+        )
+    if "retry_policy_rationale" in data and data["retry_policy_rationale"]:
+        rationale = str(data["retry_policy_rationale"])
+        if len(rationale) > 1000:
+            rationale = rationale[:1000]
+        g.add((report_uri, AG.retryPolicyRationale, Literal(rationale)))
+    if "retry_policy_auto_reason" in data and data["retry_policy_auto_reason"]:
+        auto_reason = str(data["retry_policy_auto_reason"])
+        if len(auto_reason) > 1000:
+            auto_reason = auto_reason[:1000]
+        g.add((report_uri, AG.retryPolicyAutoReason, Literal(auto_reason)))
+
     if "failure_summary" in data and data["failure_summary"]:
         g.add((report_uri, AG.failureSummary, Literal(data["failure_summary"])))
 
@@ -146,6 +186,42 @@ def save_report(data: Dict[str, Any]) -> str:
                     if result.get("source"):
                         g.add((result_uri, AG.source, Literal(result["source"])))
                 g.add((report_uri, AG.hasSearchResult, result_uri))
+
+    if "artifact_summary" in data:
+        artifacts = data["artifact_summary"]
+        if isinstance(artifacts, list):
+            for idx, item in enumerate(artifacts):
+                if not isinstance(item, dict):
+                    continue
+                art_uri = AG[f"report/{report_id}/artifact/{idx}"]
+                g.add((art_uri, RDF.type, AG.ArtifactSummary))
+                if item.get("file_path"):
+                    g.add((art_uri, AG.filePath, Literal(str(item["file_path"]))))
+                if item.get("operation"):
+                    g.add((art_uri, AG.operation, Literal(str(item["operation"]))))
+                if "lines_added" in item:
+                    try:
+                        g.add(
+                            (
+                                art_uri,
+                                AG.linesAdded,
+                                Literal(int(item["lines_added"]), datatype=XSD.integer),
+                            )
+                        )
+                    except Exception:
+                        pass
+                if "lines_removed" in item:
+                    try:
+                        g.add(
+                            (
+                                art_uri,
+                                AG.linesRemoved,
+                                Literal(int(item["lines_removed"]), datatype=XSD.integer),
+                            )
+                        )
+                    except Exception:
+                        pass
+                g.add((report_uri, AG.hasArtifactSummary, art_uri))
 
     if "repair_steps" in data:
         steps = data["repair_steps"]
@@ -169,6 +245,14 @@ def save_report(data: Dict[str, Any]) -> str:
                         g.add((step_uri, VAR[key], Literal(str(value))))
                 g.add((report_uri, AG.hasBuildStep, step_uri))
 
+    if "fix_plan" in data:
+        plan = data["fix_plan"]
+        if isinstance(plan, dict) and plan:
+            payload = json.dumps(plan)
+            if len(payload) > 6000:
+                payload = payload[:6000] + "... [truncated]"
+            g.add((report_uri, AG.fixPlanJson, Literal(payload)))
+
     if "reset_applied" in data:
         reset = str(data["reset_applied"]).lower() == "true"
         g.add((report_uri, AG.resetApplied, Literal(reset, datatype=XSD.boolean)))
@@ -176,6 +260,176 @@ def save_report(data: Dict[str, Any]) -> str:
     save_report_graph(g)
 
     return str(report_uri)
+
+
+def _report_to_dict(g: Graph, report_uri) -> Dict[str, Any]:
+    data = {}
+
+    task = g.value(report_uri, AG.task)
+    if task:
+        data["task"] = str(task)
+
+    command = g.value(report_uri, AG.command)
+    if command:
+        data["command"] = str(command)
+
+    run_id = g.value(report_uri, AG.runId)
+    if run_id:
+        data["run_id"] = str(run_id)
+
+    success = g.value(report_uri, AG.success)
+    if success is not None:
+        data["success"] = str(success).lower() == "true"
+
+    build_task = g.value(report_uri, AG.buildTask)
+    if build_task:
+        data["build_task"] = str(build_task)
+
+    build_success = g.value(report_uri, AG.buildSuccess)
+    if build_success is not None:
+        data["build_success"] = str(build_success).lower() == "true"
+
+    build_exit_code = g.value(report_uri, AG.buildExitCode)
+    if build_exit_code:
+        data["build_exit_code"] = str(build_exit_code)
+
+    build_output = g.value(report_uri, AG.buildOutput)
+    if build_output:
+        data["build_output"] = str(build_output)
+
+    query = g.value(report_uri, AG.searchQuery)
+    if query:
+        data["query"] = str(query)
+
+    strategy_result = g.value(report_uri, AG.strategyResult)
+    if strategy_result:
+        data["strategy_result"] = str(strategy_result)
+
+    retry_policy_profile = g.value(report_uri, AG.retryPolicyProfile)
+    if retry_policy_profile:
+        data["retry_policy_profile"] = str(retry_policy_profile)
+
+    retry_policy_requested = g.value(report_uri, AG.retryPolicyRequested)
+    if retry_policy_requested:
+        data["retry_policy_requested"] = str(retry_policy_requested)
+
+    retry_policy_class = g.value(report_uri, AG.retryPolicyClass)
+    if retry_policy_class:
+        data["retry_policy_class"] = str(retry_policy_class)
+
+    retry_policy_rationale = g.value(report_uri, AG.retryPolicyRationale)
+    if retry_policy_rationale:
+        data["retry_policy_rationale"] = str(retry_policy_rationale)
+
+    retry_policy_auto_reason = g.value(report_uri, AG.retryPolicyAutoReason)
+    if retry_policy_auto_reason:
+        data["retry_policy_auto_reason"] = str(retry_policy_auto_reason)
+
+    failure_summary = g.value(report_uri, AG.failureSummary)
+    if failure_summary:
+        data["failure_summary"] = str(failure_summary)
+
+    patch_applied = g.value(report_uri, AG.patchApplied)
+    if patch_applied is not None:
+        data["patch_applied"] = str(patch_applied).lower() == "true"
+
+    repair_success = g.value(report_uri, AG.repairSuccess)
+    if repair_success is not None:
+        data["repair_success"] = str(repair_success).lower() == "true"
+
+    repair_exit_code = g.value(report_uri, AG.repairExitCode)
+    if repair_exit_code:
+        data["repair_exit_code"] = str(repair_exit_code)
+
+    reset_applied = g.value(report_uri, AG.resetApplied)
+    if reset_applied is not None:
+        data["reset_applied"] = str(reset_applied).lower() == "true"
+
+    before_uri = g.value(report_uri, AG.before)
+    if before_uri:
+        exit_code = g.value(before_uri, AG.exitCode)
+        data["before"] = {"exit_code": str(exit_code) if exit_code else "-1"}
+
+    after_uri = g.value(report_uri, AG.after)
+    if after_uri:
+        exit_code = g.value(after_uri, AG.exitCode)
+        data["after"] = {"exit_code": str(exit_code) if exit_code else "-1"}
+
+    search_results = []
+    for result_uri in g.objects(report_uri, AG.hasSearchResult):
+        result = {}
+        title = g.value(result_uri, AG.title)
+        url = g.value(result_uri, AG.url)
+        source = g.value(result_uri, AG.source)
+        if title:
+            result["title"] = str(title)
+        if url:
+            result["url"] = str(url)
+        if source:
+            result["source"] = str(source)
+        if result:
+            search_results.append(result)
+    if search_results:
+        data["search_results"] = search_results
+
+    artifact_summary = []
+    for art_uri in g.objects(report_uri, AG.hasArtifactSummary):
+        item = {}
+        file_path = g.value(art_uri, AG.filePath)
+        operation = g.value(art_uri, AG.operation)
+        lines_added = g.value(art_uri, AG.linesAdded)
+        lines_removed = g.value(art_uri, AG.linesRemoved)
+        if file_path:
+            item["file_path"] = str(file_path)
+        if operation:
+            item["operation"] = str(operation)
+        if lines_added is not None:
+            try:
+                item["lines_added"] = int(lines_added)
+            except Exception:
+                pass
+        if lines_removed is not None:
+            try:
+                item["lines_removed"] = int(lines_removed)
+            except Exception:
+                pass
+        if item:
+            artifact_summary.append(item)
+    if artifact_summary:
+        data["artifact_summary"] = artifact_summary
+
+    repair_steps = []
+    for step_uri in g.objects(report_uri, AG.hasRepairStep):
+        step = {}
+        for _, pred, obj in g.triples((step_uri, None, None)):
+            key = str(pred).split("/")[-1]
+            step[key] = str(obj)
+        if step:
+            repair_steps.append(step)
+    if repair_steps:
+        data["repair_steps"] = repair_steps
+
+    build_steps = []
+    for step_uri in g.objects(report_uri, AG.hasBuildStep):
+        step = {}
+        for _, pred, obj in g.triples((step_uri, None, None)):
+            key = str(pred).split("/")[-1]
+            step[key] = str(obj)
+        if step:
+            build_steps.append(step)
+    if build_steps:
+        data["build_steps"] = build_steps
+
+    fix_plan = g.value(report_uri, AG.fixPlanJson)
+    if fix_plan:
+        try:
+            parsed = json.loads(str(fix_plan))
+            if isinstance(parsed, dict):
+                data["fix_plan"] = parsed
+        except Exception:
+            data["fix_plan"] = {"raw": str(fix_plan)}
+
+    return redact_object(data)
 
 
 def load_latest_report() -> Dict[str, Any]:
@@ -194,110 +448,29 @@ def load_latest_report() -> Dict[str, Any]:
     if not latest:
         return {}
 
-    data = {}
+    return _report_to_dict(g, latest)
 
-    task = g.value(latest, AG.task)
-    if task:
-        data["task"] = str(task)
 
-    command = g.value(latest, AG.command)
-    if command:
-        data["command"] = str(command)
+def load_report_by_run_id(run_id: str) -> Dict[str, Any]:
+    if not run_id:
+        return {}
 
-    success = g.value(latest, AG.success)
-    if success:
-        data["success"] = str(success).lower() == "true"
+    g = load_report_graph()
+    latest = None
+    latest_time = None
+    run_literal = Literal(run_id)
 
-    build_task = g.value(latest, AG.buildTask)
-    if build_task:
-        data["build_task"] = str(build_task)
+    for report in g.subjects(AG.runId, run_literal):
+        timestamp = g.value(report, AG.timestamp)
+        ts = str(timestamp or "")
+        if latest_time is None or ts > latest_time:
+            latest_time = ts
+            latest = report
 
-    build_success = g.value(latest, AG.buildSuccess)
-    if build_success:
-        data["build_success"] = str(build_success).lower() == "true"
+    if not latest:
+        return {}
 
-    build_exit_code = g.value(latest, AG.buildExitCode)
-    if build_exit_code:
-        data["build_exit_code"] = str(build_exit_code)
-
-    build_output = g.value(latest, AG.buildOutput)
-    if build_output:
-        data["build_output"] = str(build_output)
-
-    query = g.value(latest, AG.searchQuery)
-    if query:
-        data["query"] = str(query)
-
-    failure_summary = g.value(latest, AG.failureSummary)
-    if failure_summary:
-        data["failure_summary"] = str(failure_summary)
-
-    patch_applied = g.value(latest, AG.patchApplied)
-    if patch_applied:
-        data["patch_applied"] = str(patch_applied).lower() == "true"
-
-    repair_success = g.value(latest, AG.repairSuccess)
-    if repair_success:
-        data["repair_success"] = str(repair_success).lower() == "true"
-
-    repair_exit_code = g.value(latest, AG.repairExitCode)
-    if repair_exit_code:
-        data["repair_exit_code"] = str(repair_exit_code)
-
-    reset_applied = g.value(latest, AG.resetApplied)
-    if reset_applied:
-        data["reset_applied"] = str(reset_applied).lower() == "true"
-
-    before_uri = g.value(latest, AG.before)
-    if before_uri:
-        exit_code = g.value(before_uri, AG.exitCode)
-        data["before"] = {"exit_code": str(exit_code) if exit_code else "-1"}
-
-    after_uri = g.value(latest, AG.after)
-    if after_uri:
-        exit_code = g.value(after_uri, AG.exitCode)
-        data["after"] = {"exit_code": str(exit_code) if exit_code else "-1"}
-
-    search_results = []
-    for result_uri in g.objects(latest, AG.hasSearchResult):
-        result = {}
-        title = g.value(result_uri, AG.title)
-        url = g.value(result_uri, AG.url)
-        source = g.value(result_uri, AG.source)
-        if title:
-            result["title"] = str(title)
-        if url:
-            result["url"] = str(url)
-        if source:
-            result["source"] = str(source)
-        if result:
-            search_results.append(result)
-    if search_results:
-        data["search_results"] = search_results
-
-    repair_steps = []
-    for step_uri in g.objects(latest, AG.hasRepairStep):
-        step = {}
-        for _, pred, obj in g.triples((step_uri, None, None)):
-            key = str(pred).split("/")[-1]
-            step[key] = str(obj)
-        if step:
-            repair_steps.append(step)
-    if repair_steps:
-        data["repair_steps"] = repair_steps
-
-    build_steps = []
-    for step_uri in g.objects(latest, AG.hasBuildStep):
-        step = {}
-        for _, pred, obj in g.triples((step_uri, None, None)):
-            key = str(pred).split("/")[-1]
-            step[key] = str(obj)
-        if step:
-            build_steps.append(step)
-    if build_steps:
-        data["build_steps"] = build_steps
-
-    return data
+    return _report_to_dict(g, latest)
 
 
 def query_reports(sparql: str) -> List[Dict[str, Any]]:
@@ -307,7 +480,7 @@ def query_reports(sparql: str) -> List[Dict[str, Any]]:
     for row in g.query(sparql):
         result = {}
         for var in row.labels:
-            result[var] = str(row[var]) if row[var] else None
+            result[var] = redact_text(str(row[var])) if row[var] else None
         results.append(result)
     return results
 

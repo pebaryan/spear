@@ -112,14 +112,17 @@ def log_approach_choice(
     chosen_approach: str,
     rationale: str,
     alternatives: Optional[List[str]] = None,
+    run_id: Optional[str] = None,
 ) -> str:
     """Log why the agent chose a particular approach."""
+    metadata = {"run_id": run_id} if run_id else None
     return log_decision(
         decision_type="approach_selection",
         context=f"Task: {task}",
         rationale=rationale,
         alternatives_considered=alternatives,
         chosen_approach=chosen_approach,
+        metadata=metadata,
     )
 
 
@@ -143,14 +146,17 @@ def log_fix_strategy(
     strategy: str,
     rationale: str,
     alternative_strategies: Optional[List[str]] = None,
+    run_id: Optional[str] = None,
 ) -> str:
     """Log the strategy for fixing a bug."""
+    metadata = {"run_id": run_id} if run_id else None
     return log_decision(
         decision_type="fix_strategy",
         context=f"Bug: {bug_description}",
         rationale=rationale,
         alternatives_considered=alternative_strategies,
         chosen_approach=strategy,
+        metadata=metadata,
     )
 
 

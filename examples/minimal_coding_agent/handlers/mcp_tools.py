@@ -13,6 +13,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 from rdflib import Graph, Literal, Namespace, RDF, URIRef, XSD
 
+from .redaction import redact_object, redact_text
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 MCP_LOG_PATH = BASE_DIR / "mcp_calls.ttl"
 
@@ -69,7 +71,10 @@ class MCPTool:
     def execute(self, arguments: Dict[str, Any] = None) -> Dict[str, Any]:
         """Execute the tool with given arguments."""
         if self._handler is None:
-            return {"success": False, "error": f"No handler registered for tool: {self.name}"}
+            return {
+                "success": False,
+                "error": f"No handler registered for tool: {self.name}",
+            }
 
         try:
             result = self._handler(arguments or {})
@@ -107,7 +112,7 @@ class MCPToolRegistry:
         """Call a tool by name."""
         tool = self.get(tool_name)
         if tool is None:
-            return {"error": f"Unknown tool: {tool_name}"}
+            return {"success": False, "error": f"Unknown tool: {tool_name}"}
 
         return tool.execute(arguments)
 
@@ -139,6 +144,7 @@ def call_mcp_tool(
 ) -> Dict[str, Any]:
     """Call an MCP tool and log the call to RDF."""
     g = load_mcp_graph()
+    safe_arguments = redact_object(arguments or {})
 
     call_id = _get_call_count(g)
     call_uri = MCP[f"call/{call_id}"]
@@ -153,8 +159,8 @@ def call_mcp_tool(
     )
     g.add((call_uri, MCP.toolName, Literal(tool_name)))
 
-    if arguments:
-        args_json = json.dumps(arguments)
+    if safe_arguments:
+        args_json = json.dumps(safe_arguments)
         if len(args_json) > 1000:
             args_json = args_json[:1000] + "... [truncated]"
         g.add((call_uri, MCP.arguments, Literal(args_json)))
@@ -162,7 +168,7 @@ def call_mcp_tool(
     tool = _global_registry.get(tool_name)
     if tool is None:
         g.add((call_uri, MCP.status, Literal("error")))
-        g.add((call_uri, MCP.error, Literal(f"Unknown tool: {tool_name}")))
+        g.add((call_uri, MCP.error, Literal(redact_text(f"Unknown tool: {tool_name}"))))
         save_mcp_graph(g)
         return {"success": False, "error": f"Unknown tool: {tool_name}"}
 
@@ -171,13 +177,14 @@ def call_mcp_tool(
 
         if result.get("success"):
             g.add((call_uri, MCP.status, Literal("success")))
-            result_str = json.dumps(result.get("result", {}))
+            safe_result = redact_object(result.get("result", {}))
+            result_str = json.dumps(safe_result)
             if len(result_str) > 2000:
                 result_str = result_str[:2000] + "... [truncated]"
             g.add((call_uri, MCP.result, Literal(result_str)))
         else:
             g.add((call_uri, MCP.status, Literal("error")))
-            error = result.get("error", "Unknown error")
+            error = redact_text(str(result.get("error", "Unknown error")))
             g.add((call_uri, MCP.error, Literal(error)))
 
         save_mcp_graph(g)
@@ -185,7 +192,7 @@ def call_mcp_tool(
 
     except Exception as e:
         g.add((call_uri, MCP.status, Literal("exception")))
-        g.add((call_uri, MCP.exception, Literal(str(e))))
+        g.add((call_uri, MCP.exception, Literal(redact_text(str(e)))))
         save_mcp_graph(g)
         return {"success": False, "error": str(e)}
 
@@ -201,13 +208,13 @@ def get_mcp_calls(limit: int = 20) -> List[Dict[str, Any]]:
             "timestamp": str(g.value(call, MCP.timestamp) or ""),
             "tool_name": str(g.value(call, MCP.toolName) or ""),
             "status": str(g.value(call, MCP.status) or ""),
-            "arguments": str(g.value(call, MCP.arguments) or ""),
-            "result": str(g.value(call, MCP.result) or ""),
+            "arguments": redact_text(str(g.value(call, MCP.arguments) or "")),
+            "result": redact_text(str(g.value(call, MCP.result) or "")),
         }
 
         error = g.value(call, MCP.error)
         if error:
-            data["error"] = str(error)
+            data["error"] = redact_text(str(error))
 
         calls.append(data)
 

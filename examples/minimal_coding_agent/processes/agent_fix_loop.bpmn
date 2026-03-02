@@ -3,71 +3,126 @@
              xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
              id="Definitions_minimal_coding_agent"
              targetNamespace="http://example.org/minimal_coding_agent">
-  <process id="MinimalCodingAgentProcess" isExecutable="true" name="SPEAR Minimal Coding Agent">
-    <startEvent id="StartEvent_AgentFix" name="Start Agent Fix">
-      <outgoing>Flow_StartToReset</outgoing>
+  <process id="MinimalCodingAgentProcess" isExecutable="true" name="SPEAR RDF-Driven Coding Agent">
+    
+    <startEvent id="StartEvent_AgentFix" name="Start">
+      <outgoing>Flow_StartToInit</outgoing>
     </startEvent>
 
-    <serviceTask id="ServiceTask_ResetTarget" name="Maybe Reset Target"
-                 camunda:topic="maybe_reset_target"
+    <serviceTask id="ServiceTask_Init" name="Initialize"
+                 camunda:topic="initialize"
                  camunda:async="false">
-      <incoming>Flow_StartToReset</incoming>
-      <outgoing>Flow_ResetToRunBefore</outgoing>
+      <incoming>Flow_StartToInit</incoming>
+      <outgoing>Flow_InitToAnalyze</outgoing>
     </serviceTask>
 
-    <serviceTask id="ServiceTask_RunTestsBefore" name="Run Tests Before"
-                 camunda:topic="run_tests_before"
+    <serviceTask id="ServiceTask_AnalyzeError" name="Analyze Error"
+                 camunda:topic="analyze_error"
                  camunda:async="false">
-      <incoming>Flow_ResetToRunBefore</incoming>
-      <outgoing>Flow_RunBeforeToSummarize</outgoing>
+      <incoming>Flow_InitToAnalyze</incoming>
+      <incoming>Flow_LoopBack</incoming>
+      <outgoing>Flow_AnalyzeToGateway</outgoing>
     </serviceTask>
 
-    <serviceTask id="ServiceTask_SummarizeFailure" name="Summarize Failure"
-                 camunda:topic="summarize_failure"
-                 camunda:async="false">
-      <incoming>Flow_RunBeforeToSummarize</incoming>
-      <outgoing>Flow_SummarizeToSearch</outgoing>
-    </serviceTask>
+    <exclusiveGateway id="Gateway_HasErrors" name="Errors?">
+      <incoming>Flow_AnalyzeToGateway</incoming>
+      <outgoing>Flow_NoError</outgoing>
+      <outgoing>Flow_HasError</outgoing>
+    </exclusiveGateway>
 
-    <serviceTask id="ServiceTask_WebSearch" name="Web Search"
-                 camunda:topic="web_search"
+    <sequenceFlow id="Flow_NoError" name="No Errors" sourceRef="Gateway_HasErrors" targetRef="ServiceTask_WriteReport">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" camunda:expression="ASK { ?instance var:error_type 'None' }" />
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_HasError" name="Has Errors" sourceRef="Gateway_HasErrors" targetRef="ServiceTask_SelectStrategy">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" camunda:expression="ASK { ?instance var:error_type ?et FILTER(?et != 'None') }" />
+    </sequenceFlow>
+
+    <serviceTask id="ServiceTask_SelectStrategy" name="Select Strategy"
+                 camunda:topic="select_strategy"
                  camunda:async="false">
-      <incoming>Flow_SummarizeToSearch</incoming>
-      <outgoing>Flow_SearchToApplyFix</outgoing>
+      <incoming>Flow_HasError</incoming>
+      <outgoing>Flow_StrategyToFix</outgoing>
     </serviceTask>
 
     <serviceTask id="ServiceTask_ApplyFix" name="Apply Fix"
                  camunda:topic="apply_fix"
                  camunda:async="false">
-      <incoming>Flow_SearchToApplyFix</incoming>
-      <outgoing>Flow_ApplyFixToRunAfter</outgoing>
+      <incoming>Flow_StrategyToFix</incoming>
+      <outgoing>Flow_FixToTest</outgoing>
     </serviceTask>
 
-    <serviceTask id="ServiceTask_RunTestsAfter" name="Run Tests After"
+    <serviceTask id="ServiceTask_RunTestsAfter" name="Run Tests"
                  camunda:topic="run_tests_after"
                  camunda:async="false">
-      <incoming>Flow_ApplyFixToRunAfter</incoming>
-      <outgoing>Flow_RunAfterToWriteReport</outgoing>
+      <incoming>Flow_FixToTest</incoming>
+      <outgoing>Flow_TestToLog</outgoing>
     </serviceTask>
+
+    <serviceTask id="ServiceTask_LogAttempt" name="Log to RDF"
+                 camunda:topic="log_attempt"
+                 camunda:async="false">
+      <incoming>Flow_TestToLog</incoming>
+      <outgoing>Flow_LogToGateway</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="Gateway_TestsPass" name="Pass?">
+      <incoming>Flow_LogToGateway</incoming>
+      <outgoing>Flow_Passed</outgoing>
+      <outgoing>Flow_Failed</outgoing>
+    </exclusiveGateway>
+
+    <sequenceFlow id="Flow_Passed" name="Passed" sourceRef="Gateway_TestsPass" targetRef="ServiceTask_WriteReport">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" camunda:expression="ASK { ?instance var:repair_success 'true' }" />
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_Failed" name="Failed" sourceRef="Gateway_TestsPass" targetRef="Gateway_Retry">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" camunda:expression="ASK { ?instance var:repair_success 'false' }" />
+    </sequenceFlow>
+
+    <exclusiveGateway id="Gateway_Retry" name="Retry?">
+      <incoming>Flow_Failed</incoming>
+      <outgoing>Flow_CanRetry</outgoing>
+      <outgoing>Flow_MaxRetry</outgoing>
+    </exclusiveGateway>
+
+    <sequenceFlow id="Flow_CanRetry" name="Retry" sourceRef="Gateway_Retry" targetRef="ServiceTask_IncrementRetry">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" camunda:expression="ASK { ?instance var:retry_count ?rc FILTER(?rc &lt; 3) }" />
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_MaxRetry" name="Done" sourceRef="Gateway_Retry" targetRef="ServiceTask_WriteReport">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" camunda:expression="ASK { ?instance var:retry_count ?rc FILTER(?rc &gt;= 3) }" />
+    </sequenceFlow>
+
+    <serviceTask id="ServiceTask_IncrementRetry" name="Increment"
+                 camunda:topic="increment_retry"
+                 camunda:async="false">
+      <incoming>Flow_CanRetry</incoming>
+      <outgoing>Flow_LoopBack</outgoing>
+    </serviceTask>
+
+    <sequenceFlow id="Flow_LoopBack" sourceRef="ServiceTask_IncrementRetry" targetRef="ServiceTask_AnalyzeError" />
 
     <serviceTask id="ServiceTask_WriteReport" name="Write Report"
                  camunda:topic="write_report"
                  camunda:async="false">
-      <incoming>Flow_RunAfterToWriteReport</incoming>
-      <outgoing>Flow_WriteReportToEnd</outgoing>
+      <incoming>Flow_NoError</incoming>
+      <incoming>Flow_Passed</incoming>
+      <incoming>Flow_MaxRetry</incoming>
+      <outgoing>Flow_ReportToEnd</outgoing>
     </serviceTask>
 
-    <endEvent id="EndEvent_AgentFix" name="End Agent Fix">
-      <incoming>Flow_WriteReportToEnd</incoming>
+    <endEvent id="EndEvent_AgentFix" name="End">
+      <incoming>Flow_ReportToEnd</incoming>
     </endEvent>
 
-    <sequenceFlow id="Flow_StartToReset" sourceRef="StartEvent_AgentFix" targetRef="ServiceTask_ResetTarget" />
-    <sequenceFlow id="Flow_ResetToRunBefore" sourceRef="ServiceTask_ResetTarget" targetRef="ServiceTask_RunTestsBefore" />
-    <sequenceFlow id="Flow_RunBeforeToSummarize" sourceRef="ServiceTask_RunTestsBefore" targetRef="ServiceTask_SummarizeFailure" />
-    <sequenceFlow id="Flow_SummarizeToSearch" sourceRef="ServiceTask_SummarizeFailure" targetRef="ServiceTask_WebSearch" />
-    <sequenceFlow id="Flow_SearchToApplyFix" sourceRef="ServiceTask_WebSearch" targetRef="ServiceTask_ApplyFix" />
-    <sequenceFlow id="Flow_ApplyFixToRunAfter" sourceRef="ServiceTask_ApplyFix" targetRef="ServiceTask_RunTestsAfter" />
-    <sequenceFlow id="Flow_RunAfterToWriteReport" sourceRef="ServiceTask_RunTestsAfter" targetRef="ServiceTask_WriteReport" />
-    <sequenceFlow id="Flow_WriteReportToEnd" sourceRef="ServiceTask_WriteReport" targetRef="EndEvent_AgentFix" />
+    <sequenceFlow id="Flow_StartToInit" sourceRef="StartEvent_AgentFix" targetRef="ServiceTask_Init" />
+    <sequenceFlow id="Flow_InitToAnalyze" sourceRef="ServiceTask_Init" targetRef="ServiceTask_AnalyzeError" />
+    <sequenceFlow id="Flow_AnalyzeToGateway" sourceRef="ServiceTask_AnalyzeError" targetRef="Gateway_HasErrors" />
+    <sequenceFlow id="Flow_StrategyToFix" sourceRef="ServiceTask_SelectStrategy" targetRef="ServiceTask_ApplyFix" />
+    <sequenceFlow id="Flow_FixToTest" sourceRef="ServiceTask_ApplyFix" targetRef="ServiceTask_RunTestsAfter" />
+    <sequenceFlow id="Flow_TestToLog" sourceRef="ServiceTask_RunTestsAfter" targetRef="ServiceTask_LogAttempt" />
+    <sequenceFlow id="Flow_LogToGateway" sourceRef="ServiceTask_LogAttempt" targetRef="Gateway_TestsPass" />
+    <sequenceFlow id="Flow_ReportToEnd" sourceRef="ServiceTask_WriteReport" targetRef="EndEvent_AgentFix" />
   </process>
 </definitions>

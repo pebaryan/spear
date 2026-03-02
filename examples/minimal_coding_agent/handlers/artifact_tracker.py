@@ -1,5 +1,6 @@
 """RDF-based artifact tracker for file changes."""
 
+import difflib
 import hashlib
 import os
 from datetime import datetime
@@ -7,6 +8,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef, XSD
+
+from .redaction import redact_object, redact_text
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ARTIFACT_LOG_PATH = BASE_DIR / "artifact_changes.ttl"
@@ -52,14 +55,40 @@ def _compute_hash(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()[:16]
 
 
+def _line_count(content: str) -> int:
+    if not content:
+        return 0
+    return len(str(content).splitlines())
+
+
+def _diff_line_counts(previous_content: str, content: str) -> tuple[int, int]:
+    previous_lines = (previous_content or "").splitlines()
+    current_lines = (content or "").splitlines()
+    matcher = difflib.SequenceMatcher(a=previous_lines, b=current_lines)
+    added = 0
+    removed = 0
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "insert":
+            added += j2 - j1
+        elif tag == "delete":
+            removed += i2 - i1
+        elif tag == "replace":
+            removed += i2 - i1
+            added += j2 - j1
+    return (added, removed)
+
+
 def log_artifact(
     file_path: str,
     operation: str,
     content: Optional[str] = None,
     previous_hash: Optional[str] = None,
+    previous_content: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Log an artifact change to RDF."""
+    file_path = redact_text(file_path)
+    metadata = redact_object(metadata or {})
     g = load_artifact_graph()
 
     artifact_id = _get_artifact_count(g)
@@ -77,6 +106,7 @@ def log_artifact(
     g.add((artifact_uri, ART.operation, Literal(operation)))
 
     if content:
+        content = redact_text(content)
         content_hash = _compute_hash(content)
         g.add((artifact_uri, ART.contentHash, Literal(content_hash)))
 
@@ -86,6 +116,33 @@ def log_artifact(
                 g.add((artifact_uri, ART.changed, Literal(True, datatype=XSD.boolean)))
             else:
                 g.add((artifact_uri, ART.changed, Literal(False, datatype=XSD.boolean)))
+
+        if operation == "created":
+            g.add(
+                (
+                    artifact_uri,
+                    ART.linesAdded,
+                    Literal(_line_count(content), datatype=XSD.integer),
+                )
+            )
+            g.add((artifact_uri, ART.linesRemoved, Literal(0, datatype=XSD.integer)))
+        elif operation == "modified" and previous_content is not None:
+            safe_previous = redact_text(previous_content)
+            lines_added, lines_removed = _diff_line_counts(safe_previous, content)
+            g.add(
+                (
+                    artifact_uri,
+                    ART.linesAdded,
+                    Literal(lines_added, datatype=XSD.integer),
+                )
+            )
+            g.add(
+                (
+                    artifact_uri,
+                    ART.linesRemoved,
+                    Literal(lines_removed, datatype=XSD.integer),
+                )
+            )
 
         if len(content) > 2000:
             content = content[:2000] + "\n... [truncated]"
@@ -123,6 +180,7 @@ def log_file_modified(
         "modified",
         content=content,
         previous_hash=previous_hash,
+        previous_content=previous_content,
         metadata=metadata if metadata else None,
     )
 
@@ -163,6 +221,13 @@ def get_artifacts(limit: int = 50) -> List[Dict[str, Any]]:
         if task:
             data["task"] = str(task)
 
+        lines_added = g.value(artifact, ART.linesAdded)
+        lines_removed = g.value(artifact, ART.linesRemoved)
+        if lines_added is not None:
+            data["lines_added"] = int(lines_added)
+        if lines_removed is not None:
+            data["lines_removed"] = int(lines_removed)
+
         artifacts.append(data)
 
     artifacts.sort(key=lambda x: x["timestamp"], reverse=True)
@@ -182,6 +247,12 @@ def get_artifacts_for_run(run_id: str) -> List[Dict[str, Any]]:
             "operation": str(g.value(artifact, ART.operation) or ""),
             "content_hash": str(g.value(artifact, ART.contentHash) or ""),
         }
+        lines_added = g.value(artifact, ART.linesAdded)
+        lines_removed = g.value(artifact, ART.linesRemoved)
+        if lines_added is not None:
+            data["lines_added"] = int(lines_added)
+        if lines_removed is not None:
+            data["lines_removed"] = int(lines_removed)
         artifacts.append(data)
 
     return artifacts

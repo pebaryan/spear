@@ -61,6 +61,12 @@ try:
 except Exception:
     Scratchpad = None
 
+try:
+    from .context_retrieval import build_project_context, format_context_for_prompt
+except Exception:
+    build_project_context = None
+    format_context_for_prompt = None
+
 
 BUGGY_APP_SOURCE = '''"""Tiny target module with an intentional bug for demo purposes."""
 
@@ -76,6 +82,25 @@ def running_average(total, count):
         raise ValueError("count cannot be negative")
     return total / (count + 1)
 '''
+
+BUGGY_TEST_SOURCE = """import pytest
+
+from app import running_average
+
+
+def test_running_average_basic():
+    assert running_average(10, 2) == 5
+
+
+def test_running_average_zero_count():
+    with pytest.raises(ValueError):
+        running_average(10, 0)
+
+
+def test_running_average_negative_count():
+    with pytest.raises(ValueError):
+        running_average(10, -1)
+"""
 
 
 @dataclass
@@ -366,7 +391,12 @@ except Exception:
 
 
 def llm_fix_code(
-    source_code: str, error_message: str, test_output: str, test_code: str = ""
+    source_code: str,
+    error_message: str,
+    test_output: str,
+    test_code: str = "",
+    project_dir: Optional[Path] = None,
+    run_id: Optional[str] = None,
 ) -> str:
     if completion is None:
         raise RuntimeError("LiteLLM not available. Install with: pip install litellm")
@@ -390,9 +420,32 @@ def llm_fix_code(
                     "Template replacement",
                     "Manual fix",
                 ],
+                run_id=run_id,
             )
         except Exception:
             pass
+
+    related_context = ""
+    if build_project_context and format_context_for_prompt:
+        try:
+            context = build_project_context(
+                project_dir or TARGET_DIR,
+                objective="Fix failing tests",
+                error_message=error_message,
+                test_output=test_output,
+                max_files=4,
+            )
+            related_context = format_context_for_prompt(
+                context, exclude_paths={"app.py", "test_app.py"}
+            )
+        except Exception as e:
+            logger.warning(f"Failed to build project context: {e}")
+
+    context_block = ""
+    if related_context:
+        context_block = (
+            f"\nAdditional relevant project context:\n{related_context}\n"
+        )
 
     prompt = f"""You are a Python code repair expert. Given the source code, error message, test output, and test cases, fix the bug.
 
@@ -411,6 +464,7 @@ Error message:
 
 Test output:
 {test_output}
+{context_block}
 
 Requirements from tests:
 1. running_average(10, 2) should return 5
@@ -445,6 +499,7 @@ Respond with the fixed source code only. Do not include any explanation or markd
                 model=model,
                 success=False,
                 metadata={"temperature": 0.2},
+                run_id=run_id,
             )
         except Exception as e:
             logger.warning(f"Failed to log fix interaction: {e}")
@@ -452,7 +507,7 @@ Respond with the fixed source code only. Do not include any explanation or markd
     return content.strip()
 
 
-def llm_build_code(task: str, project_dir: Path) -> dict:
+def llm_build_code(task: str, project_dir: Path, run_id: Optional[str] = None) -> dict:
     if completion is None:
         raise RuntimeError("LiteLLM not available. Install with: pip install litellm")
 
@@ -477,15 +532,51 @@ def llm_build_code(task: str, project_dir: Path) -> dict:
                     "Copy existing code",
                     "Manual implementation",
                 ],
+                run_id=run_id,
             )
         except Exception:
             pass
+
+    context_payload = {}
+    related_context = ""
+    if build_project_context and format_context_for_prompt:
+        try:
+            context_payload = build_project_context(
+                project_dir,
+                objective=task,
+                error_message="",
+                test_output="",
+                max_files=4,
+            )
+            related_context = format_context_for_prompt(context_payload)
+            selected_files = context_payload.get("selected_files", [])
+            if isinstance(selected_files, list):
+                steps.append(
+                    {
+                        "stage": "context_selected",
+                        "count": len(selected_files),
+                        "files": [
+                            str(item.get("relative_path", ""))
+                            for item in selected_files
+                            if isinstance(item, dict)
+                        ],
+                    }
+                )
+        except Exception as e:
+            logger.warning(f"Failed to build project context: {e}")
+
+    context_block = ""
+    if related_context:
+        context_block = (
+            f"\nExisting relevant project context (if any):\n{related_context}\n"
+        )
 
     prompt = f"""You are a Python code generator. Given a task description, generate a complete Python project with:
 1. A main app.py file with the implementation
 2. A test_app.py file with basic tests
 
 Task: {task}
+{context_block}
 
 Requirements:
 - Create a complete, working implementation
@@ -544,14 +635,26 @@ Do not include any explanation, just return the JSON."""
     if log_file_created or log_file_modified:
         try:
             if previous_app:
-                log_file_modified(str(app_file), app_code, previous_app, task=task)
+                log_file_modified(
+                    str(app_file),
+                    app_code,
+                    previous_app,
+                    task=task,
+                    run_id=run_id,
+                )
             else:
-                log_file_created(str(app_file), app_code, task=task)
+                log_file_created(str(app_file), app_code, task=task, run_id=run_id)
 
             if previous_test:
-                log_file_modified(str(test_file), test_code, previous_test, task=task)
+                log_file_modified(
+                    str(test_file),
+                    test_code,
+                    previous_test,
+                    task=task,
+                    run_id=run_id,
+                )
             else:
-                log_file_created(str(test_file), test_code, task=task)
+                log_file_created(str(test_file), test_code, task=task, run_id=run_id)
         except Exception as e:
             logger.warning(f"Failed to log artifact change: {e}")
 
@@ -572,6 +675,24 @@ Do not include any explanation, just return the JSON."""
             iteration += 1
             steps.append({"stage": "iteration", "iteration": iteration})
 
+            iteration_context_block = ""
+            if build_project_context and format_context_for_prompt:
+                try:
+                    iteration_payload = build_project_context(
+                        project_dir,
+                        objective=task,
+                        error_message=output,
+                        test_output=output,
+                        max_files=4,
+                    )
+                    iteration_related = format_context_for_prompt(iteration_payload)
+                    if iteration_related:
+                        iteration_context_block = (
+                            f"\nAdditional relevant project context:\n{iteration_related}\n"
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to build iteration context: {e}")
+
             fix_prompt = f"""The tests failed. Fix the code to make tests pass.
 
 Current app.py:
@@ -586,6 +707,7 @@ Current test_app.py:
 
 Test output:
 {output}
+{iteration_context_block}
 
 Respond with a JSON object with the fixed code:
 {{
@@ -634,12 +756,14 @@ Respond with a JSON object with the fixed code:
                                 app_code,
                                 previous_app,
                                 task=f"{task} (iteration {iteration})",
+                                run_id=run_id,
                             )
                         else:
                             log_file_created(
                                 str(app_file),
                                 app_code,
                                 task=f"{task} (iteration {iteration})",
+                                run_id=run_id,
                             )
 
                         if previous_test:
@@ -648,12 +772,14 @@ Respond with a JSON object with the fixed code:
                                 test_code,
                                 previous_test,
                                 task=f"{task} (iteration {iteration})",
+                                run_id=run_id,
                             )
                         else:
                             log_file_created(
                                 str(test_file),
                                 test_code,
                                 task=f"{task} (iteration {iteration})",
+                                run_id=run_id,
                             )
                     except Exception as e:
                         logger.warning(f"Failed to log artifact change: {e}")
@@ -691,6 +817,7 @@ Respond with a JSON object with the fixed code:
                 model=model,
                 success=success,
                 metadata={"temperature": 0.5},
+                run_id=run_id,
             )
         except Exception:
             pass

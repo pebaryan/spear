@@ -1,0 +1,38 @@
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix temp: <http://example.org/template/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/template/calibration/20260214075252198782> a temp:TemplateCalibration ;
+    temp:evalFile "examples\\minimal_coding_agent\\evals\\latest_eval.json" ;
+    temp:minSupport 2 ;
+    temp:source "eval_harness_calibration" ;
+    temp:timestamp "2026-02-14T07:52:52.198782"^^xsd:dateTime ;
+    temp:updatedTemplate <http://example.org/template/template/off_by_one_fix> .
+
+<http://example.org/template/template/arithmetic_swap> a temp:RepairTemplate ;
+    temp:name "arithmetic_swap" ;
+    temp:weight "0.85"^^xsd:float ;
+    rdfs:comment "Swap arithmetic operators (+,-,*,/) as low-confidence exploratory mutation." .
+
+<http://example.org/template/template/boundary_guard> a temp:RepairTemplate ;
+    temp:name "boundary_guard" ;
+    temp:weight "1.05"^^xsd:float ;
+    rdfs:comment "Adjust guard comparisons for boundary checks (e.g., < to <= at zero boundary)." .
+
+<http://example.org/template/template/generic> a temp:RepairTemplate ;
+    temp:name "generic" ;
+    temp:weight "1.0"^^xsd:float ;
+    rdfs:comment "Generic fallback mutation template." .
+
+<http://example.org/template/template/operator_swap> a temp:RepairTemplate ;
+    temp:name "operator_swap" ;
+    temp:weight "0.95"^^xsd:float ;
+    rdfs:comment "Swap comparison operators (==, !=, <, <=, >, >=) when mismatch is likely." .
+
+<http://example.org/template/template/off_by_one_fix> a temp:RepairTemplate ;
+    temp:name "off_by_one_fix" ;
+    temp:successRate "1.0"^^xsd:float ;
+    temp:support 1 ;
+    temp:weight "1.0"^^xsd:float ;
+    rdfs:comment "Fix expressions like count + 1 / 1 + count when tests indicate off-by-one." .
+

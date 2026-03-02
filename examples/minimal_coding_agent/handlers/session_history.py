@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 
 from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef, XSD
 
+from .redaction import redact_object, redact_text
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 HISTORY_GRAPH_PATH = BASE_DIR / "session_history.ttl"
 
@@ -49,11 +51,20 @@ def _get_run_count(g: Graph) -> int:
     return count
 
 
-def add_run(command: str, task: str, success: bool, details: Dict[str, Any]) -> None:
+def add_run(
+    command: str,
+    task: str,
+    success: bool,
+    details: Dict[str, Any],
+    run_id: Optional[str] = None,
+) -> None:
+    command = redact_text(command)
+    task = redact_text(task)
+    details = redact_object(details or {})
     g = load_history_graph()
 
-    run_id = _get_run_count(g)
-    run_uri = SESS[f"run/{run_id}"]
+    run_index = _get_run_count(g)
+    run_uri = SESS[f"run/{run_index}"]
 
     g.add((run_uri, RDF.type, AG.Run))
     g.add((run_uri, AG.command, Literal(command)))
@@ -66,6 +77,8 @@ def add_run(command: str, task: str, success: bool, details: Dict[str, Any]) -> 
             Literal(datetime.now().isoformat(), datatype=XSD.dateTime),
         )
     )
+    if run_id:
+        g.add((run_uri, AG.runId, Literal(run_id)))
 
     if "exit_code" in details:
         g.add((run_uri, AG.exitCode, Literal(details["exit_code"])))
@@ -107,6 +120,7 @@ def get_history(limit: int = 10) -> List[Dict[str, Any]]:
                 "success": str(success).lower() == "true" if success else False,
                 "exit_code": str(exit_code) if exit_code else "-1",
                 "output": str(output) if output else "",
+                "run_id": str(g.value(run, AG.runId) or ""),
             }
         )
 

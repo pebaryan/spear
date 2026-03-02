@@ -1,0 +1,9 @@
+{
+  "created_at": "2026-02-14T09:34:20.006578",
+  "version": "0.4.0",
+  "date": "2026-02-14",
+  "tag": "minimal-agent-v0.4.0",
+  "tag_version": "0.4.0",
+  "changelog_path": "D:\\code\\spear\\examples\\minimal_coding_agent\\CHANGELOG.md",
+  "notes_output": "D:\\code\\spear\\examples\\minimal_coding_agent\\evals\\release_notes_latest.md"
+}

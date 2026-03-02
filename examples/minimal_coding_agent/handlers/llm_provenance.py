@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 
 from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef, XSD
 
+from .redaction import redact_object, redact_text
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 LLM_LOG_PATH = BASE_DIR / "llm_interactions.ttl"
 
@@ -45,10 +47,10 @@ def save_llm_log_graph(g: Graph) -> None:
 
 
 def _get_interaction_count(g: Graph) -> int:
-    count = 0
-    for _ in g.subjects(RDF.type, LLM.Interaction):
-        count += 1
-    return count
+    subjects = set(g.subjects(RDF.type, LLM.Interaction))
+    subjects.update(g.subjects(RDF.type, LLM.BuildInteraction))
+    subjects.update(g.subjects(RDF.type, LLM.FixInteraction))
+    return len(subjects)
 
 
 def log_llm_interaction(
@@ -57,9 +59,18 @@ def log_llm_interaction(
     model: str,
     metadata: Optional[Dict[str, Any]] = None,
     tool_calls: Optional[List[Dict[str, Any]]] = None,
+    run_id: Optional[str] = None,
 ) -> str:
     """Log an LLM interaction to RDF."""
     g = load_llm_log_graph()
+    metadata = redact_object(metadata or {})
+    if not isinstance(metadata, dict):
+        metadata = {}
+    tool_calls = redact_object(tool_calls or [])
+    if not isinstance(tool_calls, list):
+        tool_calls = []
+    prompt = redact_text(prompt)
+    response = redact_text(response)
 
     interaction_id = _get_interaction_count(g)
     interaction_uri = LLM[f"interaction/{interaction_id}"]
@@ -73,6 +84,8 @@ def log_llm_interaction(
         )
     )
     g.add((interaction_uri, LLM.model, Literal(model)))
+    if run_id:
+        g.add((interaction_uri, LLM.runId, Literal(run_id)))
 
     if len(prompt) > 5000:
         prompt = prompt[:5000] + "... [truncated]"
@@ -126,9 +139,16 @@ def log_build_interaction(
     model: str,
     success: bool,
     metadata: Optional[Dict[str, Any]] = None,
+    run_id: Optional[str] = None,
 ) -> str:
     """Log a build code LLM interaction."""
     g = load_llm_log_graph()
+    metadata = redact_object(metadata or {})
+    if not isinstance(metadata, dict):
+        metadata = {}
+    task = redact_text(task)
+    prompt = redact_text(prompt)
+    response = redact_text(response)
 
     interaction_id = _get_interaction_count(g)
     interaction_uri = LLM[f"build/{interaction_id}"]
@@ -144,6 +164,8 @@ def log_build_interaction(
     g.add((interaction_uri, LLM.model, Literal(model)))
     g.add((interaction_uri, LLM.task, Literal(task)))
     g.add((interaction_uri, LLM.success, Literal(success, datatype=XSD.boolean)))
+    if run_id:
+        g.add((interaction_uri, LLM.runId, Literal(run_id)))
 
     if len(prompt) > 5000:
         prompt = prompt[:5000] + "... [truncated]"
@@ -175,9 +197,17 @@ def log_fix_interaction(
     model: str,
     success: bool,
     metadata: Optional[Dict[str, Any]] = None,
+    run_id: Optional[str] = None,
 ) -> str:
     """Log a fix code LLM interaction."""
     g = load_llm_log_graph()
+    metadata = redact_object(metadata or {})
+    if not isinstance(metadata, dict):
+        metadata = {}
+    source_code = redact_text(source_code)
+    error_message = redact_text(error_message)
+    prompt = redact_text(prompt)
+    response = redact_text(response)
 
     interaction_id = _get_interaction_count(g)
     interaction_uri = LLM[f"fix/{interaction_id}"]
@@ -192,6 +222,8 @@ def log_fix_interaction(
     )
     g.add((interaction_uri, LLM.model, Literal(model)))
     g.add((interaction_uri, LLM.success, Literal(success, datatype=XSD.boolean)))
+    if run_id:
+        g.add((interaction_uri, LLM.runId, Literal(run_id)))
 
     if len(source_code) > 2000:
         source_code = source_code[:2000] + "... [truncated]"
@@ -228,9 +260,12 @@ def get_interactions(limit: int = 20) -> List[Dict[str, Any]]:
             "uri": str(interaction),
             "timestamp": str(g.value(interaction, LLM.timestamp) or ""),
             "model": str(g.value(interaction, LLM.model) or ""),
-            "prompt": str(g.value(interaction, LLM.prompt) or ""),
-            "response": str(g.value(interaction, LLM.response) or ""),
+            "prompt": redact_text(str(g.value(interaction, LLM.prompt) or "")),
+            "response": redact_text(str(g.value(interaction, LLM.response) or "")),
         }
+        run_id = g.value(interaction, LLM.runId)
+        if run_id:
+            data["run_id"] = str(run_id)
         success = g.value(interaction, LLM.success)
         if success:
             data["success"] = str(success).lower() == "true"
@@ -241,10 +276,13 @@ def get_interactions(limit: int = 20) -> List[Dict[str, Any]]:
             "uri": str(interaction),
             "timestamp": str(g.value(interaction, LLM.timestamp) or ""),
             "model": str(g.value(interaction, LLM.model) or ""),
-            "prompt": str(g.value(interaction, LLM.prompt) or ""),
-            "response": str(g.value(interaction, LLM.response) or ""),
-            "task": str(g.value(interaction, LLM.task) or ""),
+            "prompt": redact_text(str(g.value(interaction, LLM.prompt) or "")),
+            "response": redact_text(str(g.value(interaction, LLM.response) or "")),
+            "task": redact_text(str(g.value(interaction, LLM.task) or "")),
         }
+        run_id = g.value(interaction, LLM.runId)
+        if run_id:
+            data["run_id"] = str(run_id)
         success = g.value(interaction, LLM.success)
         if success:
             data["success"] = str(success).lower() == "true"
@@ -255,9 +293,12 @@ def get_interactions(limit: int = 20) -> List[Dict[str, Any]]:
             "uri": str(interaction),
             "timestamp": str(g.value(interaction, LLM.timestamp) or ""),
             "model": str(g.value(interaction, LLM.model) or ""),
-            "prompt": str(g.value(interaction, LLM.prompt) or ""),
-            "response": str(g.value(interaction, LLM.response) or ""),
+            "prompt": redact_text(str(g.value(interaction, LLM.prompt) or "")),
+            "response": redact_text(str(g.value(interaction, LLM.response) or "")),
         }
+        run_id = g.value(interaction, LLM.runId)
+        if run_id:
+            data["run_id"] = str(run_id)
         success = g.value(interaction, LLM.success)
         if success:
             data["success"] = str(success).lower() == "true"

@@ -1,0 +1,50 @@
+{
+  "created_at": "2026-02-14T11:04:46.564471",
+  "python_version": "3.11.14",
+  "platform": "win32",
+  "success": true,
+  "steps_total": 2,
+  "steps_passed": 2,
+  "steps": [
+    {
+      "name": "minimal_tests",
+      "command": [
+        "C:\\Users\\aryan\\miniconda3\\envs\\p311\\python.exe",
+        "-m",
+        "pytest",
+        "examples/minimal_coding_agent/tests",
+        "-q"
+      ],
+      "exit_code": 0,
+      "duration_sec": 18.583,
+      "stdout": "============================= test session starts =============================\nplatform win32 -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0\nrootdir: D:\\code\\spear\nconfigfile: pytest.ini\nplugins: anyio-4.12.1, cov-7.0.0\ncollected 94 items\n\nexamples\\minimal_coding_agent\\tests\\test_approval_audit.py ....          [  4%]\nexamples\\minimal_coding_agent\\tests\\test_artifact_summary.py ..          [  6%]\nexamples\\minimal_coding_agent\\tests\\test_authorization.py ...            [  9%]\nexamples\\minimal_coding_agent\\tests\\test_ci_profile.py ...               [ 12%]\nexamples\\minimal_coding_agent\\tests\\test_context_retrieval.py .......    [ 20%]\nexamples\\minimal_coding_agent\\tests\\test_eval_harness.py ......          [ 26%]\nexamples\\minimal_coding_agent\\tests\\test_handlers.py .........           [ 36%]\nexamples\\minimal_coding_agent\\tests\\test_planner_loop.py ..              [ 38%]\nexamples\\minimal_coding_agent\\tests\\test_redaction_security.py ........  [ 46%]\nexamples\\minimal_coding_agent\\tests\\test_regressions.py ................ [ 63%]\n.................                                                        [ 81%]\nexamples\\minimal_coding_agent\\tests\\test_release_pipeline.py ....        [ 86%]\nexamples\\minimal_coding_agent\\tests\\test_repair_engine.py ......         [ 92%]\nexamples\\minimal_coding_agent\\tests\\test_retry_policy.py .....           [ 97%]\nexamples\\minimal_coding_agent\\tests\\test_template_kg.py ..               [100%]\n\n============================= 94 passed in 17.03s =============================\n",
+      "stderr": "",
+      "success": true
+    },
+    {
+      "name": "deterministic_eval",
+      "command": [
+        "C:\\Users\\aryan\\miniconda3\\envs\\p311\\python.exe",
+        "examples/minimal_coding_agent/eval_harness.py",
+        "--deterministic",
+        "--scenario",
+        "solve_baseline",
+        "--repeats",
+        "1"
+      ],
+      "exit_code": 0,
+      "duration_sec": 19.409,
+      "stdout": "\n=== Running solve_baseline (1/1) ===\nTarget project reset to known buggy state.\n============================= test session starts =============================\nplatform win32 -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0\nrootdir: D:\\code\\spear\nconfigfile: pytest.ini\nplugins: anyio-4.12.1, cov-7.0.0\ncollected 3 items\n\ntest_app.py F\n\n================================== FAILURES ===================================\n_________________________ test_running_average_basic __________________________\ntest_app.py:7: in test_running_average_basic\n    assert running_average(10, 2) == 5\nE   assert 3.3333333333333335 == 5\nE    +  where 3.3333333333333335 = running_average(10, 2)\n=========================== short test summary info ===========================\nFAILED test_app.py::test_running_average_basic - assert 3.3333333333333335 == 5\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n============================== 1 failed in 0.13s ==============================\n\nProcess instance: http://example.org/instance/da8e005b-06b5-4bd2-8f65-be21e9d31773\nInstance status: COMPLETED\nRun ID: solve-20260214110434-bfa27fb7\nTask: Fix the failing tests in target_project/app.py\nPatch applied: True\nSuccess: True\nReport: D:\\code\\spear\\examples\\minimal_coding_agent\\latest_run_report.json\n\nRepair steps tried: 10\nAccepted candidate: app.py - Remove +/- 1 from expression (right side)\n============================= test session starts =============================\nplatform win32 -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0\nrootdir: D:\\code\\spear\nconfigfile: pytest.ini\nplugins: anyio-4.12.1, cov-7.0.0\ncollected 3 items\n\ntest_app.py ...                                                          [100%]\n\n============================== 3 passed in 0.03s ==============================\n\nPASS duration=11.271s run_id=solve-20260214110434-bfa27fb7\n\n=== Summary ===\nsuccess_rate=100.0% (1/1)\navg_duration=11.271s\nreport=D:\\code\\spear\\examples\\minimal_coding_agent\\evals\\eval_20260214_110446.json\ntrend_csv=D:\\code\\spear\\examples\\minimal_coding_agent\\evals\\trend.csv\nsummary_md=D:\\code\\spear\\examples\\minimal_coding_agent\\evals\\latest_summary.md\n",
+      "stderr": "INFO:src.core.rdf_process_engine:Executing start event for instance da8e005b-06b5-4bd2-8f65-be21e9d31773\nINFO:src.core.rdf_process_engine:Gateway http://example.org/bpmn/Gateway_HasErrors chose flow http://example.org/bpmn/Flow_HasError (condition matched)\nINFO:src.core.rdf_process_engine:Executing end event for instance da8e005b-06b5-4bd2-8f65-be21e9d31773\nINFO:src.core.rdf_process_engine:Started process instance da8e005b-06b5-4bd2-8f65-be21e9d31773 for process http://example.org/bpmn/MinimalCodingAgentProcess\n",
+      "success": true
+    }
+  ],
+  "eval_summary": {
+    "total_runs": 1,
+    "executed_runs": 1,
+    "skipped_runs": 0,
+    "successful_runs": 1,
+    "success_rate": 100.0,
+    "avg_duration_sec": 11.271
+  }
+}

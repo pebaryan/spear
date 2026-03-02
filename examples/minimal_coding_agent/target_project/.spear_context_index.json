@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "files": {
+    "app.py": {
+      "path": "D:\\code\\spear\\examples\\minimal_coding_agent\\target_project\\app.py",
+      "relative_path": "app.py",
+      "signature": "1771063529285721800:405",
+      "symbols": {
+        "functions": [
+          "running_average"
+        ],
+        "classes": [],
+        "imports": [],
+        "references": [
+          "count",
+          "ValueError",
+          "total"
+        ],
+        "import_from": []
+      },
+      "source_preview": "\"\"\"Tiny target module with an intentional bug for demo purposes.\"\"\"\n\n\ndef running_average(total, count):\n    \"\"\"Return average value for total/count.\n\n    Bug intentionally present:\n    - Uses (count + 1), which is mathematically wrong.\n    - Does not raise ValueError when count == 0.\n    \"\"\"\n    if count < 0:\n        raise ValueError(\"count cannot be negative\")\n    return total / (count)\n",
+      "source_tokens": [
+        "an",
+        "average",
+        "be",
+        "bug",
+        "cannot",
+        "count",
+        "def",
+        "demo",
+        "does",
+        "if",
+        "intentional",
+        "intentionally",
+        "is",
+        "mathematically",
+        "module",
+        "negative",
+        "not",
+        "present",
+        "purposes",
+        "raise",
+        "return",
+        "running_average",
+        "target",
+        "tiny",
+        "total",
+        "uses",
+        "value",
+        "valueerror",
+        "which",
+        "wrong"
+      ]
+    },
+    "test_app.py": {
+      "path": "D:\\code\\spear\\examples\\minimal_coding_agent\\target_project\\test_app.py",
+      "relative_path": "test_app.py",
+      "signature": "1771063523889917300:360",
+      "symbols": {
+        "functions": [
+          "test_running_average_basic",
+          "test_running_average_zero_count",
+          "test_running_average_negative_count"
+        ],
+        "classes": [],
+        "imports": [
+          "pytest",
+          "app"
+        ],
+        "references": [
+          "running_average",
+          "raises",
+          "ValueError",
+          "pytest"
+        ],
+        "import_from": [
+          {
+            "module": "app",
+            "level": 0,
+            "names": [
+              "running_average"
+            ]
+          }
+        ]
+      },
+      "source_preview": "import pytest\n\nfrom app import running_average\n\n\ndef test_running_average_basic():\n    assert running_average(10, 2) == 5\n\n\ndef test_running_average_zero_count():\n    with pytest.raises(ValueError):\n        running_average(10, 0)\n\n\ndef test_running_average_negative_count():\n    with pytest.raises(ValueError):\n        running_average(10, -1)\n",
+      "source_tokens": [
+        "app",
+        "assert",
+        "def",
+        "import",
+        "pytest",
+        "raises",
+        "running_average",
+        "test_running_average_basic",
+        "test_running_average_negative_count",
+        "test_running_average_zero_count",
+        "valueerror"
+      ]
+    }
+  }
+}

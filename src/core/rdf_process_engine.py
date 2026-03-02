@@ -358,28 +358,37 @@ class RDFProcessEngine:
         default_flow = self.definition_graph.value(gateway, BPMN.default)
 
         query = f"""
-        SELECT ?flow ?target ?conditionQuery WHERE {{
+        SELECT ?flow ?target ?conditionQuery ?conditionBody WHERE {{
             <{gateway}> bpmn:outgoing ?flow .
             ?flow bpmn:targetRef ?target .
             OPTIONAL {{ ?flow bpmn:conditionQuery ?conditionQuery . }}
+            OPTIONAL {{ ?flow bpmn:conditionBody ?conditionBody . }}
         }}
         """
         results = list(self.definition_graph.query(query))
 
         chosen_target = None
-        for flow, target, condition_query in results:
-            if condition_query:
+        for flow, target, condition_query, condition_body in results:
+            query_to_try = (
+                condition_query or condition_body
+            )  # Try conditionQuery first, fall back to conditionBody
+            if query_to_try:
                 try:
                     ask = self.instance_graph.query(
-                        str(condition_query),
+                        str(query_to_try),
                         initBindings={"instance": instance.instance_uri},
                         initNs={"var": VAR},
                     )
                     if bool(ask.askAnswer):
                         chosen_target = URIRef(target)
+                        logger.info(
+                            f"Gateway {gateway} chose flow {flow} (condition matched)"
+                        )
                         break
                 except Exception as e:
-                    logger.warning(f"Condition query failed: {e}")
+                    logger.warning(
+                        f"Condition query failed: {e} - query: {query_to_try}"
+                    )
                     continue
             elif default_flow and flow == default_flow:
                 chosen_target = URIRef(target)
@@ -387,7 +396,7 @@ class RDFProcessEngine:
         if chosen_target is None:
             # If no condition matched, fall back to default flow or first flow.
             if default_flow:
-                for flow, target, _ in results:
+                for flow, target, _, _ in results:
                     if flow == default_flow:
                         chosen_target = URIRef(target)
                         break

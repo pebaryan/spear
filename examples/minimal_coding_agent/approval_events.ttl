@@ -1,0 +1,892 @@
+@prefix approval: <http://example.org/approval/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/approval/event/0> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T08:24:06.669394"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/1> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "explicit" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T08:24:06.707304"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/10> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-66\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T08:40:47.857720"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/11> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-66\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T08:40:47.891945"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/12> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T08:41:05.160348"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/13> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T08:41:05.219553"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/14> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-67\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T08:41:05.286712"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/15> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-67\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T08:41:05.335727"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/16> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T09:18:53.065906"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/17> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T09:18:53.120039"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/18> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-68\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T09:18:53.169737"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/19> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-68\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T09:18:53.215555"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/2> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-59\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T08:24:06.733263"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/20> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T09:19:13.708944"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/21> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T09:19:13.762313"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/22> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-70\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T09:19:13.825851"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/23> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-70\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T09:19:13.886379"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/24> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T09:19:15.761775"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/25> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T09:19:15.856079"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/26> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-69\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T09:19:15.935981"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/27> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-69\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T09:19:16.004192"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/28> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T09:34:42.873273"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/29> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T09:34:42.941166"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/3> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-59\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "explicit" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T08:24:06.763135"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/30> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-73\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T09:34:43.010244"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/31> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-73\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T09:34:43.080818"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/32> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T09:34:50.682170"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/33> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T09:34:50.764533"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/34> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-72\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T09:34:50.845142"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/35> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-72\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T09:34:50.923322"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/36> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:21:03.444310"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/37> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:21:03.579408"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/38> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-76\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:21:03.665601"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/39> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-76\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:21:03.730441"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/4> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T08:35:05.841432"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/40> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:21:22.749536"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/41> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:21:22.855630"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/42> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-77\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:21:22.941916"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/43> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-77\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:21:23.058351"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/44> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:22:38.214392"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/45> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:22:38.289379"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/46> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-79\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:22:38.369885"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/47> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-79\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:22:38.442587"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/48> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:22:46.717999"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/49> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:22:46.809518"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/5> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T08:35:05.869764"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/50> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-78\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:22:46.930239"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/51> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-78\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:22:47.063460"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/52> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:24:41.368084"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/53> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:24:41.471336"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/54> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-81\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:24:41.566219"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/55> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-81\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:24:41.663037"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/56> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:28:32.560961"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/57> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:28:32.688678"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/58> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-84\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:28:32.817902"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/59> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-84\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:28:32.936609"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/6> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-61\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T08:35:05.907122"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/60> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:29:43.216561"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/61> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T10:29:43.420315"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/62> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-85\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:29:43.593371"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/63> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-85\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:29:43.853902"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/64> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-86\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:29:43.999481"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/65> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-86\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T10:29:44.138151"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/66> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T11:03:03.435456"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/67> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T11:03:03.571313"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/68> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-89\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T11:03:03.692117"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/69> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-89\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T11:03:03.843607"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/7> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-61\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T08:35:05.938622"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/70> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T11:04:25.402099"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/71> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T11:04:25.529697"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/72> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-91\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T11:04:25.674177"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/73> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-91\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T11:04:25.850030"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/74> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T11:04:30.135228"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/75> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T11:04:30.373362"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/76> a approval:Event ;
+    approval:action "write_file" ;
+    approval:decision "requested" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-90\\\\test_write_file_requires_appro0\\\\app.py\", \"changed\": true}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T11:04:30.554274"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/77> a approval:Event ;
+    approval:action "write_file" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"path\": \"C:\\\\Users\\\\aryan\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-aryan\\\\pytest-90\\\\test_write_file_overwrite_runs0\\\\app.py\", \"changed\": true, \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Overwriting existing file in target_project" ;
+    approval:riskLevel "medium" ;
+    approval:timestamp "2026-02-14T11:04:30.789722"^^xsd:dateTime ;
+    approval:toolName "write_file" .
+
+<http://example.org/approval/event/8> a approval:Event ;
+    approval:action "shell" ;
+    approval:decision "requested" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\"}" ;
+    approval:mode "required" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T08:40:47.793717"^^xsd:dateTime ;
+    approval:toolName "shell" .
+
+<http://example.org/approval/event/9> a approval:Event ;
+    approval:action "shell" ;
+    approval:authzProvider "none" ;
+    approval:decision "approved" ;
+    approval:details "{\"command\": \"git reset --hard\", \"mode\": \"argv\", \"authz_provider\": \"none\", \"authz_reason\": \"No external provider\"}" ;
+    approval:mode "explicit" ;
+    approval:policyMinRisk "medium" ;
+    approval:rationale "Matched risky pattern: \\bgit\\s+reset\\b" ;
+    approval:riskLevel "high" ;
+    approval:timestamp "2026-02-14T08:40:47.822795"^^xsd:dateTime ;
+    approval:toolName "shell" .
+

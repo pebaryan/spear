@@ -1,11 +1,13 @@
-def add_ten(number: int) -> int:
+"""Tiny target module with an intentional bug for demo purposes."""
+
+
+def running_average(total, count):
+    """Return average value for total/count.
+
+    Bug intentionally present:
+    - Uses (count + 1), which is mathematically wrong.
+    - Does not raise ValueError when count == 0.
     """
-    Add ten to a number.
-    
-    Args:
-        number: The number to add ten to.
-        
-    Returns:
-        The number plus ten.
-    """
-    return number + 10
+    if count <= 0:
+        raise ValueError("count cannot be negative")
+    return total / (count)

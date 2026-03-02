@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SPEAR Minimal Coding Agent - Presentation Deck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;700&family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1f1f17;
+      --muted: #4e5449;
+      --paper: #f6f3ea;
+      --teal: #0f766e;
+      --orange: #c2410c;
+      --sand: #e8dec8;
+      --mint: #dceee6;
+      --shadow: 0 22px 48px rgba(26, 29, 24, 0.18);
+      --radius: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 500px at 0% 0%, #f2e9d6 0, transparent 60%),
+        radial-gradient(1000px 700px at 100% 100%, #cde6da 0, transparent 58%),
+        var(--paper);
+      font-family: "Space Grotesk", "Segoe UI Variable", sans-serif;
+      overflow: hidden;
+    }
+
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      padding: clamp(14px, 3vw, 30px);
+    }
+
+    .slide {
+      position: absolute;
+      inset: clamp(12px, 2vw, 28px);
+      padding: clamp(22px, 4vw, 48px);
+      border-radius: var(--radius);
+      border: 1px solid rgba(31, 31, 23, 0.12);
+      background:
+        linear-gradient(125deg, rgba(255, 255, 255, 0.85), rgba(248, 244, 236, 0.9)),
+        repeating-linear-gradient(135deg, rgba(15, 118, 110, 0.04) 0 12px, rgba(255, 255, 255, 0) 12px 24px);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+      opacity: 0;
+      transform: translateX(60px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 360ms ease, transform 420ms ease;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .slide h1,
+    .slide h2 {
+      margin: 0;
+      font-family: "Fraunces", Georgia, serif;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+
+    .slide h1 {
+      font-size: clamp(2rem, 5vw, 4.2rem);
+      max-width: 15ch;
+    }
+
+    .slide h2 {
+      font-size: clamp(1.45rem, 3vw, 2.4rem);
+      color: #243028;
+      max-width: 24ch;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #17483f;
+      background: rgba(15, 118, 110, 0.12);
+      border: 1px solid rgba(15, 118, 110, 0.25);
+      font-weight: 700;
+    }
+
+    .lead {
+      font-size: clamp(1.02rem, 1.9vw, 1.35rem);
+      line-height: 1.45;
+      color: #2e342d;
+      max-width: 72ch;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      border-radius: 14px;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(40, 45, 40, 0.12);
+    }
+
+    .card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #1e352f;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+      line-height: 1.45;
+    }
+
+    li {
+      margin-bottom: 8px;
+      color: #293029;
+    }
+
+    .mono {
+      font-family: "IBM Plex Mono", "Cascadia Mono", monospace;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      border-radius: 12px;
+      background: #13231f;
+      color: #d8efe6;
+      border: 1px solid rgba(29, 43, 37, 0.7);
+      padding: 12px 14px;
+    }
+
+    .pipeline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      font-weight: 600;
+      color: #2b322c;
+    }
+
+    .node {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(31, 31, 23, 0.15);
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    .arrow {
+      color: var(--orange);
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255, 255, 255, 0.82);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(31, 31, 23, 0.13);
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      padding: 10px 11px;
+      border-bottom: 1px solid rgba(31, 31, 23, 0.1);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: rgba(15, 118, 110, 0.12);
+      color: #1d3e36;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .slide-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .progress-wrap {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 5px;
+      background: rgba(0, 0, 0, 0.12);
+      z-index: 30;
+    }
+
+    .progress {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--teal), var(--orange));
+      transition: width 240ms ease;
+    }
+
+    .controls {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      display: flex;
+      gap: 8px;
+      z-index: 40;
+    }
+
+    .controls button {
+      border: 1px solid rgba(31, 31, 23, 0.18);
+      background: rgba(255, 255, 255, 0.92);
+      color: #20332d;
+      border-radius: 10px;
+      padding: 8px 11px;
+      font: 600 0.82rem/1 "Space Grotesk", sans-serif;
+      cursor: pointer;
+    }
+
+    .controls button:hover {
+      background: #ffffff;
+    }
+
+    .reveal > * {
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 360ms ease, transform 420ms ease;
+    }
+
+    .slide.active .reveal > * {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .slide.active .reveal > *:nth-child(2) { transition-delay: 80ms; }
+    .slide.active .reveal > *:nth-child(3) { transition-delay: 140ms; }
+    .slide.active .reveal > *:nth-child(4) { transition-delay: 200ms; }
+    .slide.active .reveal > *:nth-child(5) { transition-delay: 260ms; }
+
+    @media (max-width: 920px) {
+      .slide {
+        grid-template-rows: auto auto 1fr auto;
+      }
+      .grid.two,
+      .grid.three {
+        grid-template-columns: 1fr;
+      }
+      table {
+        font-size: 0.86rem;
+      }
+      .controls {
+        right: 10px;
+        bottom: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" id="deck">
+    <section class="slide active">
+      <div class="reveal">
+        <span class="kicker">SPEAR BPMN-RDF</span>
+        <h1>How The Minimal Coding Agent Works</h1>
+        <p class="lead">A process-orchestrated coding agent: explicit BPMN flow, RDF state, and queryable provenance for every run.</p>
+      </div>
+      <div class="grid two reveal">
+        <div class="card"><strong>Primary use</strong>Show SPEAR engine capabilities with a concrete software-fixing workflow.</div>
+        <div class="card"><strong>Positioning</strong>Not a Codex/Claude-Code replacement yet, but a strong orchestration + observability showcase.</div>
+      </div>
+      <div class="slide-footer">
+        <span>Use Arrow keys or on-screen buttons</span>
+        <span data-index></span>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="reveal">
+        <span class="kicker">Architecture</span>
+        <h2>Execution Model In One Line</h2>
+      </div>
+      <div class="pipeline reveal">
+        <div class="node">BPMN process</div><div class="arrow">></div>
+        <div class="node">RDF graph conversion</div><div class="arrow">></div>
+        <div class="node">RDFProcessEngine</div><div class="arrow">></div>
+        <div class="node">Topic handlers</div><div class="arrow">></div>
+        <div class="node">Code/test actions</div><div class="arrow">></div>
+        <div class="node">RDF provenance + report</div>
+      </div>
+      <div class="grid two reveal">
+        <div class="card"><strong>Control plane</strong>Process behavior is explicit in BPMN (not hidden in a single prompt loop).</div>
+        <div class="card"><strong>State model</strong>Variables and outcomes are first-class RDF facts, queryable after execution.</div>
+      </div>
+      <div class="slide-footer"><span>Process-first orchestration</span><span data-index></span></div>
+    </section>
+
+    <section class="slide">
+      <div class="reveal">
+        <span class="kicker">Solve Flow</span>
+        <h2>What Happens During <span class="mono" style="display:inline-block;padding:3px 8px;background:#fff;color:#20332d;border:1px solid #d7dbcf;">agent.py solve</span></h2>
+      </div>
+      <div class="grid two reveal">
+        <div class="card">
+          <strong>BPMN topics</strong>
+          <ul>
+            <li><code>initialize</code></li>
+            <li><code>analyze_error</code></li>
+            <li><code>select_strategy</code></li>
+            <li><code>apply_fix</code></li>
+            <li><code>run_tests_after</code></li>
+            <li><code>log_attempt / increment_retry / write_report</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <strong>Runtime behavior</strong>
+          <ul>
+            <li>Runs tests, identifies failure class.</li>
+            <li>Tries LLM repair or deterministic fallback.</li>
+            <li>Loops via gateway until success or retry limit.</li>
+            <li>Writes machine-readable report with <code>run_id</code>.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="slide-footer"><span>Deterministic and explainable loop</span><span data-index></span></div>
+    </section>
+
+    <section class="slide">
+      <div class="reveal">
+        <span class="kicker">Provenance</span>
+        <h2>Observability Is Native, Not Added Later</h2>
+      </div>
+      <div class="grid three reveal">
+        <div class="card"><strong>Run reports</strong><code>run_reports.ttl</code><br>task, success, steps, run_id</div>
+        <div class="card"><strong>LLM calls</strong><code>llm_interactions.ttl</code><br>prompt, response, run_id</div>
+        <div class="card"><strong>Artifacts</strong><code>artifact_changes.ttl</code><br>files changed, operation, run_id</div>
+      </div>
+      <div class="grid two reveal">
+        <div class="card"><strong>Reasoning trace</strong><code>reasoning_trace.ttl</code> keeps approach choices and fix rationale.</div>
+        <div class="card"><strong>Cross-link key</strong><code>run_id</code> correlates report, interactions, artifacts, and explanations.</div>
+      </div>
+      <div class="slide-footer"><span>Great for audits, demos, and postmortems</span><span data-index></span></div>
+    </section>
+
+    <section class="slide">
+      <div class="reveal">
+        <span class="kicker">Tools</span>
+        <h2>Internal MCP Tool Layer</h2>
+      </div>
+      <div class="grid two reveal">
+        <div class="card">
+          <strong>Built-ins</strong>
+          <ul>
+            <li><code>run_tests</code></li>
+            <li><code>read_file</code></li>
+            <li><code>write_file</code></li>
+            <li><code>web_search</code></li>
+            <li><code>shell</code> (platform-agnostic)</li>
+            <li><code>bash</code> (legacy alias)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <strong>Safety defaults</strong>
+          <ul>
+            <li>Shell tool disabled unless explicitly enabled.</li>
+            <li>Workspace path guard blocks directory escape.</li>
+            <li>Every tool call is logged to RDF (<code>mcp_calls.ttl</code>).</li>
+          </ul>
+        </div>
+      </div>
+      <div class="slide-footer"><span>Extensible and auditable tool calls</span><span data-index></span></div>
+    </section>
+
+    <section class="slide">
+      <div class="reveal">
+        <span class="kicker">Reliability</span>
+        <h2>Why It Is Useful As A SPEAR Showcase</h2>
+      </div>
+      <div class="grid three reveal">
+        <div class="card"><strong>Deterministic fallback</strong>Can run without LLM for stable demos and CI.</div>
+        <div class="card"><strong>Run-scoped explain</strong><code>explain last --run-id ...</code> avoids mixed histories.</div>
+        <div class="card"><strong>Eval harness</strong>Repeatable scenarios with machine-readable metrics.</div>
+      </div>
+      <pre class="mono reveal">python showcase_demo.py
+python eval_harness.py --deterministic --repeats 3
+python agent.py explain last --run-id solve-YYYYMMDD...</pre>
+      <div class="slide-footer"><span>Predictable behavior for demonstrations</span><span data-index></span></div>
+    </section>
+
+    <section class="slide">
+      <div class="reveal">
+        <span class="kicker">Comparison</span>
+        <h2>SPEAR Agent vs Off-The-Shelf Coding Agents</h2>
+      </div>
+      <div class="reveal">
+        <table>
+          <thead>
+            <tr><th>Dimension</th><th>SPEAR Minimal Agent</th><th>Codex / Claude Code / OpenCode class</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Control model</td><td>Explicit BPMN workflow + RDF state</td><td>Model-driven planning loop</td></tr>
+            <tr><td>Traceability</td><td>Native RDF provenance and run correlation</td><td>Usually logs/traces, less KG-native</td></tr>
+            <tr><td>Deterministic mode</td><td>Built-in fallback path for showcase stability</td><td>Varies by product and setup</td></tr>
+            <tr><td>Capability breadth</td><td>Focused example domain</td><td>Broader repo reasoning/edit depth</td></tr>
+            <tr><td>Best fit</td><td>Show SPEAR orchestration and explainability</td><td>Max day-to-day coding throughput</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="slide-footer"><span>Different strengths, not direct parity</span><span data-index></span></div>
+    </section>
+
+    <section class="slide">
+      <div class="reveal">
+        <span class="kicker">Tradeoffs</span>
+        <h2>Where Off-The-Shelf Agents Still Win Today</h2>
+      </div>
+      <div class="grid two reveal">
+        <div class="card">
+          <strong>They are stronger on</strong>
+          <ul>
+            <li>Large-repo contextual understanding.</li>
+            <li>Long-horizon autonomous editing.</li>
+            <li>General coding task breadth and speed.</li>
+            <li>Polished integrated developer UX.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <strong>SPEAR can close gap via roadmap</strong>
+          <ul>
+            <li>Planner loop upgrades in BPMN.</li>
+            <li>AST-aware patching and retrieval.</li>
+            <li>Expanded benchmark suites and CI trends.</li>
+            <li>Human-approval and policy guardrails.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="slide-footer"><span>Capability maturity is an explicit engineering plan</span><span data-index></span></div>
+    </section>
+
+    <section class="slide">
+      <div class="reveal">
+        <span class="kicker">Positioning</span>
+        <h2>Recommended Message For Stakeholders</h2>
+      </div>
+      <div class="grid two reveal">
+        <div class="card">
+          <strong>Say this</strong>
+          <p class="lead" style="font-size:1rem;margin:0;">"This is an explainable coding workflow orchestrated by SPEAR's BPMN-RDF engine, with run-level provenance and deterministic fallback."</p>
+        </div>
+        <div class="card">
+          <strong>Do not say this</strong>
+          <p class="lead" style="font-size:1rem;margin:0;">"This is a full replacement for production-grade coding agents."</p>
+        </div>
+      </div>
+      <div class="grid two reveal">
+        <div class="card"><strong>Showcase KPI</strong>Can we explain every decision and artifact by <code>run_id</code>?</div>
+        <div class="card"><strong>Maturity KPI</strong>Can we improve pass-rate trend in <code>evals/trend.csv</code> over releases?</div>
+      </div>
+      <div class="slide-footer"><span>Precise positioning builds trust</span><span data-index></span></div>
+    </section>
+
+    <section class="slide">
+      <div class="reveal">
+        <span class="kicker">Demo Plan</span>
+        <h2>Live Walkthrough Sequence</h2>
+      </div>
+      <pre class="mono reveal">cd examples/minimal_coding_agent
+
+# 1) deterministic showcase
+python showcase_demo.py
+
+# 2) run-scoped explanation
+python agent.py explain last --run-id solve-...
+
+# 3) benchmark snapshot
+python eval_harness.py --deterministic --scenario solve_baseline --repeats 3
+
+# 4) inspect trend
+type evals\latest_summary.md   # windows
+cat evals/latest_summary.md    # linux/mac
+</pre>
+      <div class="slide-footer"><span>Clear path from process to evidence</span><span data-index></span></div>
+    </section>
+
+    <section class="slide">
+      <div class="reveal">
+        <span class="kicker">End</span>
+        <h1>SPEAR + Coding Agent</h1>
+        <p class="lead">Best current value: orchestrated, observable, explainable coding runs. Next value: broader capability while preserving process control.</p>
+      </div>
+      <div class="grid two reveal">
+        <div class="card"><strong>File</strong><code>examples/minimal_coding_agent/agent_deck.html</code></div>
+        <div class="card"><strong>Navigation</strong>Arrows, space, page up/down, or swipe.</div>
+      </div>
+      <div class="slide-footer"><span>Thank you</span><span data-index></span></div>
+    </section>
+  </main>
+
+  <div class="controls">
+    <button id="prevBtn" type="button">Prev</button>
+    <button id="nextBtn" type="button">Next</button>
+  </div>
+  <div class="progress-wrap"><div class="progress" id="progressBar"></div></div>
+
+  <script>
+    (function () {
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const progress = document.getElementById("progressBar");
+      const prevBtn = document.getElementById("prevBtn");
+      const nextBtn = document.getElementById("nextBtn");
+      let index = 0;
+      let touchStartX = 0;
+      let touchEndX = 0;
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function updateHash() {
+        history.replaceState(null, "", "#slide-" + (index + 1));
+      }
+
+      function render() {
+        slides.forEach((slide, i) => slide.classList.toggle("active", i === index));
+        const pct = ((index + 1) / slides.length) * 100;
+        progress.style.width = pct + "%";
+        document.querySelectorAll("[data-index]").forEach((el) => {
+          el.textContent = (index + 1) + " / " + slides.length;
+        });
+        prevBtn.disabled = index <= 0;
+        nextBtn.disabled = index >= slides.length - 1;
+        updateHash();
+      }
+
+      function go(next) {
+        index = clamp(next, 0, slides.length - 1);
+        render();
+      }
+
+      function fromHash() {
+        const m = String(location.hash || "").match(/slide-(\d+)/);
+        if (!m) return 0;
+        return clamp(parseInt(m[1], 10) - 1, 0, slides.length - 1);
+      }
+
+      prevBtn.addEventListener("click", () => go(index - 1));
+      nextBtn.addEventListener("click", () => go(index + 1));
+
+      window.addEventListener("keydown", (event) => {
+        if (["ArrowRight", "PageDown", " "].includes(event.key)) {
+          event.preventDefault();
+          go(index + 1);
+        }
+        if (["ArrowLeft", "PageUp"].includes(event.key)) {
+          event.preventDefault();
+          go(index - 1);
+        }
+        if (event.key === "Home") go(0);
+        if (event.key === "End") go(slides.length - 1);
+      });
+
+      window.addEventListener("touchstart", (event) => {
+        touchStartX = event.changedTouches[0].screenX;
+      }, { passive: true });
+      window.addEventListener("touchend", (event) => {
+        touchEndX = event.changedTouches[0].screenX;
+        const delta = touchEndX - touchStartX;
+        if (Math.abs(delta) < 50) return;
+        if (delta < 0) go(index + 1);
+        if (delta > 0) go(index - 1);
+      }, { passive: true });
+
+      window.addEventListener("hashchange", () => go(fromHash()));
+      go(fromHash());
+    })();
+  </script>
+</body>
+</html>

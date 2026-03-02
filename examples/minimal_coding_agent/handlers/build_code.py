@@ -12,9 +12,10 @@ from .common import (
 )
 
 
-def make_handler(task: str) -> Callable:
+def make_handler(task: str, run_id: str) -> Callable:
     def handle(context) -> None:
         context.set_variable("build_task", task)
+        context.set_variable("run_id", run_id)
 
         scratchpad = Scratchpad()
         scratchpad.think(f"Starting build task: {task}", tags=["task", "start"])
@@ -30,12 +31,13 @@ def make_handler(task: str) -> Callable:
                         "Copy existing code",
                         "Manual implementation",
                     ],
+                    run_id=run_id,
                 )
             except Exception:
                 pass
 
         try:
-            result = llm_build_code(task, TARGET_DIR)
+            result = llm_build_code(task, TARGET_DIR, run_id=run_id)
 
             if result["success"]:
                 scratchpad.think(
