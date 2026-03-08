@@ -1,0 +1,91 @@
+{
+  "created_at": "2026-03-08T02:38:15.856034",
+  "deterministic": true,
+  "scenarios": [
+    "solve_baseline"
+  ],
+  "repeats": 3,
+  "summary": {
+    "total_runs": 3,
+    "executed_runs": 3,
+    "skipped_runs": 0,
+    "successful_runs": 3,
+    "success_rate": 100.0,
+    "avg_duration_sec": 7.385,
+    "by_scenario": {
+      "solve_baseline": {
+        "total": 3,
+        "executed": 3,
+        "skipped": 0,
+        "success": 3,
+        "success_rate": 100.0
+      }
+    }
+  },
+  "policy_profile": "standard",
+  "results": [
+    {
+      "mode": "solve",
+      "task": "Fix the failing tests in target_project/app.py",
+      "duration_sec": 7.603,
+      "pre_test_exit_code": 1,
+      "command_exit_code": 0,
+      "post_test_exit_code": 0,
+      "report_success": true,
+      "strategy_result": "llm_fix",
+      "retry_policy_profile": "standard",
+      "retry_policy_requested": "standard",
+      "retry_policy_class": "runtime",
+      "repair_exit_code": "0",
+      "run_id": "solve-20260308023751-7e3d389f",
+      "success": true,
+      "skipped": false,
+      "requires_llm": false,
+      "scenario": "solve_baseline",
+      "iteration": 1,
+      "policy_profile": "standard"
+    },
+    {
+      "mode": "solve",
+      "task": "Fix the failing tests in target_project/app.py",
+      "duration_sec": 7.206,
+      "pre_test_exit_code": 1,
+      "command_exit_code": 0,
+      "post_test_exit_code": 0,
+      "report_success": true,
+      "strategy_result": "llm_fix",
+      "retry_policy_profile": "standard",
+      "retry_policy_requested": "standard",
+      "retry_policy_class": "runtime",
+      "repair_exit_code": "0",
+      "run_id": "solve-20260308023759-4d3b7c83",
+      "success": true,
+      "skipped": false,
+      "requires_llm": false,
+      "scenario": "solve_baseline",
+      "iteration": 2,
+      "policy_profile": "standard"
+    },
+    {
+      "mode": "solve",
+      "task": "Fix the failing tests in target_project/app.py",
+      "duration_sec": 7.345,
+      "pre_test_exit_code": 1,
+      "command_exit_code": 0,
+      "post_test_exit_code": 0,
+      "report_success": true,
+      "strategy_result": "llm_fix",
+      "retry_policy_profile": "standard",
+      "retry_policy_requested": "standard",
+      "retry_policy_class": "runtime",
+      "repair_exit_code": "0",
+      "run_id": "solve-20260308023808-feb2b774",
+      "success": true,
+      "skipped": false,
+      "requires_llm": false,
+      "scenario": "solve_baseline",
+      "iteration": 3,
+      "policy_profile": "standard"
+    }
+  ]
+}
