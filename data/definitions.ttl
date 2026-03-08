@@ -1,0 +1,30 @@
+@prefix ns1: <http://dkm.fbk.eu/index.php/BPMN2_Ontology#> .
+@prefix ns2: <http://example.org/meta/> .
+@prefix ns3: <http://example.org/process/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ns3:fec8e046-de2a-418d-a2e5-83209e394c52 a ns3:ProcessDefinition ;
+    ns2:deployedAt "2026-01-24T21:50:55.842624" ;
+    ns2:name "Test Process" ;
+    ns2:status "active" ;
+    ns2:version "1.0" ;
+    ns3:hasElement <http://example.org/bpmn/start>,
+        <http://example.org/bpmn/test> ;
+    rdfs:comment "Test process" .
+
+<http://example.org/bpmn/end> a ns1:endEvent ;
+    ns1:hasParent <http://example.org/bpmn/test> ;
+    ns1:incoming <http://example.org/bpmn/flow> .
+
+<http://example.org/bpmn/flow> a ns1:sequenceFlow ;
+    ns1:hasParent <http://example.org/bpmn/test> ;
+    ns1:sourceRef <http://example.org/bpmn/start> ;
+    ns1:targetRef <http://example.org/bpmn/end> .
+
+<http://example.org/bpmn/start> a ns1:startEvent ;
+    ns1:hasParent <http://example.org/bpmn/test> ;
+    ns1:outgoing <http://example.org/bpmn/flow> .
+
+<http://example.org/bpmn/test> a ns1:process ;
+    ns1:name "Test" .
+

@@ -1,7 +1,7 @@
 # CI Profile Summary
 
-- Created: `2026-02-14T11:04:46.564471`
-- Python: `3.11.14`
+- Created: `2026-03-08T02:39:14.987146`
+- Python: `3.10.11`
 - Platform: `win32`
 - Success: `True`
 - Steps: `2/2`
@@ -10,8 +10,8 @@
 
 | Step | Exit | Duration (s) | Success |
 |---|---:|---:|---|
-| minimal_tests | 0 | 18.583 | True |
-| deterministic_eval | 0 | 19.409 | True |
+| minimal_tests | 0 | 16.219 | True |
+| deterministic_eval | 0 | 11.826 | True |
 
 ## Eval Snapshot
 
@@ -20,4 +20,4 @@
 - skipped_runs: `0`
 - successful_runs: `1`
 - success_rate: `100.0`
-- avg_duration_sec: `11.271`
+- avg_duration_sec: `7.696`

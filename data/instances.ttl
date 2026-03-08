@@ -1,0 +1,19 @@
+@prefix ns1: <http://example.org/instance/> .
+@prefix ns2: <http://example.org/variables/> .
+
+ns1:d5026c2b-734f-4d7f-8268-545f648c3ea3 a ns1:ProcessInstance ;
+    ns1:createdAt "2026-01-24T21:50:55.850156" ;
+    ns1:hasToken ns1:token_d5026c2b-734f-4d7f-8268-545f648c3ea3 ;
+    ns1:hasVariable ns2:d5026c2b-734f-4d7f-8268-545f648c3ea3_foo ;
+    ns1:processDefinition <http://example.org/process/fec8e046-de2a-418d-a2e5-83209e394c52> ;
+    ns1:status "COMPLETED" ;
+    ns1:updatedAt "2026-01-24T21:50:55.858671" .
+
+ns1:token_d5026c2b-734f-4d7f-8268-545f648c3ea3 a ns1:Token ;
+    ns1:belongsTo ns1:d5026c2b-734f-4d7f-8268-545f648c3ea3 ;
+    ns1:currentNode <http://example.org/bpmn/end> ;
+    ns1:status "CONSUMED" .
+
+ns2:d5026c2b-734f-4d7f-8268-545f648c3ea3_foo ns2:name "foo" ;
+    ns2:value "bar" .
+

@@ -1,0 +1,14 @@
+@prefix ns1: <http://example.org/audit/> .
+
+ns1:event_07f732ad-ad0c-4877-8836-73bc536eb757 a ns1:Event ;
+    ns1:eventType "CREATED" ;
+    ns1:instance <http://example.org/instance/d5026c2b-734f-4d7f-8268-545f648c3ea3> ;
+    ns1:timestamp "2026-01-24T21:50:55.851156" ;
+    ns1:user "System" .
+
+ns1:event_632d5657-7fc8-4647-aab2-21f074a7a8dc a ns1:Event ;
+    ns1:eventType "COMPLETED" ;
+    ns1:instance <http://example.org/instance/d5026c2b-734f-4d7f-8268-545f648c3ea3> ;
+    ns1:timestamp "2026-01-24T21:50:55.858671" ;
+    ns1:user "System" .
+
